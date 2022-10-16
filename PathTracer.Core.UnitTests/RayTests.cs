@@ -6,7 +6,7 @@ public class RayTests
     public void Constructor_WithZeroDirection_ThrowsArgumentException()
     {
         // Arrange / Act
-        var action = () => { new Ray(Vector3.Zero, Vector3.Zero); };
+        var action = () => { new Ray { Origin = Vector3.Zero, Direction = Vector3.Zero }; };
 
         // Assert
         Assert.Throws<ArgumentException>(action);
@@ -17,7 +17,11 @@ public class RayTests
     public void GetPoint_WithValue_ReturnCorrectResult(Vector3 expected, Vector3 origin, Vector3 direction, float t)
     {
         // Arrange
-        var ray = new Ray(origin, direction);
+        var ray = new Ray
+        {
+            Origin = origin, 
+            Direction = direction
+        };
 
         // Act
         var result = ray.GetPoint(t);

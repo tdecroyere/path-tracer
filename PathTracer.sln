@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathTracer.Core", "PathTrac
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathTracer.Core.UnitTests", "PathTracer.Core.UnitTests\PathTracer.Core.UnitTests.csproj", "{16270DFE-487C-4AE8-A401-50439C98F758}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathTracer.Core.PerformanceTests", "PathTracer.Core.PerformanceTests\PathTracer.Core.PerformanceTests.csproj", "{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{16270DFE-487C-4AE8-A401-50439C98F758}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{16270DFE-487C-4AE8-A401-50439C98F758}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{16270DFE-487C-4AE8-A401-50439C98F758}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

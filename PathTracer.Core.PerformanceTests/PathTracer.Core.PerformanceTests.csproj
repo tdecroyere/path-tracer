@@ -4,15 +4,15 @@
     <ProjectReference Include="..\PathTracer.Core\PathTracer.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotnet" Version="0.13.2" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <LangVersion>preview</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-  
-  <ItemGroup>
-    <PackageReference Include="System.IO.Pipelines" Version="7.0.0-rc.1.22426.10" />
-  </ItemGroup>
+
 </Project>

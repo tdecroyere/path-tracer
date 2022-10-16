@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.IO.Pipelines;
 using System.Numerics;
 using PathTracer.Core;
 
@@ -37,7 +38,12 @@ for (var i = 0; i < outputHeight; i++)
         var u = (float)j / (outputWidth - 1); //TODO: What is the effect if we don't include the -1?
         var v = (float)i / (outputHeight - 1); //TODO: What is the effect if we don't include the -1?
 
-        var ray = new Ray(cameraPosition, Vector3.Normalize(lowerLeftCorner + u * horizontal + v * vertical - cameraPosition));
+        var ray = new Ray
+        {
+            Origin = cameraPosition, 
+            Direction = Vector3.Normalize(lowerLeftCorner + u * horizontal + v * vertical - cameraPosition)
+        };
+
         var color = RayColor(ray);
 
         // TODO: Do something better here, we need to revert the pixel in y coordinate so that the viewport Y point UP
@@ -53,9 +59,11 @@ Console.WriteLine($"Render done in {stopwatch.Elapsed.TotalSeconds}s");
 Console.WriteLine($"Writing file: {outputPath}");
 
 // Save image to disk
+var pipe = new Pipe();
+
 var directory = Path.GetDirectoryName(outputPath);
 
-if (!Directory.Exists(directory))
+if (directory != null && !Directory.Exists(directory))
 {
     Directory.CreateDirectory(directory);
 }
