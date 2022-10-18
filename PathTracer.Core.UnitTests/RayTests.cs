@@ -11,7 +11,7 @@ public class RayTests
         // Assert
         Assert.Throws<ArgumentException>(action);
     }
-
+    
     [Theory]
     [MemberData(nameof(GetPointTestData))]
     public void GetPoint_WithValue_ReturnCorrectResult(Vector3 expected, Vector3 origin, Vector3 direction, float t)
@@ -34,5 +34,6 @@ public class RayTests
     {
         yield return new object[] { new Vector3(1.0f, 1.0f, 1.0f), new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f, 1.0f, 1.0f), 1.0f };
         yield return new object[] { new Vector3(0.5f, 0.5f, 0.5f), new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f, 1.0f, 1.0f), 0.5f };
+        yield return new object[] { new Vector3(4.0f, 4.0f, 4.0f), new Vector3(2.0f, 2.0f, 2.0f), new Vector3(1.0f, 1.0f, 1.0f), 2.0f };
     }
 }

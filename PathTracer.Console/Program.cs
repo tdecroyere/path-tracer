@@ -13,16 +13,6 @@ var outputHeight = (int)(outputWidth / aspectRatio);
 var outputPath = "./TestData/Output.ppm";
 var outputData = new Vector3[outputWidth * outputHeight];
 
-// Setup Camera
-var viewportHeight = 2.0f;
-var viewportWidth = viewportHeight * aspectRatio;
-var focalLength = 1.0f;
-
-var cameraPosition = new Vector3();
-var horizontal = new Vector3(viewportWidth, 0, 0);
-var vertical = new Vector3(0, viewportHeight, 0);
-var lowerLeftCorner = cameraPosition - (horizontal * 0.5f) - (vertical * 0.5f) - new Vector3(0, 0, focalLength);
-
 // Rendering
 var stopwatch = new Stopwatch();
 stopwatch.Start();
@@ -35,16 +25,15 @@ for (var i = 0; i < outputHeight; i++)
 
     for (var j = 0; j < outputWidth; j++)
     {
-        var u = (float)j / (outputWidth - 1); //TODO: What is the effect if we don't include the -1?
-        var v = (float)i / (outputHeight - 1); //TODO: What is the effect if we don't include the -1?
+        var u = (float)j / outputWidth;
+        var v = (float)i / outputHeight;
 
-        var ray = new Ray
-        {
-            Origin = cameraPosition, 
-            Direction = Vector3.Normalize(lowerLeftCorner + u * horizontal + v * vertical - cameraPosition)
-        };
+        var pixelCoordinates = new Vector2(u, v);
+        
+        // Remap pixel coordinates to [-1, 1] range
+        pixelCoordinates = pixelCoordinates * 2.0f - new Vector2(1.0f, 1.0f);
 
-        var color = RayColor(ray);
+        var color = PixelShader(pixelCoordinates);
 
         // TODO: Do something better here, we need to revert the pixel in y coordinate so that the viewport Y point UP
         outputData[(outputHeight - 1 - i) * outputWidth + j] = color;
@@ -59,7 +48,7 @@ Console.WriteLine($"Render done in {stopwatch.Elapsed.TotalSeconds}s");
 Console.WriteLine($"Writing file: {outputPath}");
 
 // Save image to disk
-var pipe = new Pipe();
+//var pipe = new Pipe();
 
 var directory = Path.GetDirectoryName(outputPath);
 
@@ -88,6 +77,41 @@ for (var i = 0; i < outputHeight; i++)
     }
 }
 
+static Vector3 PixelShader(Vector2 pixelCoordinates)
+{
+    var center = new Vector3(0.0f, 0.0f, 2.0f);
+    var radius = 0.5f;
+
+    var ray = new Ray
+    {
+        Origin = -center,
+        Direction = Vector3.Normalize(new Vector3(pixelCoordinates.X, pixelCoordinates.Y, 1.0f))
+    };
+
+    // Construct quadratic function components
+    var a = Vector3.Dot(ray.Direction, ray.Direction);
+    var b = 2.0f * Vector3.Dot(ray.Origin, ray.Direction);
+    var c = Vector3.Dot(ray.Origin, ray.Origin) - radius * radius;
+
+    // Solve quadratic function
+    var discriminant = b * b - 4.0f * a * c;
+
+    if (discriminant < 0)
+    {
+        return Vector3.Zero;
+    }
+
+    var t = (-b + MathF.Sqrt(discriminant)) / (2.0f * a);
+
+    // Compute normal
+    var intersectPoint = ray.GetPoint(t);
+    // TODO: Because we substracted the center for the ray origin,
+    // the intersect point has already the center of the sphere substracted
+    var normal = Vector3.Normalize(intersectPoint);
+
+    // Remap the normal to color space
+    return 0.5f * (normal + new Vector3(1, 1, 1));
+}
 
 static float HitSphere(Vector3 center, float radius, Ray ray)
 {

@@ -5,8 +5,8 @@
     <LangVersion>preview</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-
     <IsPackable>false</IsPackable>
+    <NoWarn>CA1806</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

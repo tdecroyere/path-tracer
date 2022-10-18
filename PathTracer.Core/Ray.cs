@@ -2,29 +2,24 @@ namespace PathTracer.Core;
 
 public readonly record struct Ray
 {
-    public Ray(string test)
-    {
+    private readonly Vector3 _direction;
 
-    }
-    // TODO: Remove the backing field by using the new C# 11 syntax
-    private readonly Vector3 direction;
-
-    public Vector3 Origin { get; init; }
-    public Vector3 Direction 
+    public required Vector3 Origin { get; init; }
+    public required Vector3 Direction 
     { 
         get
         {
-            return this.direction;
+            return _direction;
         } 
         
         init
         {
             if (value == Vector3.Zero)
             {
-                throw new ArgumentException(nameof(direction), "Direction vector must be a valid unit vector.");
+                throw new ArgumentException("Direction vector must be a valid unit vector.", nameof(Direction));
             }
 
-            this.direction = value;
+            _direction = value;
         } 
     }
 
