@@ -44,7 +44,9 @@ stopwatch.Stop();
 
 Console.ResetColor();
 Console.WriteLine();
+Console.ForegroundColor = ConsoleColor.Green;
 Console.WriteLine($"Render done in {stopwatch.Elapsed.TotalSeconds}s");
+Console.ResetColor();
 Console.WriteLine($"Writing file: {outputPath}");
 
 // Save image to disk
@@ -101,7 +103,12 @@ static Vector3 PixelShader(Vector2 pixelCoordinates)
         return Vector3.Zero;
     }
 
-    var t = (-b + MathF.Sqrt(discriminant)) / (2.0f * a);
+    var t = (-b + -MathF.Sqrt(discriminant)) / (2.0f * a);
+
+    if (t < 0)
+    {
+        return Vector3.Zero;
+    }
 
     // Compute normal
     var intersectPoint = ray.GetPoint(t);
@@ -113,6 +120,7 @@ static Vector3 PixelShader(Vector2 pixelCoordinates)
     return 0.5f * (normal + new Vector3(1, 1, 1));
 }
 
+/*
 static float HitSphere(Vector3 center, float radius, Ray ray)
 {
     var oc = ray.Origin - center;
@@ -150,4 +158,4 @@ static Vector3 RayColor(Ray ray)
     t = 0.5f * (ray.Direction.Y + 1.0f);
 
     return Vector3.Lerp(color1, color2, t);
-}
+}*/

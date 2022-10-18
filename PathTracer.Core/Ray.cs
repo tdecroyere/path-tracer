@@ -5,6 +5,7 @@ public readonly record struct Ray
     private readonly Vector3 _direction;
 
     public required Vector3 Origin { get; init; }
+
     public required Vector3 Direction 
     { 
         get
@@ -16,7 +17,7 @@ public readonly record struct Ray
         {
             if (value == Vector3.Zero)
             {
-                throw new ArgumentException("Direction vector must be a valid unit vector.", nameof(Direction));
+                throw new ArgumentException("Direction vector must be a valid vector.", nameof(Direction));
             }
 
             _direction = value;
