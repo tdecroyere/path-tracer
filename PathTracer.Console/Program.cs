@@ -7,6 +7,8 @@ Console.ForegroundColor = ConsoleColor.White;
 Console.WriteLine("Ray Trace Console");
 
 // Setup Image
+// TODO: For the renderer, we need to have an abstraction for the image
+// so that we can have multiple render targets.
 var aspectRatio = 16.0f / 9.0f;
 var outputWidth = 800;
 var outputHeight = (int)(outputWidth / aspectRatio);
@@ -33,7 +35,10 @@ for (var i = 0; i < outputHeight; i++)
         // Remap pixel coordinates to [-1, 1] range
         pixelCoordinates = pixelCoordinates * 2.0f - new Vector2(1.0f, 1.0f);
 
+        pixelCoordinates.X *= aspectRatio;
+
         var color = PixelShader(pixelCoordinates);
+        color = Vector3.Clamp(color, Vector3.Zero, new Vector3(1.0f));
 
         // TODO: Do something better here, we need to revert the pixel in y coordinate so that the viewport Y point UP
         outputData[(outputHeight - 1 - i) * outputWidth + j] = color;
@@ -79,15 +84,19 @@ for (var i = 0; i < outputHeight; i++)
     }
 }
 
+// TODO: Change return type to Vector4
 static Vector3 PixelShader(Vector2 pixelCoordinates)
 {
-    var center = new Vector3(0.0f, 0.0f, 2.0f);
+    var cameraPosition = new Vector3(0.0f, 0.0f, -2.0f);
+    var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
+
+    var center = new Vector3(0.0f, 0.0f, 0.0f);
     var radius = 0.5f;
 
     var ray = new Ray
     {
-        Origin = -center,
-        Direction = Vector3.Normalize(new Vector3(pixelCoordinates.X, pixelCoordinates.Y, 1.0f))
+        Origin = cameraPosition,
+        Direction = new Vector3(pixelCoordinates.X, pixelCoordinates.Y, 1.0f)
     };
 
     // Construct quadratic function components
@@ -98,26 +107,28 @@ static Vector3 PixelShader(Vector2 pixelCoordinates)
     // Solve quadratic function
     var discriminant = b * b - 4.0f * a * c;
 
-    if (discriminant < 0)
+    if (discriminant < 0.0f)
     {
         return Vector3.Zero;
     }
 
     var t = (-b + -MathF.Sqrt(discriminant)) / (2.0f * a);
 
-    if (t < 0)
+    if (t < 0.0f)
     {
         return Vector3.Zero;
     }
 
     // Compute normal
     var intersectPoint = ray.GetPoint(t);
-    // TODO: Because we substracted the center for the ray origin,
-    // the intersect point has already the center of the sphere substracted
-    var normal = Vector3.Normalize(intersectPoint);
+    var normal = Vector3.Normalize(intersectPoint - center);
 
     // Remap the normal to color space
-    return 0.5f * (normal + new Vector3(1, 1, 1));
+    //return 0.5f * (normal + new Vector3(1, 1, 1));
+
+    // Compute light
+    var light = MathF.Max(Vector3.Dot(normal, -lightDirection), 0);
+    return light * new Vector3(1, 1, 0);
 }
 
 /*

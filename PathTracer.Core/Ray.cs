@@ -11,7 +11,7 @@ public readonly record struct Ray
         get
         {
             return _direction;
-        } 
+        }
         
         init
         {
@@ -21,7 +21,7 @@ public readonly record struct Ray
             }
 
             _direction = value;
-        } 
+        }
     }
 
     public Vector3 GetPoint(float t)
