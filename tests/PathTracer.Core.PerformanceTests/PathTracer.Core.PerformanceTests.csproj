@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\PathTracer.Core\PathTracer.Core.csproj" />
+    <ProjectReference Include="..\..\src\PathTracer.Core\PathTracer.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

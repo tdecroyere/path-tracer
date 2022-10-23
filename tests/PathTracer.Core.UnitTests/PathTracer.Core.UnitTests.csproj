@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PathTracer.Core\PathTracer.Core.csproj" />
+    <ProjectReference Include="..\..\src\PathTracer.Core\PathTracer.Core.csproj" />
   </ItemGroup>
 
 </Project>
