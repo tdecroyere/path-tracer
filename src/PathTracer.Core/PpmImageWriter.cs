@@ -54,7 +54,7 @@ public class PpmImageWriter : IImageWriter
                 var blue = (int)(color.Z * 255);
                 
                 tempBuffer.TryWrite(provider: null, $"{red} {green} {blue}", out var charsWritten);
-                writer.WriteLine(tempBuffer.Slice(0, charsWritten));
+                writer.WriteLine(tempBuffer[..charsWritten]);
             }
         }
 
