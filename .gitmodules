@@ -1,3 +1,0 @@
-[submodule "external/usd"]
-	path = external/usd
-	url = https://github.com/PixarAnimationStudios/USD.git
