@@ -15,6 +15,14 @@ var outputHeight = (int)(outputWidth / aspectRatio);
 var outputPath = "./TestData/Output.ppm";
 var outputData = new Vector4[outputWidth * outputHeight];
 
+var camera = new Camera
+{
+    AspectRatio = aspectRatio,
+    CameraTarget = new Vector3(0, 0.5f, 1.0f)
+};
+
+var rayGenerator = new RayGenerator(camera);
+
 // Rendering
 var stopwatch = new Stopwatch();
 stopwatch.Start();
@@ -35,9 +43,7 @@ for (var i = 0; i < outputHeight; i++)
         // Remap pixel coordinates to [-1, 1] range
         pixelCoordinates = pixelCoordinates * 2.0f - new Vector2(1.0f, 1.0f);
 
-        pixelCoordinates.X *= aspectRatio;
-
-        var color = PixelShader(pixelCoordinates);
+        var color = PixelShader(pixelCoordinates, rayGenerator);
         color = Vector4.Clamp(color, Vector4.Zero, new Vector4(1.0f));
 
         // TODO: Do something better here, we need to revert the pixel in y coordinate so that the viewport Y point UP
@@ -84,18 +90,12 @@ for (var i = 0; i < outputHeight; i++)
     }
 }
 
-static Vector4 PixelShader(Vector2 pixelCoordinates)
+static Vector4 PixelShader(Vector2 pixelCoordinates, RayGenerator rayGenerator)
 {
-    var cameraPosition = new Vector3(0.0f, 0.0f, -2.0f);
     var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
-
     var radius = 0.5f;
 
-    var ray = new Ray
-    {
-        Origin = cameraPosition,
-        Direction = new Vector3(pixelCoordinates.X, pixelCoordinates.Y, 1.0f)
-    };
+    var ray = rayGenerator.GenerateRay(pixelCoordinates);
 
     // Construct quadratic function components
     var a = Vector3.Dot(ray.Direction, ray.Direction);
