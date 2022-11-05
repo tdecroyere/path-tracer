@@ -1,4 +1,6 @@
 {
-    "cmake.configureOnOpen": false,
-    "cmake.sourceDirectory": "${workspaceFolder}/external/usd/extras/usd/tutorials"
+    "coverage-gutters.coverageFileNames": [
+        "lcov-PathTracer.UnitTests.info"
+    ],
+    "coverage-gutters.showLineCoverage": true
 }

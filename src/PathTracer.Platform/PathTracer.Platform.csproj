@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    
+    <!-- TODO: Try to use the main project output path -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">../../Build/Debug/MacOS/PathTracer.app/Contents/MacOS</OutputPath>
+    
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <Target Name="BuildPlatformNative" BeforeTargets="CoreCompile" >
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+      <PowerShellCommand>powershell</PowerShellCommand>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+      <PowerShellCommand>pwsh</PowerShellCommand>
+      <BuildScript>$(MSBuildProjectDirectory)/Platforms/MacOS/Build.ps1</BuildScript>
+    </PropertyGroup>
+    <Exec Command="$(PowerShellCommand) -ExecutionPolicy Unrestricted -NoProfile -File $(BuildScript) -outputDirectory $(OutputPath)" />
+  </Target>
+
+</Project>

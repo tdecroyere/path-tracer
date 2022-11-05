@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/PathTracer.Console/PathTracer.Console.csproj",
+                "${workspaceFolder}/src/PathTracer.Console/PathTracer.Console.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -19,7 +19,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/PathTracer.Console/PathTracer.Console.csproj",
+                "${workspaceFolder}/src/PathTracer.Console/PathTracer.Console.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -33,7 +33,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/PathTracer.Console/PathTracer.Console.csproj"
+                "${workspaceFolder}/src/PathTracer.Console/PathTracer.Console.csproj"
             ],
             "problemMatcher": "$msCompile"
         }

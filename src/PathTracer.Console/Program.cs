@@ -17,8 +17,7 @@ var outputData = new Vector4[outputWidth * outputHeight];
 
 var camera = new Camera
 {
-    AspectRatio = aspectRatio,
-    CameraTarget = new Vector3(0, 0.5f, 1.0f)
+    AspectRatio = aspectRatio
 };
 
 var rayGenerator = new RayGenerator(camera);
