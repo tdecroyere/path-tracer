@@ -20,11 +20,11 @@ var camera = new Camera
     AspectRatio = aspectRatio
 };
 
-var rayGenerator = new RayGenerator(camera);
-
 // Rendering
 var stopwatch = new Stopwatch();
 stopwatch.Start();
+
+var rayGenerator = new RayGenerator(camera);
 
 for (var i = 0; i < outputHeight; i++)
 {

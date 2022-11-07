@@ -23,6 +23,12 @@ public enum NativeWindowState
 
 public readonly record struct NativeAppStatus
 {
+    public NativeAppStatus()
+    {
+        IsRunning = 1;
+        IsActive = 1;
+    }
+
     public int IsRunning { get; init; }
     public int IsActive { get; init; }
 }

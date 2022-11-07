@@ -8,7 +8,8 @@ try
     Push-Location ./Platforms/MacOS
 
     mkdir obj | Out-Null
-    swiftc *.swift -wmo -emit-library -module-name "PathTracerPlatformNative" -Onone -g -o "obj/PathTracer.Platform.Native.dylib" -I "." -debug-info-format=dwarf -swift-version 5 -target x86_64-apple-macosx13 -Xlinker -rpath -Xlinker "@executable_path/../Frameworks"
+    swiftc *.swift -wmo -emit-library -module-name "PathTracerPlatformNative" -O -g -o "obj/PathTracer.Platform.Native.dylib" -I "." -debug-info-format=dwarf -swift-version 5 -target x86_64-apple-macosx13 -Xlinker -rpath -Xlinker "@executable_path/../Frameworks"
+    #swiftc *.swift -wmo -emit-library -module-name "PathTracerPlatformNative" -Onone -g -o "obj/PathTracer.Platform.Native.dylib" -I "." -debug-info-format=dwarf -swift-version 5 -target x86_64-apple-macosx13 -Xlinker -rpath -Xlinker "@executable_path/../Frameworks"
 
     if (-Not $?) {
         Pop-Location

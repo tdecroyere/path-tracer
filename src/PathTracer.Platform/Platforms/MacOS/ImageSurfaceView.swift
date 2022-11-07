@@ -7,6 +7,7 @@ class ImageSurfaceView : NSView {
 
     public override init(frame: CGRect) {
         self.caLayer = CALayer()
+        self.caLayer.isOpaque = true
         super.init(frame: frame)
         self.wantsLayer = true
         self.layerContentsRedrawPolicy = .onSetNeedsDisplay

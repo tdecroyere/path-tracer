@@ -76,18 +76,20 @@ public func updateImageSurface(imageSurface: UnsafeMutablePointer<Int8>, data: U
     let width = nativeImageSurface.width
     let height = nativeImageSurface.height
    
-    let imageRef = createCGImageFromBitmap(bitmap: data, width: width, height: height)
-    
-    // TODO: ImageScale
-    view.caLayer.contents = imageRef
-    view.caLayer.contentsScale = 1
-}
-
-func createCGImageFromBitmap(bitmap: UnsafeMutablePointer<UInt8>, width: Int, height: Int) -> CGImage {
+    // // TODO: ImageScale
+    // // TODO: Is there a faster way?
     let colorSpace = CGColorSpaceCreateDeviceRGB()
-    let context = CGContext(data: bitmap, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4, space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    let context = CGContext(data: data, 
+                            width: width, 
+                            height: height, 
+                            bitsPerComponent: 8, 
+                            bytesPerRow: width * 4, 
+                            space: colorSpace, 
+                            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+
     let imageRef = context?.makeImage()
-    return imageRef!
+    view.caLayer.contents = imageRef
+    //view.caLayer.render(in: context!)
 }
 
 @_cdecl("ProcessSystemMessages")
