@@ -16,6 +16,7 @@ var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer"
 var imageWidth = 800;
 var imageHeight = (int)(imageWidth / aspectRatio);
 var nativeSurface = nativeUIService.CreateImageSurface(nativeWindow, imageWidth, imageHeight);
+var nativeImageInfo = nativeUIService.GetImageSurfaceInfo(nativeSurface);
 
 var appStatus = new NativeAppStatus();
 
@@ -67,7 +68,7 @@ while (appStatus.IsRunning == 1)
             var color = PixelShader(pixelCoordinates, rayGenerator);
             color = Vector4.Clamp(color, Vector4.Zero, new Vector4(1.0f)) * 255.0f;
 
-            imageData[pixelRowIndex + j] = (uint)color.W << 24 | (uint)color.Z << 16 | (uint)color.Y << 8 | (uint)color.X; 
+            imageData[pixelRowIndex + j] = (uint)color.W << nativeImageInfo.AlphaShift | (uint)color.Z << nativeImageInfo.BlueShift | (uint)color.Y << nativeImageInfo.GreenShift | (uint)color.X << nativeImageInfo.RedShift; 
         }
     });
     

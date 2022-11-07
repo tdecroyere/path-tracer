@@ -36,8 +36,8 @@ public func createApplication(applicationName: UnsafeMutablePointer<Int8>) -> Un
     return Unmanaged.passRetained(application).toOpaque()
 }
 
-@_cdecl("CreateWindow")
-public func createWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>, width: Int, height: Int, windowState: NativeWindowState) -> UnsafeMutableRawPointer {
+@_cdecl("CreateNativeWindow")
+public func createNativeWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>, width: Int, height: Int, windowState: NativeWindowState) -> UnsafeMutableRawPointer {
     let window = NSWindow(contentRect: NSMakeRect(0, 0, CGFloat(width), CGFloat(height)), 
                             styleMask: [.resizable, .titled, .miniaturizable, .closable], 
                             backing: .buffered, 
@@ -67,6 +67,11 @@ public func createImageSurface(window: UnsafeMutablePointer<Int8>, width: Int, h
 
     let nativeImageSurface = NativeImageSurface(view, width: width, height: height)
     return Unmanaged.passRetained(nativeImageSurface).toOpaque()
+}
+
+@_cdecl("GetImageSurfaceInfo")
+public func getImageSurfaceInfo(imageSurface: UnsafeMutablePointer<Int8>) -> NativeImageSurfaceInfo {
+    return NativeApplication(RedShift: 0, GreenShift: 8, BlueShift: 16, AlphaShift: 24)
 }
 
 @_cdecl("UpdateImageSurface")

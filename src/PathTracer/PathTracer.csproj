@@ -12,6 +12,7 @@
     <Nullable>enable</Nullable>
 
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">../../Build/Debug/Windows</OutputPath>
     <OutputPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">../../Build/Debug/MacOS/PathTracer.app/Contents/MacOS</OutputPath>
   </PropertyGroup>
 

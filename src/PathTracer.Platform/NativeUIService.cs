@@ -39,6 +39,14 @@ public readonly record struct NativeWindowSize
     public int Height { get; init; }
 }
 
+public readonly record struct NativeImageSurfaceInfo
+{
+    public int RedShift { get; init; }
+    public int GreenShift { get; init; }
+    public int BlueShift { get; init; }
+    public int AlphaShift { get; init; }
+}
+
 public interface INativeUIService
 {
     NativeApplication CreateApplication(string applicationName);
@@ -46,6 +54,7 @@ public interface INativeUIService
     
     NativeWindow CreateWindow(NativeApplication application, string title, int width, int height, NativeWindowState windowState);
     NativeImageSurface CreateImageSurface(NativeWindow nativeWindow, int width, int height);
+    NativeImageSurfaceInfo GetImageSurfaceInfo(NativeImageSurface imageSurface);
     void UpdateImageSurface(NativeImageSurface imageSurface, ReadOnlySpan<byte> data);
 }
 
@@ -68,7 +77,7 @@ public class NativeUIService : INativeUIService
 
     public NativeWindow CreateWindow(NativeApplication application, string title, int width, int height, NativeWindowState windowState)
     {
-        var nativePointer = NativeUIServiceInterop.CreateWindow(application.NativePointer, title, width, height, windowState);
+        var nativePointer = NativeUIServiceInterop.CreateNativeWindow(application.NativePointer, title, width, height, windowState);
         
         return new NativeWindow
         {
@@ -84,6 +93,11 @@ public class NativeUIService : INativeUIService
         {
             NativePointer = nativePointer
         };
+    }
+
+    public NativeImageSurfaceInfo GetImageSurfaceInfo(NativeImageSurface imageSurface)
+    {
+        return NativeUIServiceInterop.GetImageSurfaceInfo(imageSurface.NativePointer);
     }
 
     public void UpdateImageSurface(NativeImageSurface imageSurface, ReadOnlySpan<byte> data)
