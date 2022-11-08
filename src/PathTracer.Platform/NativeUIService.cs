@@ -53,6 +53,7 @@ public interface INativeUIService
     NativeAppStatus ProcessSystemMessages(NativeApplication application);
     
     NativeWindow CreateWindow(NativeApplication application, string title, int width, int height, NativeWindowState windowState);
+    
     NativeImageSurface CreateImageSurface(NativeWindow nativeWindow, int width, int height);
     NativeImageSurfaceInfo GetImageSurfaceInfo(NativeImageSurface imageSurface);
     void UpdateImageSurface(NativeImageSurface imageSurface, ReadOnlySpan<byte> data);

@@ -15,11 +15,13 @@ class NativeWindow {
 
 class NativeImageSurface {
     let imageSurfaceView: ImageSurfaceView
+    let window: NSWindow
     let width: Int
     let height: Int
 
-    init(_ imageSurfaceView: ImageSurfaceView, width: Int, height: Int) {
+    init(_ imageSurfaceView: ImageSurfaceView, window: NSWindow, width: Int, height: Int) {
         self.imageSurfaceView = imageSurfaceView
+        self.window = window
         self.width = width
         self.height = height
     }
@@ -65,36 +67,64 @@ public func createImageSurface(window: UnsafeMutablePointer<Int8>, width: Int, h
     view.frame = contentView.frame
     contentView.addSubview(view)
 
-    let nativeImageSurface = NativeImageSurface(view, width: width, height: height)
+    let nativeImageSurface = NativeImageSurface(view, window: nativeWindow.window, width: width, height: height)
     return Unmanaged.passRetained(nativeImageSurface).toOpaque()
 }
 
 @_cdecl("GetImageSurfaceInfo")
 public func getImageSurfaceInfo(imageSurface: UnsafeMutablePointer<Int8>) -> NativeImageSurfaceInfo {
-    return NativeApplication(RedShift: 0, GreenShift: 8, BlueShift: 16, AlphaShift: 24)
+    return NativeImageSurfaceInfo(RedShift: 0, GreenShift: 8, BlueShift: 16, AlphaShift: 24)
 }
 
 @_cdecl("UpdateImageSurface")
 public func updateImageSurface(imageSurface: UnsafeMutablePointer<Int8>, data: UnsafeMutablePointer<UInt8>) {
-    let nativeImageSurface = Unmanaged<NativeImageSurface>.fromOpaque(imageSurface).takeUnretainedValue()
-    let view = nativeImageSurface.imageSurfaceView
-    let width = nativeImageSurface.width
-    let height = nativeImageSurface.height
-   
-    // // TODO: ImageScale
-    // // TODO: Is there a faster way?
-    let colorSpace = CGColorSpaceCreateDeviceRGB()
-    let context = CGContext(data: data, 
-                            width: width, 
-                            height: height, 
-                            bitsPerComponent: 8, 
-                            bytesPerRow: width * 4, 
-                            space: colorSpace, 
-                            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+    autoreleasepool {
+        let nativeImageSurface = Unmanaged<NativeImageSurface>.fromOpaque(imageSurface).takeUnretainedValue()
+        let view = nativeImageSurface.imageSurfaceView
+        let width = nativeImageSurface.width
+        let height = nativeImageSurface.height
 
-    let imageRef = context?.makeImage()
-    view.caLayer.contents = imageRef
-    //view.caLayer.render(in: context!)
+        // // TODO: ImageScale
+        // // TODO: Is there a faster way?
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = CGContext(data: data, 
+                                width: width, 
+                                height: height, 
+                                bitsPerComponent: 8, 
+                                bytesPerRow: width * 4, 
+                                space: colorSpace, 
+                                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+
+        let imageRef = context?.makeImage()
+        view.caLayer.contents = imageRef
+        //view.caLayer.render(in: context!)
+
+        /*let rect = CGRect(x: 0, y: 0, width: width, height: height)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let provider = CGDataProvider(dataInfo: nil, data: data, size: width * height * 4, releaseData: { data, _, _ in })
+
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue)
+        let image = CGImage(width: width,
+                            height: height,
+                            bitsPerComponent: 8,
+                            bitsPerPixel: 32,
+                            bytesPerRow: width * 4,
+                            space: colorSpace,
+                            bitmapInfo: bitmapInfo, 
+                            provider: provider!, 
+                            decode: nil, 
+                            shouldInterpolate: false, 
+                            intent: .defaultIntent)
+
+        let graphicsContext = NSGraphicsContext(window: nativeImageSurface.window).cgContext
+        graphicsContext.draw(image!, in: rect)
+        graphicsContext.flush()
+        
+        view.caLayer.render(in: graphicsContext)
+        
+        let contentView = nativeImageSurface.window.contentView! as NSView
+        contentView.setNeedsDisplay(rect)*/
+    }
 }
 
 @_cdecl("ProcessSystemMessages")
