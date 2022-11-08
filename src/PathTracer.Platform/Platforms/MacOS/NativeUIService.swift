@@ -38,8 +38,8 @@ public func createApplication(applicationName: UnsafeMutablePointer<Int8>) -> Un
     return Unmanaged.passRetained(application).toOpaque()
 }
 
-@_cdecl("CreateNativeWindow")
-public func createNativeWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>, width: Int, height: Int, windowState: NativeWindowState) -> UnsafeMutableRawPointer {
+@_cdecl("CreateWindow")
+public func createWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>, width: Int, height: Int, windowState: NativeWindowState) -> UnsafeMutableRawPointer {
     let window = NSWindow(contentRect: NSMakeRect(0, 0, CGFloat(width), CGFloat(height)), 
                             styleMask: [.resizable, .titled, .miniaturizable, .closable], 
                             backing: .buffered, 

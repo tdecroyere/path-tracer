@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace PathTracer.Platform;
+namespace PathTracer.Platform.NativeUI;
 
 internal static partial class NativeUIServiceInterop
 {
@@ -8,10 +8,10 @@ internal static partial class NativeUIServiceInterop
     internal static partial nint CreateApplication(string applicationName);
 
     [LibraryImport("PathTracer.Platform.Native")]
-    internal static partial NativeAppStatus ProcessSystemMessages(nint application);
+    internal static partial NativeApplicationStatus ProcessSystemMessages(nint application);
 
     [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-    internal static partial nint CreateNativeWindow(nint application, string title, int width, int height, NativeWindowState windowState);
+    internal static partial nint CreateWindow(nint application, string title, int width, int height, NativeWindowState windowState);
 
     [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
     internal static partial void SetWindowTitle(nint window, string title);

@@ -1,5 +1,7 @@
 #include "WindowsCommon.h"
 
+#undef CreateWindow
+
 LRESULT CALLBACK Win32WindowCallBack(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)

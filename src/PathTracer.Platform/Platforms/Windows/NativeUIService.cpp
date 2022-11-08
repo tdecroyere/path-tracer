@@ -71,7 +71,7 @@ DllExport NativeAppStatus ProcessSystemMessages(void* application)
     return result;
 }
 
-DllExport void* CreateNativeWindow(void* application, unsigned char* title, int width, int height, NativeWindowState windowState)
+DllExport void* CreateWindow(void* application, unsigned char* title, int width, int height, NativeWindowState windowState)
 {
     auto nativeApplication = (NativeApplication*)application;
 

@@ -3,14 +3,17 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using PathTracer.Core;
 using PathTracer.Platform;
+using PathTracer.Platform.NativeUI;
 
-var nativeUIService = new NativeUIService();
+var platformFactory = new PlatformFactory();
+var applicationService = platformFactory.GetApplicationService();
+var nativeUIService = platformFactory.GetNativeUIService();
 
 var windowWidth = 1280;
 var windowHeight = 720;
 var aspectRatio = (float)windowWidth / windowHeight;
 
-var nativeApplication = nativeUIService.CreateApplication("Path Tracer");
+var nativeApplication = applicationService.CreateApplication("Path Tracer");
 var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Normal);
 
 var imageWidth = 800;
@@ -18,7 +21,7 @@ var imageHeight = (int)(imageWidth / aspectRatio);
 var nativeSurface = nativeUIService.CreateImageSurface(nativeWindow, imageWidth, imageHeight);
 var nativeImageInfo = nativeUIService.GetImageSurfaceInfo(nativeSurface);
 
-var appStatus = new NativeAppStatus();
+var appStatus = new NativeApplicationStatus();
 
 var stopwatch = new Stopwatch();
 var systemMessagesStopwatch = new Stopwatch();
@@ -39,7 +42,7 @@ while (appStatus.IsRunning == 1)
     systemMessagesStopwatch.Restart();
     // TODO: Investigate Process System Messages seems to take 2-3 ms
     // It seems it is the rendering of the calayer that's is done with an event
-    appStatus = nativeUIService.ProcessSystemMessages(nativeApplication);
+    appStatus = applicationService.ProcessSystemMessages(nativeApplication);
     systemMessagesStopwatch.Stop();
 
     renderingStopwatch.Restart();
@@ -80,7 +83,7 @@ while (appStatus.IsRunning == 1)
     // TODO: Do better here
     var waitingMS = Math.Clamp(targetMS - stopwatch.ElapsedMilliseconds, 0, targetMS);
 
-    nativeUIService.SetWindowTitle(nativeWindow, $"Path Tracer - Frame: {stopwatch.Elapsed.Milliseconds}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds}ms, Render: {renderingStopwatch.ElapsedMilliseconds}ms, Waiting: {waitingMS}ms)");
+    nativeUIService.SetWindowTitle(nativeWindow, $"Path Tracer - Frame: {stopwatch.Elapsed.Milliseconds.ToString("00")}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds.ToString("00")}ms, Render: {renderingStopwatch.ElapsedMilliseconds.ToString("00")}ms, Waiting: {waitingMS.ToString("00")}ms)");
     Thread.Sleep((int)waitingMS);
 }
 
