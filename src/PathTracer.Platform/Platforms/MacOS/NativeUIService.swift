@@ -58,6 +58,12 @@ public func createNativeWindow(application: UnsafeMutablePointer<Int8>, title: U
     return Unmanaged.passRetained(nativeWindow).toOpaque()
 }
 
+@_cdecl("SetWindowTitle")
+public func setWindowTitle(window: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>) {
+    let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
+    nativeWindow.window.title = String(cString: title)
+}
+
 @_cdecl("CreateImageSurface")
 public func createImageSurface(window: UnsafeMutablePointer<Int8>, width: Int, height: Int) -> UnsafeMutableRawPointer {
     let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
