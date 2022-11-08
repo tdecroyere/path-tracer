@@ -5,6 +5,8 @@
 struct NativeApplication
 {
     HINSTANCE ApplicationInstance;
+    unsigned int MainScreenDpi;
+    float MainScreenScaling;
 };
 
 struct NativeWindow
@@ -15,15 +17,13 @@ struct NativeWindow
 struct NativeImageSurface
 {
     HWND WindowHandle;
-    BITMAPINFO* BitmapInfo;
+    BITMAPINFO BitmapInfo;
     int Width;
     int Height;
 };
 
 DllExport void* CreateApplication(unsigned char* applicationName)
 {
-    printf("Init Windows\n");
-
     auto application = new NativeApplication();
 
     application->ApplicationInstance = (HINSTANCE)GetModuleHandle(nullptr);
@@ -39,10 +39,10 @@ DllExport void* CreateApplication(unsigned char* applicationName)
 	{
         HMODULE shcoreLibrary = LoadLibrary(L"shcore.dll");
 
-		//SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+		SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-        //this->mainScreenDpi = GetDpiForWindow(GetDesktopWindow());
-        //this->mainScreenScaling = static_cast<float>(this->mainScreenDpi) / 96.0f;
+        application->MainScreenDpi = GetDpiForWindow(GetDesktopWindow());
+        application->MainScreenScaling = static_cast<float>(application->MainScreenDpi) / 96.0f;
     }
 
     return application;
@@ -75,18 +75,16 @@ DllExport void* CreateNativeWindow(void* application, unsigned char* title, int 
 {
     auto nativeApplication = (NativeApplication*)application;
 
-    printf("Init Window\n");
-
-    /*RECT clientRectangle;
+    RECT clientRectangle;
     clientRectangle.left = 0;
     clientRectangle.top = 0;
-    clientRectangle.right = static_cast<LONG>(width * this->mainScreenScaling);
-    clientRectangle.bottom = static_cast<LONG>(height * this->mainScreenScaling);
+    clientRectangle.right = static_cast<LONG>(width * nativeApplication->MainScreenScaling);
+    clientRectangle.bottom = static_cast<LONG>(height * nativeApplication->MainScreenScaling);
 
-    AdjustWindowRectExForDpi(&clientRectangle, WS_OVERLAPPEDWINDOW, false, 0, this->mainScreenDpi);*/
+    AdjustWindowRectExForDpi(&clientRectangle, WS_OVERLAPPEDWINDOW, false, 0, nativeApplication->MainScreenDpi);
 
-    //width = clientRectangle.right - clientRectangle.left;
-    //height = clientRectangle.bottom - clientRectangle.top;
+    width = clientRectangle.right - clientRectangle.left;
+    height = clientRectangle.bottom - clientRectangle.top;
 
     // Compute the position of the window to center it 
     RECT desktopRectangle;
@@ -97,7 +95,7 @@ DllExport void* CreateNativeWindow(void* application, unsigned char* title, int 
     // Create the window
     HWND window = CreateWindowEx(0,
         L"PathTracerWindowClass",
-        L"Teeeest",
+        ConvertUtf8ToWString(title).c_str(),
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
         x,
         y,
@@ -119,6 +117,12 @@ DllExport void* CreateNativeWindow(void* application, unsigned char* title, int 
     return nativeWindow;
 }
 
+DllExport void SetWindowTitle(void* window, unsigned char* title)
+{
+    auto nativeWindow = (NativeWindow*)window;
+    SetWindowText(nativeWindow->WindowHandle, ConvertUtf8ToWString(title).c_str());
+}
+
 DllExport void* CreateImageSurface(void* window, int width, int height)
 {
     auto nativeWindow = (NativeWindow*)window;
@@ -128,24 +132,15 @@ DllExport void* CreateImageSurface(void* window, int width, int height)
     nativeImageSurface->Width = width;
     nativeImageSurface->Height = height;
 
-    auto bitmapInfo = (LPBITMAPINFO)malloc(sizeof(BITMAPINFO) + sizeof(RGBQUAD) * 3);
+    auto bitmapInfo = BITMAPINFO();
 
-    *bitmapInfo = {};
-
-    bitmapInfo->bmiHeader.biSize = sizeof(bitmapInfo->bmiHeader);
-	bitmapInfo->bmiHeader.biWidth = width;
-	bitmapInfo->bmiHeader.biHeight = -height;
-	bitmapInfo->bmiHeader.biPlanes = 1;
-	bitmapInfo->bmiHeader.biBitCount = 32;
-	bitmapInfo->bmiHeader.biCompression = BI_RGB;
- 
-	/*bitmapInfo->bmiHeader.biCompression = BI_BITFIELDS;
-
-    DWORD *bmiColors = (DWORD*)bitmapInfo->bmiColors;
-    
-    bmiColors[0] = 0x000000ff;
-    bmiColors[1] = 0x0000ff00;
-    bmiColors[2] = 0x00ff0000;*/
+    bitmapInfo = {};
+    bitmapInfo.bmiHeader.biSize = sizeof(bitmapInfo.bmiHeader);
+	bitmapInfo.bmiHeader.biWidth = width;
+	bitmapInfo.bmiHeader.biHeight = -height;
+	bitmapInfo.bmiHeader.biPlanes = 1;
+	bitmapInfo.bmiHeader.biBitCount = 32;
+	bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
     nativeImageSurface->BitmapInfo = bitmapInfo;
 
@@ -178,7 +173,7 @@ DllExport void UpdateImageSurface(void* imageSurface, unsigned char* data)
 		0, 0, windowWidth, windowHeight,
 		0, 0, nativeImageSurface->Width, nativeImageSurface->Height,
 		data,
-		nativeImageSurface->BitmapInfo,
+		&nativeImageSurface->BitmapInfo,
 		DIB_RGB_COLORS, SRCCOPY);
 
 	ReleaseDC(nativeImageSurface->WindowHandle, deviceContext);

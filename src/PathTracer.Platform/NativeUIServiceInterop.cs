@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 namespace PathTracer.Platform;
 
@@ -13,7 +12,10 @@ internal static partial class NativeUIServiceInterop
 
     [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
     internal static partial nint CreateNativeWindow(nint application, string title, int width, int height, NativeWindowState windowState);
-    
+
+    [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial void SetWindowTitle(nint window, string title);
+
     [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
     internal static partial nint CreateImageSurface(nint window, int width, int height);
 

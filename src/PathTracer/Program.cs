@@ -80,7 +80,7 @@ while (appStatus.IsRunning == 1)
     // TODO: Do better here
     var waitingMS = Math.Clamp(targetMS - stopwatch.ElapsedMilliseconds, 0, targetMS);
 
-    Console.WriteLine($"{waitingMS} Frame {stopwatch.Elapsed.Milliseconds}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds}ms, Render: {renderingStopwatch.ElapsedMilliseconds}ms)");
+    nativeUIService.SetWindowTitle(nativeWindow, $"Path Tracer - Frame: {stopwatch.Elapsed.Milliseconds}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds}ms, Render: {renderingStopwatch.ElapsedMilliseconds}ms, Waiting: {waitingMS}ms)");
     Thread.Sleep((int)waitingMS);
 }
 

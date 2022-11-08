@@ -53,7 +53,8 @@ public interface INativeUIService
     NativeAppStatus ProcessSystemMessages(NativeApplication application);
     
     NativeWindow CreateWindow(NativeApplication application, string title, int width, int height, NativeWindowState windowState);
-    
+    void SetWindowTitle(NativeWindow window, string title);
+
     NativeImageSurface CreateImageSurface(NativeWindow nativeWindow, int width, int height);
     NativeImageSurfaceInfo GetImageSurfaceInfo(NativeImageSurface imageSurface);
     void UpdateImageSurface(NativeImageSurface imageSurface, ReadOnlySpan<byte> data);
@@ -84,6 +85,11 @@ public class NativeUIService : INativeUIService
         {
             NativePointer = nativePointer
         };
+    }
+
+    public void SetWindowTitle(NativeWindow window, string title)
+    {
+        NativeUIServiceInterop.SetWindowTitle(window.NativePointer, title);
     }
     
     public NativeImageSurface CreateImageSurface(NativeWindow window, int width, int height)
