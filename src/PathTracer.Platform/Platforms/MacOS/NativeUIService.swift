@@ -90,22 +90,6 @@ public func updateImageSurface(imageSurface: UnsafeMutablePointer<Int8>, data: U
         let width = nativeImageSurface.width
         let height = nativeImageSurface.height
 
-        // // TODO: ImageScale
-        // // TODO: Is there a faster way?
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let context = CGContext(data: data, 
-                                width: width, 
-                                height: height, 
-                                bitsPerComponent: 8, 
-                                bytesPerRow: width * 4, 
-                                space: colorSpace, 
-                                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
-
-        let imageRef = context?.makeImage()
-        view.caLayer.contents = imageRef
-        //view.caLayer.render(in: context!)
-
-        /*let rect = CGRect(x: 0, y: 0, width: width, height: height)
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let provider = CGDataProvider(dataInfo: nil, data: data, size: width * height * 4, releaseData: { data, _, _ in })
 
@@ -122,14 +106,8 @@ public func updateImageSurface(imageSurface: UnsafeMutablePointer<Int8>, data: U
                             shouldInterpolate: false, 
                             intent: .defaultIntent)
 
-        let graphicsContext = NSGraphicsContext(window: nativeImageSurface.window).cgContext
-        graphicsContext.draw(image!, in: rect)
-        graphicsContext.flush()
-        
-        view.caLayer.render(in: graphicsContext)
-        
-        let contentView = nativeImageSurface.window.contentView! as NSView
-        contentView.setNeedsDisplay(rect)*/
+        view.setImage(image!)
+        view.needsDisplay = true
     }
 }
 
