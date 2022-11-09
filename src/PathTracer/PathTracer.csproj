@@ -1,10 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\PathTracer.Platform\PathTracer.Platform.csproj" />
-    <ProjectReference Include="..\PathTracer.Core\PathTracer.Core.csproj" />
-  </ItemGroup>
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
@@ -15,5 +10,14 @@
     <OutputPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">../../Build/Debug/Windows</OutputPath>
     <OutputPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">../../Build/Debug/MacOS/PathTracer.app/Contents/MacOS</OutputPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PathTracer.Platform\PathTracer.Platform.csproj" />
+    <ProjectReference Include="..\PathTracer.Core\PathTracer.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
 
 </Project>

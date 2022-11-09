@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.IO.Pipelines;
 using System.Numerics;
 using PathTracer.Core;
 
@@ -60,8 +59,6 @@ Console.ResetColor();
 Console.WriteLine($"Writing file: {outputPath}");
 
 // Save image to disk
-//var pipe = new Pipe();
-
 var directory = Path.GetDirectoryName(outputPath);
 
 if (directory != null && !Directory.Exists(directory))

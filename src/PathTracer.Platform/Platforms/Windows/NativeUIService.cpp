@@ -5,8 +5,6 @@
 struct NativeApplication
 {
     HINSTANCE ApplicationInstance;
-    unsigned int MainScreenDpi;
-    float MainScreenScaling;
 };
 
 struct NativeWindow
@@ -35,15 +33,7 @@ DllExport void* CreateApplication(unsigned char* applicationName)
 	windowClass.lpszClassName = L"PathTracerWindowClass";
 	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
 
-	if (RegisterClass(&windowClass))
-	{
-        HMODULE shcoreLibrary = LoadLibrary(L"shcore.dll");
-
-		SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-
-        application->MainScreenDpi = GetDpiForWindow(GetDesktopWindow());
-        application->MainScreenScaling = static_cast<float>(application->MainScreenDpi) / 96.0f;
-    }
+    RegisterClass(&windowClass);
 
     return application;
 }
@@ -75,13 +65,34 @@ DllExport void* CreateWindow(void* application, unsigned char* title, int width,
 {
     auto nativeApplication = (NativeApplication*)application;
 
+    // Create the window
+    HWND window = CreateWindowEx(0,
+        L"PathTracerWindowClass",
+        ConvertUtf8ToWString(title).c_str(),
+        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+        0,
+        0,
+        width,
+        height,
+        0,
+        0,
+        nativeApplication->ApplicationInstance,
+        0);
+        
+    HMODULE shcoreLibrary = LoadLibrary(L"shcore.dll");
+
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
+    auto mainScreenDpi = GetDpiForWindow(window);
+    auto mainScreenScaling = static_cast<float>(mainScreenDpi) / 96.0f;
+
     RECT clientRectangle;
     clientRectangle.left = 0;
     clientRectangle.top = 0;
-    clientRectangle.right = static_cast<LONG>(width * nativeApplication->MainScreenScaling);
-    clientRectangle.bottom = static_cast<LONG>(height * nativeApplication->MainScreenScaling);
+    clientRectangle.right = static_cast<LONG>(width * mainScreenScaling);
+    clientRectangle.bottom = static_cast<LONG>(height * mainScreenScaling);
 
-    AdjustWindowRectExForDpi(&clientRectangle, WS_OVERLAPPEDWINDOW, false, 0, nativeApplication->MainScreenDpi);
+    AdjustWindowRectExForDpi(&clientRectangle, WS_OVERLAPPEDWINDOW, false, 0, mainScreenDpi);
 
     width = clientRectangle.right - clientRectangle.left;
     height = clientRectangle.bottom - clientRectangle.top;
@@ -92,19 +103,7 @@ DllExport void* CreateWindow(void* application, unsigned char* title, int width,
     int x = (desktopRectangle.right / 2) - (width / 2);
     int y = (desktopRectangle.bottom / 2) - (height / 2);
 
-    // Create the window
-    HWND window = CreateWindowEx(0,
-        L"PathTracerWindowClass",
-        ConvertUtf8ToWString(title).c_str(),
-        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        x,
-        y,
-        width,
-        height,
-        0,
-        0,
-        nativeApplication->ApplicationInstance,
-        0);
+    SetWindowPos(window, nullptr, x, y, width, height, 0);
 
     if (windowState == NativeWindowState::Maximized)
     {

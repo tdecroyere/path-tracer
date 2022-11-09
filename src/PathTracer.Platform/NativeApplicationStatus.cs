@@ -1,3 +1,4 @@
+namespace PathTracer.Platform;
 
 public readonly record struct NativeApplicationStatus
 {
