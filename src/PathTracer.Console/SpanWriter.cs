@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Text;
 
-namespace PathTracer.Core;
+namespace PathTracer.Console;
 
 public class SpanWriter
 {

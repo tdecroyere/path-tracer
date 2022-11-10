@@ -1,7 +1,7 @@
 using System.Buffers.Text;
 using System.Text;
 
-namespace PathTracer.Core;
+namespace PathTracer.Console;
 
 public ref struct SpanReader
 {

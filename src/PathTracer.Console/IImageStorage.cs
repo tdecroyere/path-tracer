@@ -1,4 +1,4 @@
-namespace PathTracer.Core;
+namespace PathTracer.Console;
 
 public interface IImageStorage
 {

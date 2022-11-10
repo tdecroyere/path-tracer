@@ -1,6 +1,7 @@
 namespace PathTracer.Core;
 
-public interface IImageWriter
+public interface IImageWriter<T> where T : IImage
 {
-    Task WriteImageAsync(string key, int width, int height, ReadOnlyMemory<Vector3> data);
+    void StorePixel(T image, int x, int y, Vector4 pixel);
+    void CommitImage(T image);
 }
