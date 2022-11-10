@@ -32,6 +32,8 @@ record PlatformServiceToGenerate
 }
 
 // TODO: Write utils method to auto indent generated code
+// TODO: Implement a way to have custom methods in the partial class
+// and add an attribute [PlatformServiceCustom]
 [Generator]
 public class PlatformServiceGenerator : IIncrementalGenerator
 {
