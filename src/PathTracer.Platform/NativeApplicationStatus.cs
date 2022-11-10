@@ -1,5 +1,6 @@
 namespace PathTracer.Platform;
 
+// TODO: Convert to enum
 public readonly record struct NativeApplicationStatus
 {
     public NativeApplicationStatus()

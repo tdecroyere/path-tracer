@@ -6,7 +6,7 @@ namespace PathTracer;
 
 public class PathTracerApplication
 {
-    private readonly IApplicationService _applicationService;
+    private readonly INativeApplicationService _applicationService;
     private readonly INativeUIService _nativeUIService;
     private readonly IRenderer<PlatformImage> _renderer;
 
@@ -18,8 +18,9 @@ public class PathTracerApplication
     private PlatformImage _platformImage;
     private NativeWindowSize _currentRenderSize;
     private Camera _camera;
+    private readonly float _renderScaleRatio;
 
-    public PathTracerApplication(IApplicationService applicationService,
+    public PathTracerApplication(INativeApplicationService applicationService,
                                  INativeUIService nativeUIService,
                                  IRenderer<PlatformImage> renderer)
     {
@@ -34,6 +35,7 @@ public class PathTracerApplication
         _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Normal);
 
         _targetMS = (int)(1.0f / 60.0f * 1000.0f);
+        _renderScaleRatio = 0.25f;
         _camera = new Camera();
     }
 
@@ -80,9 +82,8 @@ public class PathTracerApplication
 
         if (renderSize != _currentRenderSize)
         {
-            var renderScaleRatio = 0.25f;
             var aspectRatio = (float)renderSize.Width / renderSize.Height;
-            var imageWidth = (int)(renderSize.Width * renderScaleRatio);
+            var imageWidth = (int)(renderSize.Width * _renderScaleRatio);
             var imageHeight = (int)(imageWidth / aspectRatio);
 
             // TODO: Call a delete function

@@ -7,6 +7,7 @@ public class MathUtilsTests
     [InlineData(1.0f, 0.0175f)]
     [InlineData(45.0f, 0.7854f)]
     [InlineData(180.0f, 3.1416f)]
+    // DegreeToRad_ShouldReturnCorrectResult_WhenInputValueIsValid
     public void DegreesToRad_Values_HasCorrectResult(float inputValue, float expectedValue)
     {
         // Act
@@ -30,6 +31,7 @@ public class MathUtilsTests
     }
     
     [Fact]
+    // CreateLookAtMatrix_ShouldReturnCorrectResult_WhenParametersAreValid
     public void CreateLookAtMatrix_WithValidParameters_ShouldCreateCorrectMatrix()
     {
         // Arrange

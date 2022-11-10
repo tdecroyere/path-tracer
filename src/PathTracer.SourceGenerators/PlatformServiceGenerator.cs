@@ -144,7 +144,7 @@ public class PlatformServiceGenerator : IIncrementalGenerator
 
         foreach (var method in platformService.MethodList)
         {
-            sourceCode.AppendLine($"public {((INamedTypeSymbol)method.ReturnType).ToString()} {method.Name}({string.Join(',', method.Parameters.Select(item => ((INamedTypeSymbol)item.Type).ToString() + " " + item.Name))})");
+            sourceCode.AppendLine($"public {((INamedTypeSymbol)method.ReturnType).ToString()} {method.Name}({string.Join(',', method.Parameters.Select(item => (item.RefKind == RefKind.Out ? "out " : string.Empty) + ((INamedTypeSymbol)item.Type).ToString() + " " + item.Name))})");
             sourceCode.AppendLine("{");
             
             if (method.ReturnType.Name.ToLower() != "void")
@@ -152,7 +152,7 @@ public class PlatformServiceGenerator : IIncrementalGenerator
                 sourceCode.Append("return ");
             }
 
-            sourceCode.AppendLine($"{platformService.InteropClassName}.{method.Name}({string.Join(',', method.Parameters.Select(item => item.Name))});");
+            sourceCode.AppendLine($"{platformService.InteropClassName}.{method.Name}({string.Join(',', method.Parameters.Select(item => (item.RefKind == RefKind.Out ? "out " : string.Empty) + item.Name))});");
             
             sourceCode.AppendLine("}");
         }

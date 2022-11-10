@@ -2,7 +2,10 @@ namespace PathTracer.Core.UnitTests;
 
 public class CameraTests
 {
+    // private readonly Camera _sut;
+
     [Fact]
+    // Constructor_ShouldAssignDefaultValues_WhenEmptyParameters
     public void Constructor_WithDefault_SetDefaultValues()
     {
         // Arrange / Act

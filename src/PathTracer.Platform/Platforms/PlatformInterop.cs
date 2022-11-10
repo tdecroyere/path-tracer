@@ -5,13 +5,22 @@
 
 namespace PathTracer.Platform
 {
-    internal static partial class ApplicationServiceInterop
+    internal static partial class NativeApplicationServiceInterop
     {
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
         internal static partial nint CreateApplication(string applicationName);
 
         [LibraryImport("PathTracer.Platform.Native")]
         internal static partial NativeApplicationStatus ProcessSystemMessages(nint application);
+    }
+}
+
+namespace PathTracer.Platform.Inputs
+{
+    internal static partial class NativeInputServiceInterop
+    {
+        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
+        internal static partial void GetInputState(nint application, out NativeInputState state);
     }
 }
 

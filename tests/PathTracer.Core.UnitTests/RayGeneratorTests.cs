@@ -2,8 +2,11 @@ namespace PathTracer.Core.UnitTests;
 
 public class RayGeneratorTests
 {
+    // private readonly RayGenerator _sut;
+
     [Theory]
     [MemberData(nameof(GenerateRay_WithInvalidPixelCoordinates_TestData))]
+    // GenerateRay_ShouldThrowArgumentOutOfRangeException_WhenPixelCoordinatesAreInvalid
     public void GenerateRay_WithInvalidPixelCoordinates_ShouldThrowArgumentOutOfRangeException(Vector2 pixelCoordinates)
     {
         // Arrange

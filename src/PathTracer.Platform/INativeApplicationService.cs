@@ -1,7 +1,7 @@
 namespace PathTracer.Platform;
 
 [PlatformService]
-public interface IApplicationService
+public interface INativeApplicationService
 {
     NativeApplication CreateApplication(string applicationName);
     NativeApplicationStatus ProcessSystemMessages(NativeApplication application);
