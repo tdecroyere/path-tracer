@@ -12,8 +12,6 @@ public class PlatformImageWriter : IImageWriter<PlatformImage>
         _nativeUIService = nativeUIService;
     }
 
- 
-
     public void StorePixel(PlatformImage image, int x, int y, Vector4 pixel)
     {
         var nativeImageInfo = image.NativeSufaceInfo;

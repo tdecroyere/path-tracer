@@ -17,3 +17,9 @@ struct NativeImageSurfaceInfo
     int BlueShift;
     int AlphaShift;
 };
+
+struct NativeWindowSize
+{
+    int Width;
+    int Height;
+};

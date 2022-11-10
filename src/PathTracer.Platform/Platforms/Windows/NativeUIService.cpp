@@ -10,6 +10,8 @@ struct NativeApplication
 struct NativeWindow
 {
     HWND WindowHandle;
+    int Width;
+    int Height;
 };
 
 struct NativeImageSurface
@@ -112,8 +114,27 @@ DllExport void* CreateWindow(void* application, unsigned char* title, int width,
 
     auto nativeWindow = new NativeWindow();
     nativeWindow->WindowHandle = window;
+    nativeWindow->Width = width;
+    nativeWindow->Height = height;
 
     return nativeWindow;
+}
+
+DllExport NativeWindowSize GetWindowRenderSize(void* window)
+{
+    auto nativeWindow = (NativeWindow*)window;
+
+    RECT windowRectangle;
+	GetClientRect(nativeWindow->WindowHandle, &windowRectangle);
+
+    nativeWindow->Width = windowRectangle.right - windowRectangle.left;
+    nativeWindow->Height = windowRectangle.bottom - windowRectangle.top;
+    
+    auto result = NativeWindowSize();
+    result.Width = nativeWindow->Width;
+    result.Height = nativeWindow->Height;
+
+    return result;
 }
 
 DllExport void SetWindowTitle(void* window, unsigned char* title)

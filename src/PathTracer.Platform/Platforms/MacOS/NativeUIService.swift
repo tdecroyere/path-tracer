@@ -58,6 +58,20 @@ public func createWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeM
     return Unmanaged.passRetained(nativeWindow).toOpaque()
 }
 
+@_cdecl("GetWindowRenderSize")
+public func getWindowRenderSize(window: UnsafeMutablePointer<Int8>) -> NativeWindowSize {
+    let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
+
+    let contentView = nativeWindow.window.contentView! as NSView
+    let mainScreenScaling = nativeWindow.window.screen!.backingScaleFactor
+
+    var size = contentView.frame.size
+    size.width *= mainScreenScaling;
+    size.height *= mainScreenScaling;
+
+    return NativeWindowSize(Width: size.width, Height: size.height)
+}
+
 @_cdecl("SetWindowTitle")
 public func setWindowTitle(window: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>) {
     let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()

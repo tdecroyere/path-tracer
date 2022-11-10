@@ -29,6 +29,9 @@ namespace PathTracer.Platform.NativeUI
         internal static partial nint CreateWindow(nint application, string title, int width, int height, NativeWindowState windowState);
 
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
+        internal static partial NativeWindowSize GetWindowRenderSize(nint window); 
+
+        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
         internal static partial void SetWindowTitle(nint window, string title);
 
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
@@ -39,11 +42,5 @@ namespace PathTracer.Platform.NativeUI
 
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
         internal static partial void UpdateImageSurface(nint imageSurface, ReadOnlySpan<byte> data);
-
-        /*[LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial NativeWindowSize GetRenderSize(nint window); 
-
-        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial void UploadImageData(nint surface, ReadOnlySpan<byte> data);*/
     }
 }

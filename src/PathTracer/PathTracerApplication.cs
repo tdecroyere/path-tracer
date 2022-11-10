@@ -10,11 +10,13 @@ public class PathTracerApplication
     private readonly INativeUIService _nativeUIService;
     private readonly IRenderer<PlatformImage> _renderer;
 
-    private readonly int _targetMS;
     private readonly NativeApplication _nativeApplication;
     private readonly NativeWindow _nativeWindow;
-    private readonly PlatformImage _platformImage;
 
+    private readonly int _targetMS;
+
+    private PlatformImage _platformImage;
+    private NativeWindowSize _currentRenderSize;
     private Camera _camera;
 
     public PathTracerApplication(IApplicationService applicationService,
@@ -27,22 +29,12 @@ public class PathTracerApplication
 
         var windowWidth = 1280;
         var windowHeight = 720;
-        var aspectRatio = (float)windowWidth / windowHeight;
 
         _nativeApplication = applicationService.CreateApplication("Path Tracer");
         _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Normal);
 
-        var imageWidth = 800;
-        var imageHeight = (int)(imageWidth / aspectRatio);
-
-        _platformImage = CreateImage(nativeUIService, _nativeWindow, imageWidth, imageHeight);
-
-        _camera = new Camera
-        {
-            AspectRatio = aspectRatio
-        };
-
         _targetMS = (int)(1.0f / 60.0f * 1000.0f);
+        _camera = new Camera();
     }
 
     public async Task RunAsync()
@@ -57,11 +49,12 @@ public class PathTracerApplication
         {
             stopwatch.Restart();
             systemMessagesStopwatch.Restart();
-            // TODO: Investigate Process System Messages seems to take 2-3 ms
-            // It seems it is the rendering of the calayer that's is done with an event
             appStatus = _applicationService.ProcessSystemMessages(_nativeApplication);
             systemMessagesStopwatch.Stop();
-
+            
+            CreateRenderSizeDependentResources();
+            var renderImage = _platformImage;
+            
             renderingStopwatch.Restart();
 
             _camera = _camera with
@@ -69,19 +62,42 @@ public class PathTracerApplication
                 Position = _camera.Position + new Vector3(0, 0, -0.01f)
             };
 
-            await _renderer.RenderAsync(_platformImage, _camera);
+            await _renderer.RenderAsync(renderImage, _camera);
             renderingStopwatch.Stop();
             stopwatch.Stop();
 
             // TODO: Do better here
             var waitingMS = Math.Clamp(_targetMS - stopwatch.ElapsedMilliseconds, 0, _targetMS);
 
-            _nativeUIService.SetWindowTitle(_nativeWindow, $"Path Tracer - Frame: {stopwatch.Elapsed.Milliseconds.ToString("00")}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds.ToString("00")}ms, Render: {renderingStopwatch.ElapsedMilliseconds.ToString("00")}ms, Waiting: {waitingMS.ToString("00")}ms)");
+            _nativeUIService.SetWindowTitle(_nativeWindow, $"Path Tracer ({renderImage.Width}x{renderImage.Height}) - Frame: {stopwatch.Elapsed.Milliseconds:00}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds:00}ms, Render: {renderingStopwatch.ElapsedMilliseconds:00}ms, Waiting: {waitingMS:00}ms)");
             Thread.Sleep((int)waitingMS);
         }
     }
 
-    private static PlatformImage CreateImage(INativeUIService nativeUIService, NativeWindow window, int width, int height)
+    private void CreateRenderSizeDependentResources()
+    {
+        var renderSize = _nativeUIService.GetWindowRenderSize(_nativeWindow);
+
+        if (renderSize != _currentRenderSize)
+        {
+            var renderScaleRatio = 0.25f;
+            var aspectRatio = (float)renderSize.Width / renderSize.Height;
+            var imageWidth = (int)(renderSize.Width * renderScaleRatio);
+            var imageHeight = (int)(imageWidth / aspectRatio);
+
+            // TODO: Call a delete function
+            _platformImage = CreatePlatformImage(_nativeUIService, _nativeWindow, imageWidth, imageHeight);
+
+            _camera = _camera with
+            {
+                AspectRatio = aspectRatio
+            };
+
+            _currentRenderSize = renderSize;
+        }
+    }
+
+    private static PlatformImage CreatePlatformImage(INativeUIService nativeUIService, NativeWindow window, int width, int height)
     {
         var nativeSurface = nativeUIService.CreateImageSurface(window, width, height);
         var nativeSurfaceInfo = nativeUIService.GetImageSurfaceInfo(nativeSurface);
