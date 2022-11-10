@@ -1,13 +1,18 @@
 ﻿using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.DependencyInjection;
 using PathTracer.Core;
 using PathTracer.Platform;
 using PathTracer.Platform.NativeUI;
 
-var platformFactory = new PlatformFactory();
-var applicationService = platformFactory.GetApplicationService();
-var nativeUIService = platformFactory.GetNativeUIService();
+var serviceCollection = new ServiceCollection();
+serviceCollection.UsePathTracerPlatform();
+
+var serviceProvider = serviceCollection.BuildServiceProvider();
+
+var applicationService = serviceProvider.GetRequiredService<IApplicationService>();
+var nativeUIService = serviceProvider.GetRequiredService<INativeUIService>();
 
 var windowWidth = 1280;
 var windowHeight = 720;

@@ -31,6 +31,7 @@ record PlatformServiceToGenerate
     }
 }
 
+// TODO: Write utils method to auto indent generated code
 [Generator]
 public class PlatformServiceGenerator : IIncrementalGenerator
 {
@@ -121,6 +122,10 @@ public class PlatformServiceGenerator : IIncrementalGenerator
                 //GenerateInteropClass(sourceCode, platformService);
                 //context.AddSource($"{platformService.InteropClassName}.g.cs", SourceText.From(sourceCode.ToString(), Encoding.UTF8));
             }
+
+            var serviceExtensionsSource = new StringBuilder();
+            GenerateServiceExtensions(serviceExtensionsSource, interfacesToGenerate);
+            context.AddSource("ServiceExtensions.g.cs", SourceText.From(serviceExtensionsSource.ToString(), Encoding.UTF8));
         }
     }
 
@@ -137,10 +142,15 @@ public class PlatformServiceGenerator : IIncrementalGenerator
 
         foreach (var method in platformService.MethodList)
         {
-            sourceCode.AppendLine($"public {method.ReturnType} {method.Name}({string.Join(',', method.Parameters.Select(item => item.Type.Name + " " + item.Name))})");
+            sourceCode.AppendLine($"public {((INamedTypeSymbol)method.ReturnType).ToString()} {method.Name}({string.Join(',', method.Parameters.Select(item => ((INamedTypeSymbol)item.Type).ToString() + " " + item.Name))})");
             sourceCode.AppendLine("{");
             
-            sourceCode.AppendLine($"return {platformService.InteropClassName}.{method.Name}({string.Join(',', method.Parameters.Select(item => item.Name))});");
+            if (method.ReturnType.Name.ToLower() != "void")
+            {
+                sourceCode.Append("return ");
+            }
+
+            sourceCode.AppendLine($"{platformService.InteropClassName}.{method.Name}({string.Join(',', method.Parameters.Select(item => item.Name))});");
             
             sourceCode.AppendLine("}");
         }
@@ -165,10 +175,40 @@ public class PlatformServiceGenerator : IIncrementalGenerator
         foreach (var method in platformService.MethodList)
         {
             sourceCode.AppendLine("[LibraryImport(\"PathTracer.Platform.Native\", StringMarshalling = StringMarshalling.Utf8)]");
-            sourceCode.AppendLine($"internal static partial {method.ReturnType} {method.Name}({string.Join(',', method.Parameters.Select(item => item.Type.Name + " " + item.Name))});");
+            sourceCode.AppendLine($"internal static partial {((INamedTypeSymbol)method.ReturnType).ToString()} {method.Name}({string.Join(',', method.Parameters.Select(item => ((INamedTypeSymbol) item.Type).ToString() + " " + item.Name))});");
             sourceCode.AppendLine();
         }
 
+        sourceCode.AppendLine("}");
+    }
+    
+    private static void GenerateServiceExtensions(StringBuilder sourceCode, IList<PlatformServiceToGenerate> platformServices)
+    {
+        sourceCode.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+
+        foreach (var platformService in platformServices)
+        {
+            if (platformService.Namespace is not null)
+            {
+                sourceCode.AppendLine($"using {platformService.Namespace};");
+            }
+        }
+        
+        sourceCode.AppendLine();
+        sourceCode.AppendLine("namespace PathTracer.Platform;");
+        sourceCode.AppendLine();
+
+        sourceCode.AppendLine($"public static class ServiceExtensions");
+        sourceCode.AppendLine("{");
+        sourceCode.AppendLine("public static void UsePathTracerPlatform(this ServiceCollection serviceCollection)");
+        sourceCode.AppendLine("{");
+
+        foreach (var platformService in platformServices)
+        {
+            sourceCode.AppendLine($"serviceCollection.AddSingleton<{platformService.InterfaceName}, {platformService.ImplementationClassName}>();");
+        }
+
+        sourceCode.AppendLine("}");
         sourceCode.AppendLine("}");
     }
 

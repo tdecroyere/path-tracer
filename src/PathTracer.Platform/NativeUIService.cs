@@ -1,34 +1,5 @@
+/*
 namespace PathTracer.Platform.NativeUI;
-
-public readonly record struct NativeWindow
-{
-    internal nint NativePointer { get; init; }
-}
-
-public readonly record struct NativeImageSurface
-{
-    internal nint NativePointer { get; init; }
-}
-
-public enum NativeWindowState
-{
-    Normal,
-    Maximized
-}
-
-public readonly record struct NativeWindowSize
-{
-    public int Width { get; init; }
-    public int Height { get; init; }
-}
-
-public readonly record struct NativeImageSurfaceInfo
-{
-    public int RedShift { get; init; }
-    public int GreenShift { get; init; }
-    public int BlueShift { get; init; }
-    public int AlphaShift { get; init; }
-}
 
 
 internal class NativeUIService : INativeUIService
@@ -67,4 +38,4 @@ internal class NativeUIService : INativeUIService
     {
         NativeUIServiceInterop.UpdateImageSurface(imageSurface.NativePointer, data);
     }
-}
+}*/
