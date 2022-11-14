@@ -172,7 +172,7 @@ public class PlatformServiceGenerator : IIncrementalGenerator
                 sourceCode.Append("return ");
             }
 
-            sourceCode.AppendLine($"{platformService.InteropClassName}.{method.Name}({string.Join(',', method.Parameters.Select(item => GenerateReferenceType(item) + item.Name))});");
+            sourceCode.AppendLine($"{platformService.InteropClassName}.PT_{method.Name}({string.Join(',', method.Parameters.Select(item => GenerateReferenceType(item) + item.Name))});");
             
             sourceCode.AppendLine("}");
         }
@@ -207,7 +207,7 @@ public class PlatformServiceGenerator : IIncrementalGenerator
         foreach (var method in platformService.MethodList)
         {
             sourceCode.AppendLine("[LibraryImport(\"PathTracer.Platform.Native\", StringMarshalling = StringMarshalling.Utf8)]");
-            sourceCode.AppendLine($"internal static partial {((INamedTypeSymbol)method.ReturnType).ToString()} {method.Name}({string.Join(',', method.Parameters.Select(item => ((INamedTypeSymbol) item.Type).ToString() + " " + item.Name))});");
+            sourceCode.AppendLine($"internal static partial {((INamedTypeSymbol)method.ReturnType).ToString()} PT_{method.Name}({string.Join(',', method.Parameters.Select(item => ((INamedTypeSymbol) item.Type).ToString() + " " + item.Name))});");
             sourceCode.AppendLine();
         }
 

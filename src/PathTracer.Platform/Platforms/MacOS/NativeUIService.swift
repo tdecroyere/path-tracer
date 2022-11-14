@@ -23,7 +23,7 @@ class NativeImageSurface {
     }
 }
 
-@_cdecl("CreateWindow")
+@_cdecl("PT_CreateWindow")
 public func createWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>, width: Int, height: Int, windowState: NativeWindowState) -> UnsafeMutableRawPointer {
     let window = NSWindow(contentRect: NSMakeRect(0, 0, CGFloat(width), CGFloat(height)), 
                             styleMask: [.resizable, .titled, .miniaturizable, .closable], 
@@ -43,7 +43,7 @@ public func createWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeM
     return Unmanaged.passRetained(nativeWindow).toOpaque()
 }
 
-@_cdecl("GetWindowRenderSize")
+@_cdecl("PT_GetWindowRenderSize")
 public func getWindowRenderSize(window: UnsafeMutablePointer<Int8>) -> NativeWindowSize {
     let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
 
@@ -57,13 +57,13 @@ public func getWindowRenderSize(window: UnsafeMutablePointer<Int8>) -> NativeWin
     return NativeWindowSize(Width: Int32(size.width), Height: Int32(size.height))
 }
 
-@_cdecl("SetWindowTitle")
+@_cdecl("PT_SetWindowTitle")
 public func setWindowTitle(window: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>) {
     let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
     nativeWindow.window.title = String(cString: title)
 }
 
-@_cdecl("CreateImageSurface")
+@_cdecl("PT_CreateImageSurface")
 public func createImageSurface(window: UnsafeMutablePointer<Int8>, width: Int, height: Int) -> UnsafeMutableRawPointer {
     let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
 
@@ -76,12 +76,12 @@ public func createImageSurface(window: UnsafeMutablePointer<Int8>, width: Int, h
     return Unmanaged.passRetained(nativeImageSurface).toOpaque()
 }
 
-@_cdecl("GetImageSurfaceInfo")
+@_cdecl("PT_GetImageSurfaceInfo")
 public func getImageSurfaceInfo(imageSurface: UnsafeMutablePointer<Int8>) -> NativeImageSurfaceInfo {
     return NativeImageSurfaceInfo(RedShift: 0, GreenShift: 8, BlueShift: 16, AlphaShift: 24)
 }
 
-@_cdecl("UpdateImageSurface")
+@_cdecl("PT_UpdateImageSurface")
 public func updateImageSurface(imageSurface: UnsafeMutablePointer<Int8>, data: UnsafeMutablePointer<UInt8>) {
     autoreleasepool {
         let nativeImageSurface = Unmanaged<NativeImageSurface>.fromOpaque(imageSurface).takeUnretainedValue()

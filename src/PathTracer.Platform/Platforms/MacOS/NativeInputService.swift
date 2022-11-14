@@ -11,7 +11,7 @@ public func nativeInputProcessKeyboardEvent(_ application: UnsafeMutablePointer<
     applicationInputQueues[application]!.append(event)
 }
 
-@_cdecl("GetInputState")
+@_cdecl("PT_GetInputState")
 public func getInputState(application: UnsafeMutablePointer<Int8>, inputState: UnsafeMutablePointer<NativeInputState>) {
     guard let queue = applicationInputQueues[application] else {
         return

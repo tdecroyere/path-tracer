@@ -22,7 +22,7 @@ struct NativeImageSurface
     int Height;
 };
 
-DllExport void* CreateApplication(unsigned char* applicationName)
+DllExport void* PT_CreateApplication(unsigned char* applicationName)
 {
     auto application = new NativeApplication();
 
@@ -40,7 +40,7 @@ DllExport void* CreateApplication(unsigned char* applicationName)
     return application;
 }
 
-DllExport NativeAppStatus ProcessSystemMessages(void* application)
+DllExport NativeAppStatus PT_ProcessSystemMessages(void* application)
 {
     auto result = NativeAppStatus();
     result.IsRunning = 1;
@@ -63,7 +63,7 @@ DllExport NativeAppStatus ProcessSystemMessages(void* application)
     return result;
 }
 
-DllExport void* CreateWindow(void* application, unsigned char* title, int width, int height, NativeWindowState windowState)
+DllExport void* PT_CreateWindow(void* application, unsigned char* title, int width, int height, NativeWindowState windowState)
 {
     auto nativeApplication = (NativeApplication*)application;
 
@@ -120,7 +120,7 @@ DllExport void* CreateWindow(void* application, unsigned char* title, int width,
     return nativeWindow;
 }
 
-DllExport NativeWindowSize GetWindowRenderSize(void* window)
+DllExport NativeWindowSize PT_GetWindowRenderSize(void* window)
 {
     auto nativeWindow = (NativeWindow*)window;
 
@@ -137,13 +137,13 @@ DllExport NativeWindowSize GetWindowRenderSize(void* window)
     return result;
 }
 
-DllExport void SetWindowTitle(void* window, unsigned char* title)
+DllExport void PT_SetWindowTitle(void* window, unsigned char* title)
 {
     auto nativeWindow = (NativeWindow*)window;
     SetWindowText(nativeWindow->WindowHandle, ConvertUtf8ToWString(title).c_str());
 }
 
-DllExport void* CreateImageSurface(void* window, int width, int height)
+DllExport void* PT_CreateImageSurface(void* window, int width, int height)
 {
     auto nativeWindow = (NativeWindow*)window;
     auto nativeImageSurface = new NativeImageSurface();
@@ -167,7 +167,7 @@ DllExport void* CreateImageSurface(void* window, int width, int height)
     return nativeImageSurface;
 }
 
-DllExport NativeImageSurfaceInfo GetImageSurfaceInfo(void* imageSurface)
+DllExport NativeImageSurfaceInfo PT_GetImageSurfaceInfo(void* imageSurface)
 {
     auto result = NativeImageSurfaceInfo();
     result.GreenShift = 8;
@@ -178,7 +178,7 @@ DllExport NativeImageSurfaceInfo GetImageSurfaceInfo(void* imageSurface)
     return result;
 }
 
-DllExport void UpdateImageSurface(void* imageSurface, unsigned char* data)
+DllExport void PT_UpdateImageSurface(void* imageSurface, unsigned char* data)
 {
     auto nativeImageSurface = (NativeImageSurface*)imageSurface;
     HDC deviceContext = GetDC(nativeImageSurface->WindowHandle);

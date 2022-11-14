@@ -5,7 +5,7 @@ class NativeApplication {
 
 }
 
-@_cdecl("CreateApplication")
+@_cdecl("PT_CreateApplication")
 public func createApplication(applicationName: UnsafeMutablePointer<Int8>) -> UnsafeMutableRawPointer {
     NSApplication.shared.activate(ignoringOtherApps: true)
     NSApplication.shared.finishLaunching()
@@ -16,7 +16,7 @@ public func createApplication(applicationName: UnsafeMutablePointer<Int8>) -> Un
     return Unmanaged.passRetained(application).toOpaque()
 }
 
-@_cdecl("ProcessSystemMessages")
+@_cdecl("PT_ProcessSystemMessages")
 public func processSystemMessages(application: UnsafeMutablePointer<Int8>) -> NativeAppStatus {
     var rawEvent: NSEvent? = nil
     var isActive = 1 // TODO: To change
