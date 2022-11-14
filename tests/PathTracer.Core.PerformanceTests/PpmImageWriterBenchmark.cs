@@ -2,7 +2,7 @@ using System.Numerics;
 using BenchmarkDotNet.Attributes;
 
 namespace PathTracer.Core.PerformanceTests;
-
+/*
 public class EmptyImageStorage : IImageStorage
 {
     public Task WriteDataAsync(string key, ReadOnlyMemory<byte> data)
@@ -34,4 +34,4 @@ public class PpmImageWriterPerformanceTests
     {
         await imageWriterBase.WriteImageAsync("Test", 1024, 1024, testData);
     }
-}
+}*/

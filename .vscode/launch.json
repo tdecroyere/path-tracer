@@ -20,11 +20,15 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/Build/Debug/Windows/PathTracer.dll",
+            "osx": {
+                "cwd": "${workspaceFolder}/Build/Debug/MacOS/PathTracer.app/Contents/MacOS/",
+                "program": "${workspaceFolder}/Build/Debug/MacOS/PathTracer.app/Contents/MacOS/PathTracer.dll"
+            },
+            "windows": {
+                "cwd": "${workspaceFolder}/Build/Debug/Windows/",
+                "program": "${workspaceFolder}/Build/Debug/Windows/PathTracer.dll"
+            },
             "args": [],
-            "cwd": "${workspaceFolder}/src/PathTracer",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false
         },

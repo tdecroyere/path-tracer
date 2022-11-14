@@ -3,5 +3,6 @@ namespace PathTracer.Platform.Inputs;
 [PlatformService]
 public interface INativeInputService
 {
-    void GetInputState(NativeApplication application, out NativeInputState inputState);
+    [PlatformMethodOverride]
+    void GetInputState(NativeApplication application, ref NativeInputState inputState);
 }

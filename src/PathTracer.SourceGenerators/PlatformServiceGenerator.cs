@@ -39,7 +39,7 @@ public class PlatformServiceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        GenerateAttribute(context);
+        GenerateAttributes(context);
 
         var interfaceDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
@@ -53,7 +53,7 @@ public class PlatformServiceGenerator : IIncrementalGenerator
             static (context, source) => Generate(source.Left, source.Right, context));
     }
 
-    private static void GenerateAttribute(IncrementalGeneratorInitializationContext context)
+    private static void GenerateAttributes(IncrementalGeneratorInitializationContext context)
     {
         var attributeCode = """
                             namespace PathTracer;
@@ -67,6 +67,19 @@ public class PlatformServiceGenerator : IIncrementalGenerator
         context.RegisterPostInitializationOutput(context => context.AddSource(
             "PlatformServiceAttribute.g.cs",
             attributeCode));
+
+        var overrideAttributeCode = """
+                                    namespace PathTracer;
+
+                                    [AttributeUsage(AttributeTargets.Method)]
+                                    public class PlatformMethodOverrideAttribute : Attribute
+                                    {
+                                    }
+                                    """;
+
+        context.RegisterPostInitializationOutput(context => context.AddSource(
+            "PlatformMethodOverrideAttribute.g.cs",
+            overrideAttributeCode));
     }
 
     private static bool FilterInterfaceNodes(SyntaxNode syntaxNode)
@@ -144,7 +157,14 @@ public class PlatformServiceGenerator : IIncrementalGenerator
 
         foreach (var method in platformService.MethodList)
         {
-            sourceCode.AppendLine($"public {((INamedTypeSymbol)method.ReturnType).ToString()} {method.Name}({string.Join(',', method.Parameters.Select(item => (item.RefKind == RefKind.Out ? "out " : string.Empty) + ((INamedTypeSymbol)item.Type).ToString() + " " + item.Name))})");
+            var methodName = method.Name;
+
+            if (method.GetAttributes().Any(item => item.AttributeClass?.Name == "PlatformMethodOverrideAttribute"))
+            {
+                methodName += "Implementation";
+            }
+
+            sourceCode.AppendLine($"public {((INamedTypeSymbol)method.ReturnType).ToString()} {methodName}({string.Join(',', method.Parameters.Select(item => GenerateReferenceType(item) + ((INamedTypeSymbol)item.Type).ToString() + " " + item.Name))})");
             sourceCode.AppendLine("{");
             
             if (method.ReturnType.Name.ToLower() != "void")
@@ -152,12 +172,22 @@ public class PlatformServiceGenerator : IIncrementalGenerator
                 sourceCode.Append("return ");
             }
 
-            sourceCode.AppendLine($"{platformService.InteropClassName}.{method.Name}({string.Join(',', method.Parameters.Select(item => (item.RefKind == RefKind.Out ? "out " : string.Empty) + item.Name))});");
+            sourceCode.AppendLine($"{platformService.InteropClassName}.{method.Name}({string.Join(',', method.Parameters.Select(item => GenerateReferenceType(item) + item.Name))});");
             
             sourceCode.AppendLine("}");
         }
 
         sourceCode.AppendLine("}");
+    }
+
+    private static string GenerateReferenceType(IParameterSymbol item)
+    {
+        return item.RefKind switch
+        {
+            RefKind.Out => "out ",
+            RefKind.Ref => "ref ",
+            _ => string.Empty
+        };
     }
 
     private static void GenerateInteropClass(StringBuilder sourceCode, PlatformServiceToGenerate platformService)

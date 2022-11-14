@@ -1,4 +1,4 @@
 module NativeUIServiceModule {
-     header "../NativeUIService.h"
+     header "../Platform.h"
      export *
  }

@@ -1,6 +1,6 @@
 #include "WindowsCommon.h"
 #include "NativeUIServiceUtils.h"
-#include "../NativeUIService.h"
+#include "../Platform.h"
 
 struct NativeApplication
 {

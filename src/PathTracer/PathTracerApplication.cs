@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using PathTracer.Platform;
+using PathTracer.Platform.Inputs;
 using PathTracer.Platform.NativeUI;
 
 namespace PathTracer;
@@ -8,6 +9,7 @@ public class PathTracerApplication
 {
     private readonly INativeApplicationService _applicationService;
     private readonly INativeUIService _nativeUIService;
+    private readonly INativeInputService _nativeInputService;
     private readonly IRenderer<PlatformImage> _renderer;
 
     private readonly NativeApplication _nativeApplication;
@@ -22,10 +24,12 @@ public class PathTracerApplication
 
     public PathTracerApplication(INativeApplicationService applicationService,
                                  INativeUIService nativeUIService,
+                                 INativeInputService nativeInputService,
                                  IRenderer<PlatformImage> renderer)
     {
         _applicationService = applicationService;
         _nativeUIService = nativeUIService;
+        _nativeInputService = nativeInputService;
         _renderer = renderer;
 
         var windowWidth = 1280;
@@ -46,6 +50,7 @@ public class PathTracerApplication
         var renderingStopwatch = new Stopwatch();
 
         var appStatus = new NativeApplicationStatus();
+        var inputState = new NativeInputState();
 
         while (appStatus.IsRunning == 1)
         {
@@ -53,7 +58,15 @@ public class PathTracerApplication
             systemMessagesStopwatch.Restart();
             appStatus = _applicationService.ProcessSystemMessages(_nativeApplication);
             systemMessagesStopwatch.Stop();
-            
+
+            _nativeInputService.GetInputState(_nativeApplication, ref inputState);
+
+            var movementSpeed = 0.01f;
+            var forwardInput = inputState.Keyboard.KeyZ.Value - inputState.Keyboard.KeyS.Value;
+            var sideInput = inputState.Keyboard.KeyD.Value - inputState.Keyboard.KeyQ.Value;
+
+            var movementVector = new Vector3(sideInput * movementSpeed, 0.0f, forwardInput * movementSpeed);
+
             CreateRenderSizeDependentResources();
             var renderImage = _platformImage;
             
@@ -61,7 +74,7 @@ public class PathTracerApplication
 
             _camera = _camera with
             {
-                Position = _camera.Position + new Vector3(0, 0, -0.01f)
+                Position = _camera.Position + movementVector
             };
 
             await _renderer.RenderAsync(renderImage, _camera);

@@ -20,7 +20,7 @@ namespace PathTracer.Platform.Inputs
     internal static partial class NativeInputServiceInterop
     {
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial void GetInputState(nint application, out NativeInputState state);
+        internal static partial void GetInputState(nint application, ref NativeInputState state);
     }
 }
 
