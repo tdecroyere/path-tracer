@@ -1,4 +1,5 @@
 import Cocoa
+import SwiftUI
 import NativeUIServiceModule
 
 class NativeWindow {
@@ -6,6 +7,17 @@ class NativeWindow {
 
     init(_ window: NSWindow) {
         self.window = window
+    }
+}
+
+struct TestView: View {
+    var body: some View {
+        VStack {
+            Text("Test").padding()
+            Button("Test Button") {
+                print("Teeeest")
+            }.padding()
+        }
     }
 }
 
@@ -71,6 +83,17 @@ public func createImageSurface(window: UnsafeMutablePointer<Int8>, width: Int, h
     let view = ImageSurfaceView()
     view.frame = contentView.frame
     contentView.addSubview(view)
+
+    // TEST SWIFT UI
+    // See: https://stackoverflow.com/questions/56833659/what-is-content-in-swiftui
+    let testText = Text("Teeeeest")
+    let stack = VStack<Text>(content: { testText })
+    let myView = NSHostingView(rootView: stack)
+    myView.translatesAutoresizingMaskIntoConstraints = false
+
+    contentView.addSubview(myView)
+    contentView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor).isActive = true
+    contentView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor).isActive = true
 
     let nativeImageSurface = NativeImageSurface(view, window: nativeWindow.window, width: width, height: height)
     return Unmanaged.passRetained(nativeImageSurface).toOpaque()
