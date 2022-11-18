@@ -3,5 +3,5 @@
 
 DllExport void PT_GetInputState(void* application, NativeInputState* inputState)
 {
-    //printf("InputState\n");
+    printf("InputState\n");
 }
