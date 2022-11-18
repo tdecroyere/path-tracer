@@ -94,10 +94,10 @@ public class PathTracerApplication
         var rotationSpeed = 1.0f;
 
         // TODO: Put right direction vector to the Camera struct
-        var cameraDirection = camera.Target - camera.Position;
-        var rightDirection = Vector3.Cross(new Vector3(0, 1, 0), cameraDirection);
+        var forwardDirection = camera.Target - camera.Position;
+        var rightDirection = Vector3.Cross(new Vector3(0, 1, 0), forwardDirection);
 
-        var movementVector = rightDirection * sideInput * movementSpeed * deltaTime + cameraDirection * forwardInput * movementSpeed * deltaTime;
+        var movementVector = rightDirection * sideInput * movementSpeed * deltaTime + forwardDirection * forwardInput * movementSpeed * deltaTime;
         var cameraPosition = camera.Position + movementVector;
 
         var rotateX = rotateXInput * rotationSpeed * deltaTime;
@@ -107,12 +107,12 @@ public class PathTracerApplication
         var quaternionY = Quaternion.CreateFromAxisAngle(new Vector3(0, 1, 0), rotateY);
 
         var rotationQuaternion = Quaternion.Normalize(quaternionX * quaternionY);
-        cameraDirection = Vector3.Transform(cameraDirection, rotationQuaternion);
+        forwardDirection = Vector3.Transform(forwardDirection, rotationQuaternion);
 
         return camera with
         {
             Position = cameraPosition,
-            Target = cameraPosition + cameraDirection
+            Target = cameraPosition + forwardDirection
         };
     }
 

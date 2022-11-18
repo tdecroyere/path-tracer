@@ -1,11 +1,7 @@
 #include "WindowsCommon.h"
-#include "NativeUIServiceUtils.h"
 #include "../Platform.h"
-
-struct NativeApplication
-{
-    HINSTANCE ApplicationInstance;
-};
+#include "NativeUIServiceUtils.h"
+#include "NativeApplicationService.h"
 
 struct NativeWindow
 {
@@ -22,53 +18,13 @@ struct NativeImageSurface
     int Height;
 };
 
-DllExport void* PT_CreateApplication(unsigned char* applicationName)
-{
-    auto application = new NativeApplication();
-
-    application->ApplicationInstance = (HINSTANCE)GetModuleHandle(nullptr);
-
-	WNDCLASS windowClass {};
-	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc = Win32WindowCallBack;
-	windowClass.hInstance = application->ApplicationInstance;
-	windowClass.lpszClassName = L"PathTracerWindowClass";
-	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-
-    RegisterClass(&windowClass);
-
-    return application;
-}
-
-DllExport NativeAppStatus PT_ProcessSystemMessages(void* application)
-{
-    auto result = NativeAppStatus();
-    result.IsRunning = 1;
-
-    bool gameRunning = true;
-    MSG message;
-
-	while (PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
-	{
-        if (message.message == WM_QUIT)
-        {
-            result.IsRunning = 0;
-            return result;
-        }
-
-        TranslateMessage(&message);
-        DispatchMessage(&message);
-    }
-
-    return result;
-}
-
 DllExport void* PT_CreateWindow(void* application, unsigned char* title, int width, int height, NativeWindowState windowState)
 {
     auto nativeApplication = (NativeApplication*)application;
 
     // Create the window
-    HWND window = CreateWindowEx(0,
+    HWND window = CreateWindowEx(
+        0,
         L"PathTracerWindowClass",
         ConvertUtf8ToWString(title).c_str(),
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
@@ -80,6 +36,10 @@ DllExport void* PT_CreateWindow(void* application, unsigned char* title, int wid
         0,
         nativeApplication->ApplicationInstance,
         0);
+
+    //Create AppWindow from existing hWnd)
+    //winrt::WindowId windowId { (UINT64) window };
+    //windowId = winrt::GetWindowIdFromWindow(window);
         
     HMODULE shcoreLibrary = LoadLibrary(L"shcore.dll");
 
@@ -105,6 +65,10 @@ DllExport void* PT_CreateWindow(void* application, unsigned char* title, int wid
     int x = (desktopRectangle.right / 2) - (width / 2);
     int y = (desktopRectangle.bottom / 2) - (height / 2);
 
+    // Dark mode
+    //BOOL value = TRUE;
+    //DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+
     SetWindowPos(window, nullptr, x, y, width, height, 0);
 
     if (windowState == NativeWindowState::Maximized)
@@ -116,6 +80,12 @@ DllExport void* PT_CreateWindow(void* application, unsigned char* title, int wid
     nativeWindow->WindowHandle = window;
     nativeWindow->Width = width;
     nativeWindow->Height = height;
+
+    // Native WINRT
+    // User needs to install: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads
+    //winrt::init_apartment();
+
+    //Microsoft::UI::Xaml::Window winUIWindow{ nullptr };
 
     return nativeWindow;
 }

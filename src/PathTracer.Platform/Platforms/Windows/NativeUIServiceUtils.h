@@ -1,3 +1,4 @@
+#pragma once
 #include "WindowsCommon.h"
 
 #undef CreateWindow
