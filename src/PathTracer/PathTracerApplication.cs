@@ -37,6 +37,9 @@ public class PathTracerApplication
         _nativeApplication = applicationService.CreateApplication("Path Tracer");
         _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Normal);
 
+        var testPanel = nativeUIService.CreatePanel(_nativeWindow);
+        var testButton = nativeUIService.CreateButton(testPanel, "Test Button!");
+
         _targetMS = (int)(1.0f / 60.0f * 1000.0f);
         _renderScaleRatio = 0.25f;
     }

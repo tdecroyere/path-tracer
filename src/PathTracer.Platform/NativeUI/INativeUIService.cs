@@ -10,4 +10,7 @@ public interface INativeUIService
     NativeImageSurface CreateImageSurface(NativeWindow nativeWindow, int width, int height);
     NativeImageSurfaceInfo GetImageSurfaceInfo(NativeImageSurface imageSurface);
     void UpdateImageSurface(NativeImageSurface imageSurface, ReadOnlySpan<byte> data);
+
+    NativeControl CreatePanel(NativeWindow window);
+    NativeControl CreateButton(NativeControl parent, string text);
 }

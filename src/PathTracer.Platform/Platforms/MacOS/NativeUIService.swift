@@ -1,5 +1,4 @@
 import Cocoa
-import SwiftUI
 import NativeUIServiceModule
 
 class NativeWindow {
@@ -10,14 +9,19 @@ class NativeWindow {
     }
 }
 
-struct TestView: View {
-    var body: some View {
-        VStack {
-            Text("Test").padding()
-            Button("Test Button") {
-                print("Teeeest")
-            }.padding()
-        }
+class NativePanel {
+    let view: NSView
+
+    init(_ view: NSView) {
+        self.view = view
+    }
+}
+
+class NativeControl {
+    let control: NSControl
+
+    init(_ control: NSControl) {
+        self.control = control
     }
 }
 
@@ -36,7 +40,7 @@ class NativeImageSurface {
 }
 
 @_cdecl("PT_CreateWindow")
-public func createWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>, width: Int, height: Int, windowState: NativeWindowState) -> UnsafeMutableRawPointer {
+public func createWindow(application: UnsafeRawPointer, title: UnsafeMutablePointer<Int8>, width: Int, height: Int, windowState: NativeWindowState) -> UnsafeMutableRawPointer {
     let window = NSWindow(contentRect: NSMakeRect(0, 0, CGFloat(width), CGFloat(height)), 
                             styleMask: [.resizable, .titled, .miniaturizable, .closable], 
                             backing: .buffered, 
@@ -56,7 +60,7 @@ public func createWindow(application: UnsafeMutablePointer<Int8>, title: UnsafeM
 }
 
 @_cdecl("PT_GetWindowRenderSize")
-public func getWindowRenderSize(window: UnsafeMutablePointer<Int8>) -> NativeWindowSize {
+public func getWindowRenderSize(window: UnsafeRawPointer) -> NativeWindowSize {
     let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
 
     let contentView = nativeWindow.window.contentView! as NSView
@@ -70,30 +74,29 @@ public func getWindowRenderSize(window: UnsafeMutablePointer<Int8>) -> NativeWin
 }
 
 @_cdecl("PT_SetWindowTitle")
-public func setWindowTitle(window: UnsafeMutablePointer<Int8>, title: UnsafeMutablePointer<Int8>) {
+public func setWindowTitle(window: UnsafeRawPointer, title: UnsafeMutablePointer<Int8>) {
     let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
     nativeWindow.window.title = String(cString: title)
 }
 
 @_cdecl("PT_CreateImageSurface")
-public func createImageSurface(window: UnsafeMutablePointer<Int8>, width: Int, height: Int) -> UnsafeMutableRawPointer {
+public func createImageSurface(window: UnsafeRawPointer, width: Int, height: Int) -> UnsafeMutableRawPointer {
     let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
 
     let contentView = nativeWindow.window.contentView! as NSView
     let view = ImageSurfaceView()
     view.frame = contentView.frame
-    contentView.addSubview(view)
+    //contentView.addSubview(view)
 
     // TEST SWIFT UI
     // See: https://stackoverflow.com/questions/56833659/what-is-content-in-swiftui
-    let testText = Text("Teeeeest")
-    let stack = VStack<Text>(content: { testText })
-    let myView = NSHostingView(rootView: stack)
-    myView.translatesAutoresizingMaskIntoConstraints = false
+    //let testView = TestView()
+    //let myView = NSHostingView(rootView: testView)
+    //myView.translatesAutoresizingMaskIntoConstraints = false
 
-    contentView.addSubview(myView)
-    contentView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor).isActive = true
-    contentView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor).isActive = true
+    //nativeWindow.window.contentView = myView
+    //contentView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor).isActive = true
+    //contentView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor).isActive = true
 
     let nativeImageSurface = NativeImageSurface(view, window: nativeWindow.window, width: width, height: height)
     return Unmanaged.passRetained(nativeImageSurface).toOpaque()
@@ -131,4 +134,31 @@ public func updateImageSurface(imageSurface: UnsafeMutablePointer<Int8>, data: U
         view.setImage(image!)
         view.needsDisplay = true
     }
+}
+
+@_cdecl("PT_CreatePanel")
+public func createPanel(window: UnsafeRawPointer) -> UnsafeMutableRawPointer {
+    let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
+    print("Create Panel")
+
+    let contentView = nativeWindow.window.contentView! as NSView
+    let panel = NSView()
+    panel.frame = contentView.frame
+    nativeWindow.window.contentView!.addSubview(panel)
+
+    let nativePanel = NativePanel(panel)
+    return Unmanaged.passRetained(nativePanel).toOpaque()
+}
+
+@_cdecl("PT_CreateButton")
+public func createButton(parent: UnsafeRawPointer, title: UnsafeMutablePointer<Int8>) -> UnsafeMutableRawPointer {
+    let nativePanel = Unmanaged<NativePanel>.fromOpaque(parent).takeUnretainedValue()
+    print("Create Button")
+    let button = NSButton(frame: NSMakeRect(455, 400, 50, 20)) 
+    button.bezelStyle = .rounded
+    //let button = NSButton(title: "Test", target: nil, action: nil)
+    nativePanel.view.addSubview(button)
+
+    let nativeControl = NativeControl(button)
+    return Unmanaged.passRetained(nativeControl).toOpaque()
 }
