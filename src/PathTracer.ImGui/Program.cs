@@ -1,4 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using OpenTK.Graphics.OpenGL;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
@@ -33,6 +34,11 @@ static unsafe void Run(NativeWindow nativeWindow)
     while (!GLFW.WindowShouldClose(windowPtr))
     {
         nativeWindow.ProcessEvents();
+
+        GLFW.GetFramebufferSize(windowPtr, out int displayW, out int displayH);
+        GL.Viewport(0, 0, displayW, displayH);
+        GL.ClearColor(0, 1, 1, 1);
+        GL.Clear(ClearBufferMask.ColorBufferBit);
 
         GLFW.SwapBuffers(windowPtr);
     }
