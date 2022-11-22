@@ -1,7 +1,9 @@
 {
     "files.exclude": {
         "**/bin": true,
-        //"**/obj": true
+        "**/obj": true,
+        "**/.vs": true,
+        "**/packages": true
     },
     "coverage-gutters.coverageFileNames": [
         "lcov-PathTracer.UnitTests.info"
@@ -58,5 +60,10 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "xutility": "cpp"
-    }
+    },
+    "C_Cpp.default.includePath": [
+        "${default}",
+        "${workspaceFolder}/src/PathTracer.Platform/Platforms/Windows/obj/Debug/Generated Files/",
+        "${workspaceFolder}/src/PathTracer.Platform/Platforms/Windows/packages/Microsoft.WindowsAppSDK.1.2.221116.1/include"
+    ]
 }

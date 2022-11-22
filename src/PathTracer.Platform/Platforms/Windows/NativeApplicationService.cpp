@@ -10,8 +10,8 @@ DllExport void* PT_CreateApplication(unsigned char* applicationName)
     application->ApplicationInstance = (HINSTANCE)GetModuleHandle(nullptr);
 
 	WNDCLASS windowClass {};
-	windowClass.style = CS_HREDRAW | CS_VREDRAW;
-	windowClass.lpfnWndProc = Win32WindowCallBack;
+    windowClass.style = CS_HREDRAW | CS_VREDRAW;
+    windowClass.lpfnWndProc = Win32WindowCallBack;
 	windowClass.hInstance = application->ApplicationInstance;
 	windowClass.lpszClassName = L"PathTracerWindowClass";
 	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);

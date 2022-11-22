@@ -1,5 +1,6 @@
 #include "WindowsCommon.h"
 #include "../Platform.h"
+#include "Libs/Win32DarkMode/DarkMode.h"
 #include "NativeUIServiceUtils.h"
 #include "NativeApplicationService.h"
 
@@ -20,31 +21,28 @@ struct NativeImageSurface
 
 DllExport void* PT_CreateWindow(void* application, unsigned char* title, int width, int height, NativeWindowState windowState)
 {
+    InitCommonControls();
     auto nativeApplication = (NativeApplication*)application;
 
     // Create the window
-    HWND window = CreateWindowEx(
-        0,
+    auto window = CreateWindowEx(
+        WS_EX_DLGMODALFRAME,
         L"PathTracerWindowClass",
         ConvertUtf8ToWString(title).c_str(),
         WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-        0,
-        0,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
         width,
         height,
-        0,
-        0,
+        nullptr,
+        nullptr,
         nativeApplication->ApplicationInstance,
         0);
 
-    //Create AppWindow from existing hWnd)
-    //winrt::WindowId windowId { (UINT64) window };
-    //windowId = winrt::GetWindowIdFromWindow(window);
-        
     HMODULE shcoreLibrary = LoadLibrary(L"shcore.dll");
 
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-
+  
     auto mainScreenDpi = GetDpiForWindow(window);
     auto mainScreenScaling = static_cast<float>(mainScreenDpi) / 96.0f;
 
@@ -66,8 +64,14 @@ DllExport void* PT_CreateWindow(void* application, unsigned char* title, int wid
     int y = (desktopRectangle.bottom / 2) - (height / 2);
 
     // Dark mode
-    //BOOL value = TRUE;
-    //DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+    // TODO: Don't include the full library for this
+    InitDarkMode();
+    BOOL value = TRUE;
+    
+    if (ShouldAppUseDarkMode())
+    {
+        DwmSetWindowAttribute(window, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+    }
 
     SetWindowPos(window, nullptr, x, y, width, height, 0);
 
@@ -76,16 +80,23 @@ DllExport void* PT_CreateWindow(void* application, unsigned char* title, int wid
         ShowWindow(window, SW_MAXIMIZE);
     }
 
+    HWND hwndButton = CreateWindowEx(0,  
+    L"BUTTON",  // Predefined class; Unicode assumed 
+    L"OK",      // Button text 
+    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
+    10,         // x position 
+    10,         // y position 
+    100,        // Button width
+    100,        // Button height
+    window,     // Parent window
+    NULL,       // No menu.
+    (HINSTANCE)GetWindowLongPtr(window, GWLP_HINSTANCE), 
+    NULL);
+    
     auto nativeWindow = new NativeWindow();
     nativeWindow->WindowHandle = window;
     nativeWindow->Width = width;
     nativeWindow->Height = height;
-
-    // Native WINRT
-    // User needs to install: https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/downloads
-    //winrt::init_apartment();
-
-    //Microsoft::UI::Xaml::Window winUIWindow{ nullptr };
 
     return nativeWindow;
 }
@@ -150,7 +161,7 @@ DllExport NativeImageSurfaceInfo PT_GetImageSurfaceInfo(void* imageSurface)
 
 DllExport void PT_UpdateImageSurface(void* imageSurface, unsigned char* data)
 {
-    auto nativeImageSurface = (NativeImageSurface*)imageSurface;
+    /*auto nativeImageSurface = (NativeImageSurface*)imageSurface;
     HDC deviceContext = GetDC(nativeImageSurface->WindowHandle);
 
 	RECT windowRectangle;
@@ -166,5 +177,33 @@ DllExport void PT_UpdateImageSurface(void* imageSurface, unsigned char* data)
 		&nativeImageSurface->BitmapInfo,
 		DIB_RGB_COLORS, SRCCOPY);
 
-	ReleaseDC(nativeImageSurface->WindowHandle, deviceContext);
+	ReleaseDC(nativeImageSurface->WindowHandle, deviceContext);*/
+}
+
+DllExport void* PT_CreatePanel(void* window)
+{
+    auto nativeWindow = (NativeWindow*)window;
+    printf("Create Panel\n");
+
+    auto panel = CreateWindowEx(
+            0, 
+            L"PathTracerWindowClass", 
+            L"", 
+            WS_VISIBLE | WS_BORDER | WS_CHILD | WS_CLIPCHILDREN, 
+            0, 
+            0, 
+            200, 
+            400, 
+            nativeWindow->WindowHandle, 
+            nullptr, 
+            (HINSTANCE)GetWindowLongPtr(nativeWindow->WindowHandle, GWLP_HINSTANCE), 
+            0);
+
+    return nullptr;
+}
+
+DllExport void* PT_CreateButton(void* parent, unsigned char* text)
+{
+    printf("Create Button\n");
+    return nullptr;
 }

@@ -11,20 +11,13 @@
 #include <stack>
 #include <assert.h>
 
+#define ISOLATION_AWARE_ENABLED 1
+
 #include <ShellScalingAPI.h>
 #include <Windows.h>
+#include <dwmapi.h>
 #include <Uxtheme.h>
 
-/*#include <unknwn.h>
-
-#include <winrt/base.h>
-#include <winrt/Windows.UI.Composition.h>
-
-#include <winrt/Microsoft.UI.h>
-#include <winrt/Microsoft.UI.Composition.h>
-#include <winrt/Microsoft.UI.Interop.h>
-#include <winrt/Microsoft.UI.Windowing.h>
-*/
 #define AssertIfFailed(result) assert(!FAILED(result))
 
 #define DllExport extern "C" __declspec(dllexport)
