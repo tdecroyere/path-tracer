@@ -23,6 +23,10 @@ class ImageSurfaceView : NSView {
     public func setImage(_ image: CGImage) {
         self.image = image
     }
+
+    override func mouseUp(with event: NSEvent) { print("mouseUp")
+    //self.textField2.window?.makeFirstResponder(nil) 
+    }
     
     /*public override func makeBackingLayer() -> CALayer {
         print("create layer")

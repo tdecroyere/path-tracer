@@ -142,8 +142,9 @@ public func createPanel(window: UnsafeRawPointer) -> UnsafeMutableRawPointer {
     print("Create Panel")
 
     let contentView = nativeWindow.window.contentView! as NSView
-    let panel = NSView()
-    panel.frame = contentView.frame
+    let panel = NSVisualEffectView()//NSView()
+    panel.material = .sidebar
+    panel.frame = NSMakeRect(0, 0, 400, 400)
     nativeWindow.window.contentView!.addSubview(panel)
 
     let nativePanel = NativePanel(panel)
@@ -154,10 +155,14 @@ public func createPanel(window: UnsafeRawPointer) -> UnsafeMutableRawPointer {
 public func createButton(parent: UnsafeRawPointer, title: UnsafeMutablePointer<Int8>) -> UnsafeMutableRawPointer {
     let nativePanel = Unmanaged<NativePanel>.fromOpaque(parent).takeUnretainedValue()
     print("Create Button")
-    let button = NSButton(frame: NSMakeRect(455, 400, 50, 20)) 
+    let button = NSButton(frame: NSMakeRect(0, 0, 100, 30)) 
+    button.title = String(cString: title)
     button.bezelStyle = .rounded
-    //let button = NSButton(title: "Test", target: nil, action: nil)
+    button.bezelColor = .controlAccentColor
     nativePanel.view.addSubview(button)
+
+    let test = NSTextField(frame: NSMakeRect(50, 50, 100, 30))
+    nativePanel.view.addSubview(test)
 
     let nativeControl = NativeControl(button)
     return Unmanaged.passRetained(nativeControl).toOpaque()
