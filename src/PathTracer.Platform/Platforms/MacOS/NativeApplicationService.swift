@@ -38,8 +38,8 @@ public func processSystemMessages(application: UnsafeMutablePointer<Int8>) -> Na
             if (!event.modifierFlags.contains(.command)) {
                 nativeInputProcessKeyboardEvent(application, event)
             } else {
-                NSApplication.shared.sendEvent(event)
             }
+            NSApplication.shared.sendEvent(event)
         /*case .mouseMoved, .leftMouseDragged:
             inputsManager.processMouseMovedEvent(event)
             NSApplication.shared.sendEvent(event)
