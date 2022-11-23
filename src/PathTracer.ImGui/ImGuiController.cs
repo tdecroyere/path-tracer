@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Reflection;
-using System.IO;
-using Veldrid;
 using System.Runtime.CompilerServices;
 using ImGuiNET;
+using Veldrid;
 
 namespace PathTracer
 {
@@ -40,7 +40,7 @@ namespace PathTracer
 
         private int _windowWidth;
         private int _windowHeight;
-        private Vector2 _scaleFactor = Vector2.One;
+        private Vector2 _scaleFactor = new Vector2(1, 1);
 
         // Image trackers
         private readonly Dictionary<TextureView, ResourceSetInfo> _setsByView
@@ -65,6 +65,9 @@ namespace PathTracer
             var fonts = ImGui.GetIO().Fonts;
             ImGui.GetIO().Fonts.AddFontDefault();
             ImGui.GetIO().BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
+            ImGui.GetIO().ConfigFlags |= ImGuiConfigFlags.DpiEnableScaleFonts | ImGuiConfigFlags.DpiEnableScaleViewports | ImGuiConfigFlags.DockingEnable;
+            //ImGui.GetIO().DisplayFramebufferScale = new Vector2(2.0f, 2.0f);
+            //ImGui.GetIO().FontGlobalScale = 2;
 
             CreateDeviceResources(gd, outputDescription);
             SetKeyMappings();

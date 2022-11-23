@@ -9,11 +9,22 @@ Sdl2Native.SDL_Init(SDLInitFlags.Video);
 var nativeWindow = new Sdl2Window("Path Tracer IMGui", 100, 100, 1280, 720, SDL_WindowFlags.Resizable | SDL_WindowFlags.Shown | SDL_WindowFlags.AllowHighDpi, false);
 
 var graphicsDevice = CreateGraphicsDevice(nativeWindow);
+var imGuiController = new ImGuiController(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, nativeWindow.Width, nativeWindow.Height);
+
+var cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
+var texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
+var textureData = new byte[nativeWindow.Width * nativeWindow.Height * 4];
+
+for (var i = 0; i < textureData.Length; i++)
+{
+    textureData[i] = 255;
+}
 
 nativeWindow.Resized += () =>
 {
     graphicsDevice.MainSwapchain.Resize((uint)nativeWindow.Width, (uint)nativeWindow.Height);
-    
+    imGuiController.WindowResized(nativeWindow.Width, nativeWindow.Height);
+
     Console.WriteLine($"Resize Native Window Size: {nativeWindow.Width}x{nativeWindow.Height}");
     Console.WriteLine($"Resize FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
 };
@@ -22,7 +33,6 @@ Console.WriteLine($"Native Window Size: {nativeWindow.Width}x{nativeWindow.Heigh
 Console.WriteLine($"FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
 
 var commandList = graphicsDevice.ResourceFactory.CreateCommandList();
-var imGuiController = new ImGuiController(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, nativeWindow.Width, nativeWindow.Height);
 
 while (nativeWindow.Exists)
 {
@@ -30,12 +40,14 @@ while (nativeWindow.Exists)
     if (!nativeWindow.Exists) { break; }
     imGuiController.Update(1.0f / 60.0f, snapshot);
 
+    graphicsDevice.UpdateTexture(cpuTexture, textureData, 0, 0, 0, cpuTexture.Width, cpuTexture.Height, 1, 0, 0);
     ImGui.ShowDemoWindow();
 
     commandList.Begin();
     commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
-
     commandList.ClearColorTarget(0, new RgbaFloat(1, 1, 0, 1));
+
+    commandList.CopyTexture(cpuTexture, texture);
 
     imGuiController.Render(graphicsDevice, commandList);
 
