@@ -1,16 +1,52 @@
 ﻿using System.Runtime.CompilerServices;
+using ImGuiNET;
+using PathTracer;
 using Veldrid;
 using Veldrid.Sdl2;
 
-Console.WriteLine("Hello, World!");
-Run();
+Sdl2Native.SDL_Init(SDLInitFlags.Video);
 
-static unsafe void Run()
+var nativeWindow = new Sdl2Window("Path Tracer IMGui", 100, 100, 1280, 720, SDL_WindowFlags.Resizable | SDL_WindowFlags.Shown | SDL_WindowFlags.AllowHighDpi, false);
+
+var graphicsDevice = CreateGraphicsDevice(nativeWindow);
+
+nativeWindow.Resized += () =>
 {
-    Sdl2Native.SDL_Init(SDLInitFlags.Video);
+    graphicsDevice.MainSwapchain.Resize((uint)nativeWindow.Width, (uint)nativeWindow.Height);
+    
+    Console.WriteLine($"Resize Native Window Size: {nativeWindow.Width}x{nativeWindow.Height}");
+    Console.WriteLine($"Resize FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
+};
 
-    var nativeWindow = new Sdl2Window("Path Tracer IMGui", 100, 100, 1280, 720, SDL_WindowFlags.Resizable | SDL_WindowFlags.Shown, false);
+Console.WriteLine($"Native Window Size: {nativeWindow.Width}x{nativeWindow.Height}");
+Console.WriteLine($"FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
 
+var commandList = graphicsDevice.ResourceFactory.CreateCommandList();
+var imGuiController = new ImGuiController(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, nativeWindow.Width, nativeWindow.Height);
+
+while (nativeWindow.Exists)
+{
+    var snapshot = nativeWindow.PumpEvents();
+    if (!nativeWindow.Exists) { break; }
+    imGuiController.Update(1.0f / 60.0f, snapshot);
+
+    ImGui.ShowDemoWindow();
+
+    commandList.Begin();
+    commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
+
+    commandList.ClearColorTarget(0, new RgbaFloat(1, 1, 0, 1));
+
+    imGuiController.Render(graphicsDevice, commandList);
+
+    commandList.End();
+
+    graphicsDevice.SubmitCommands(commandList);
+    graphicsDevice.SwapBuffers(graphicsDevice.MainSwapchain);
+}
+
+static unsafe GraphicsDevice CreateGraphicsDevice(Sdl2Window nativeWindow)
+{
     var graphicsDeviceOptions = new GraphicsDeviceOptions(
             debug: true, 
             swapchainDepthFormat: null, 
@@ -44,7 +80,7 @@ static unsafe void Run()
     else if (OperatingSystem.IsMacOS())
     {
         CocoaWindowInfo cocoaInfo = Unsafe.Read<CocoaWindowInfo>(&sysWmInfo.info);
-                    IntPtr nsWindow = cocoaInfo.Window;
+        IntPtr nsWindow = cocoaInfo.Window;
         var swapchainSource = SwapchainSource.CreateNSWindow(nsWindow);
 
         var swapchainDescription = new SwapchainDescription(
@@ -60,29 +96,8 @@ static unsafe void Run()
 
     if (graphicsDevice == null)
     {
-        Console.WriteLine("ERROR: Unsupported OS!");
-        return;
+        throw new InvalidOperationException("Create Graphics device: Unsupported OS");
     }
 
-    nativeWindow.Resized += () =>
-    {
-        graphicsDevice.MainSwapchain.Resize((uint)nativeWindow.Width, (uint)nativeWindow.Height);
-    };
-
-    while (nativeWindow.Exists)
-    {
-        var snapshot = nativeWindow.PumpEvents();
-        if (!nativeWindow.Exists) { break; }
-
-        var commandList = graphicsDevice.ResourceFactory.CreateCommandList();
-
-        commandList.Begin();
-        commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
-
-        commandList.ClearColorTarget(0, new RgbaFloat(1, 1, 0, 1));
-        commandList.End();
-
-        graphicsDevice.SubmitCommands(commandList);
-        graphicsDevice.SwapBuffers(graphicsDevice.MainSwapchain);
-    }
+    return graphicsDevice;
 }
