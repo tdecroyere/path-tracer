@@ -64,11 +64,25 @@ static unsafe void Run()
         return;
     }
 
+    nativeWindow.Resized += () =>
+    {
+        graphicsDevice.MainSwapchain.Resize((uint)nativeWindow.Width, (uint)nativeWindow.Height);
+    };
+
     while (nativeWindow.Exists)
     {
         var snapshot = nativeWindow.PumpEvents();
         if (!nativeWindow.Exists) { break; }
 
+        var commandList = graphicsDevice.ResourceFactory.CreateCommandList();
+
+        commandList.Begin();
+        commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
+
+        commandList.ClearColorTarget(0, new RgbaFloat(1, 1, 0, 1));
+        commandList.End();
+
+        graphicsDevice.SubmitCommands(commandList);
         graphicsDevice.SwapBuffers(graphicsDevice.MainSwapchain);
     }
 }
