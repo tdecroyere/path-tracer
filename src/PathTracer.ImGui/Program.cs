@@ -41,6 +41,23 @@ static unsafe void Run()
         graphicsDevice = GraphicsDevice.CreateVulkan(graphicsDeviceOptions, swapchainDescription);
     }
 
+    else if (OperatingSystem.IsMacOS())
+    {
+        CocoaWindowInfo cocoaInfo = Unsafe.Read<CocoaWindowInfo>(&sysWmInfo.info);
+                    IntPtr nsWindow = cocoaInfo.Window;
+        var swapchainSource = SwapchainSource.CreateNSWindow(nsWindow);
+
+        var swapchainDescription = new SwapchainDescription(
+                        swapchainSource,
+                        (uint)nativeWindow.Width,
+                        (uint)nativeWindow.Height,
+                        graphicsDeviceOptions.SwapchainDepthFormat,
+                        graphicsDeviceOptions.SyncToVerticalBlank,
+                        graphicsDeviceOptions.SwapchainSrgbFormat);
+
+        graphicsDevice = GraphicsDevice.CreateMetal(graphicsDeviceOptions, swapchainDescription);
+    }
+
     if (graphicsDevice == null)
     {
         Console.WriteLine("ERROR: Unsupported OS!");
