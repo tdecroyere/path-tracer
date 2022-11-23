@@ -9,8 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Mochi.DearImGui" />
-    <PackageReference Include="Mochi.DearImGui.OpenTK" />
+    <PackageReference Include="ImGui.NET" />
+    <PackageReference Include="Veldrid" />
+    <PackageReference Include="Veldrid.SDL2" />
   </ItemGroup>
 
 </Project>

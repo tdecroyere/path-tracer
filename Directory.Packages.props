@@ -6,8 +6,9 @@
   <!-- Libraries -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
-    <PackageVersion Include="Mochi.DearImGui" Version="0.0.3-alpha0" />
-    <PackageVersion Include="Mochi.DearImGui.OpenTK" Version="0.0.3-alpha0" />
+    <PackageVersion Include="ImGui.NET" Version="1.88.0" />
+    <PackageVersion Include="Veldrid" Version="4.9.0-beta2" />
+    <PackageVersion Include="Veldrid.SDL2" Version="4.9.0-beta2" />
   </ItemGroup>
 
   <!-- Analyzers -->
