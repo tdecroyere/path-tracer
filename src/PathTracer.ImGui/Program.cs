@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using ImGuiNET;
 using PathTracer;
 using Veldrid;
@@ -13,32 +14,63 @@ var imGuiController = new ImGuiController(graphicsDevice, graphicsDevice.MainSwa
 
 var cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
 var texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
-var textureData = new byte[nativeWindow.Width * nativeWindow.Height * 4];
+var textureView = graphicsDevice.ResourceFactory.CreateTextureView(texture);
+var textureData = new byte[nativeWindow.Width * nativeWindow.Height * 4].AsSpan();
 
 for (var i = 0; i < textureData.Length; i++)
 {
     textureData[i] = 255;
 }
 
-nativeWindow.Resized += () =>
-{
-    graphicsDevice.MainSwapchain.Resize((uint)nativeWindow.Width, (uint)nativeWindow.Height);
-    imGuiController.WindowResized(nativeWindow.Width, nativeWindow.Height);
-
-    Console.WriteLine($"Resize Native Window Size: {nativeWindow.Width}x{nativeWindow.Height}");
-    Console.WriteLine($"Resize FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
-};
-
 Console.WriteLine($"Native Window Size: {nativeWindow.Width}x{nativeWindow.Height}");
 Console.WriteLine($"FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
 
 var commandList = graphicsDevice.ResourceFactory.CreateCommandList();
+var frameCount = 0;
+var random = new Random();
+var stopwatch = new Stopwatch();
+
+var currentWidth = nativeWindow.Width;
+var currentHeight = nativeWindow.Height;
 
 while (nativeWindow.Exists)
 {
     var snapshot = nativeWindow.PumpEvents();
     if (!nativeWindow.Exists) { break; }
+
+    if (currentWidth != nativeWindow.Width || currentHeight != nativeWindow.Height)
+    {
+        graphicsDevice.MainSwapchain.Resize((uint)nativeWindow.Width, (uint)nativeWindow.Height);
+        imGuiController.WindowResized(nativeWindow.Width, nativeWindow.Height);
+
+        graphicsDevice.DisposeWhenIdle(cpuTexture);
+        graphicsDevice.DisposeWhenIdle(texture);
+        graphicsDevice.DisposeWhenIdle(textureView);
+
+        textureData = new byte[nativeWindow.Width * nativeWindow.Height * 4].AsSpan();
+        cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
+        texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
+        textureView = graphicsDevice.ResourceFactory.CreateTextureView(texture);
+        imGuiController.ResetSurfaceTexture();
+
+        Console.WriteLine($"Resize Native Window Size: {nativeWindow.Width}x{nativeWindow.Height}");
+        Console.WriteLine($"Resize FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
+
+        currentWidth = nativeWindow.Width;
+        currentHeight = nativeWindow.Height;
+    }
+
     imGuiController.Update(1.0f / 60.0f, snapshot);
+
+    stopwatch.Restart();
+    for (var i = 0; i < textureData.Length; i+=4)
+    {
+        random.NextBytes(textureData.Slice(i, 3));
+
+        textureData[i + 3] = 255;
+    }
+    stopwatch.Stop();
+    Console.WriteLine($"Delta: {stopwatch.ElapsedMilliseconds}");
 
     graphicsDevice.UpdateTexture(cpuTexture, textureData, 0, 0, 0, cpuTexture.Width, cpuTexture.Height, 1, 0, 0);
     ImGui.ShowDemoWindow();
@@ -51,13 +83,15 @@ while (nativeWindow.Exists)
 
     commandList.CopyTexture(cpuTexture, texture);
 
-    imGuiController.RenderTexture(graphicsDevice, commandList, texture);
+    imGuiController.RenderTexture(graphicsDevice, commandList, textureView);
     imGuiController.Render(graphicsDevice, commandList);
 
     commandList.End();
 
     graphicsDevice.SubmitCommands(commandList);
     graphicsDevice.SwapBuffers(graphicsDevice.MainSwapchain);
+
+    frameCount++;
 }
 
 static unsafe GraphicsDevice CreateGraphicsDevice(Sdl2Window nativeWindow)

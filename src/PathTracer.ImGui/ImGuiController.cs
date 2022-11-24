@@ -51,6 +51,15 @@ namespace PathTracer
         private readonly List<IDisposable> _ownedResources = new List<IDisposable>();
         private int _lastAssignedID = 100;
 
+
+        // Texture Surface Draw
+        private DeviceBuffer _surfaceVertexBuffer;
+        private DeviceBuffer _surfaceIndexBuffer;
+        private DeviceBuffer _surfaceProjMatrixBuffer;
+        private ResourceSet _mainSurfaceResourceSet;
+        private ResourceSet? _surfaceTextureResourceSet;
+        private bool _surfaceInitialized;
+
         /// <summary>
         /// Constructs a new ImGuiController.
         /// </summary>
@@ -102,6 +111,9 @@ namespace PathTracer
             _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
             _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
 
+            _surfaceProjMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
+            _surfaceProjMatrixBuffer.Name = "Surface Projection Buffer";
+
             byte[] vertexShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-vertex", ShaderStages.Vertex);
             byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(gd.ResourceFactory, "imgui-frag", ShaderStages.Fragment);
             _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, gd.BackendType == GraphicsBackend.Metal ? "VS" : "main"));
@@ -136,7 +148,15 @@ namespace PathTracer
                 _projMatrixBuffer,
                 gd.PointSampler));
 
+            _mainSurfaceResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout, _surfaceProjMatrixBuffer, gd.PointSampler));
+
             _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _fontTextureView));
+            
+            uint totalVBSize = (uint)(4 * Unsafe.SizeOf<ImDrawVert>());
+            _surfaceVertexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalVBSize), BufferUsage.VertexBuffer));
+
+            uint totalIBSize = (uint)(6 * sizeof(ushort));
+            _surfaceIndexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalIBSize), BufferUsage.IndexBuffer));
         }
 
         /// <summary>
@@ -533,9 +553,62 @@ namespace PathTracer
             }
         }
 
-        public void RenderTexture(GraphicsDevice graphicsDevice, CommandList commandList, Texture texture)
+        public void RenderTexture(GraphicsDevice graphicsDevice, CommandList commandList, TextureView texture)
         {
             // TODO
+            if (!_surfaceInitialized)
+            {
+                var vertices = new ImDrawVert[]
+                {
+                    new() { pos = new Vector2(0.0f, 0.0f), uv = new Vector2(0.0f, 0.0f), col = uint.MaxValue },
+                    new() { pos = new Vector2(0.0f, 1.0f), uv = new Vector2(0.0f, 1.0f), col = uint.MaxValue },
+                    new() { pos = new Vector2(1.0f, 0.0f), uv = new Vector2(1.0f, 0.0f), col = uint.MaxValue },
+                    new() { pos = new Vector2(1.0f, 1.0f), uv = new Vector2(1.0f, 1.0f), col = uint.MaxValue }
+                };
+
+                var indices = new ushort[]
+                {
+                    0, 1, 2, 2, 1, 3
+                };
+
+                commandList.UpdateBuffer(
+                    _surfaceVertexBuffer,
+                    0,
+                    vertices);
+
+                commandList.UpdateBuffer(
+                    _surfaceIndexBuffer,
+                    0,
+                    indices);
+
+                _surfaceInitialized = true;
+            }
+
+            _surfaceTextureResourceSet ??= graphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, texture));
+
+            Matrix4x4 mvp = Matrix4x4.CreateOrthographicOffCenter(
+                0f,
+                1,
+                1,
+                0.0f,
+                -1.0f,
+                1.0f);
+
+            _gd.UpdateBuffer(_surfaceProjMatrixBuffer, 0, ref mvp);
+
+            commandList.SetVertexBuffer(0, _surfaceVertexBuffer);
+            commandList.SetIndexBuffer(_surfaceIndexBuffer, IndexFormat.UInt16);
+            commandList.SetPipeline(_pipeline);
+            
+            commandList.SetGraphicsResourceSet(0, _mainSurfaceResourceSet);
+            commandList.SetGraphicsResourceSet(1, _surfaceTextureResourceSet);
+            
+            commandList.DrawIndexed(6, 1, 0, 0, 0);
+        }
+
+        public void ResetSurfaceTexture()
+        {
+            _surfaceTextureResourceSet = null;
         }
 
         /// <summary>
