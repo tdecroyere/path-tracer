@@ -1,12 +1,11 @@
 ﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using PathTracer;
 using PathTracer.Platform;
+using PathTracer.Platform.Inputs;
 using PathTracer.Platform.NativeUI;
 using Veldrid;
-using Veldrid.Sdl2;
 
 var serviceCollection = new ServiceCollection();
 serviceCollection.UsePathTracerPlatform();
@@ -15,76 +14,77 @@ var serviceProvider = serviceCollection.BuildServiceProvider();
 
 var nativeApplicationService = serviceProvider.GetRequiredService<INativeApplicationService>();
 var nativeUIService = serviceProvider.GetRequiredService<INativeUIService>();
+var nativeInputService = serviceProvider.GetRequiredService<INativeInputService>();
 
 var nativeApplication = nativeApplicationService.CreateApplication("PathTracer IMGui");
-var nativeWindow2 = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
+var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
+var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
-Sdl2Native.SDL_Init(SDLInitFlags.Video);
+var graphicsDevice = CreateGraphicsDevice(nativeUIService, nativeWindow);
+var imGuiController = new ImGuiBackend(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height, renderSize.UIScale);
 
-var nativeWindow = new Sdl2Window("Path Tracer IMGui", 100, 100, 1280, 720, SDL_WindowFlags.Resizable | SDL_WindowFlags.Shown | SDL_WindowFlags.AllowHighDpi, false);
-
-var graphicsDevice = CreateGraphicsDevice(nativeWindow);
-var imGuiController = new ImGuiController(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, nativeWindow.Width, nativeWindow.Height);
-
-var cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
-var texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
+var cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)renderSize.Width, (uint)renderSize.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
+var texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)renderSize.Width, (uint)renderSize.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
 var textureView = graphicsDevice.ResourceFactory.CreateTextureView(texture);
-var textureData = new byte[nativeWindow.Width * nativeWindow.Height * 4].AsSpan();
+var textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
 
 for (var i = 0; i < textureData.Length; i++)
 {
     textureData[i] = 255;
 }
 
-Console.WriteLine($"Native Window Size: {nativeWindow.Width}x{nativeWindow.Height}");
+Console.WriteLine($"Native Window Size: {renderSize}");
 Console.WriteLine($"FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
 
 var commandList = graphicsDevice.ResourceFactory.CreateCommandList();
 var frameCount = 0;
-var random = new Random();
 var stopwatch = new Stopwatch();
 
-var currentWidth = nativeWindow.Width;
-var currentHeight = nativeWindow.Height;
+var currentWidth = renderSize.Width;
+var currentHeight = renderSize.Height;
 
-while (nativeWindow.Exists)
+var appStatus = new NativeApplicationStatus();
+var inputState = new NativeInputState();
+
+while (appStatus.IsRunning == 1)
 {
-    var snapshot = nativeWindow.PumpEvents();
-    if (!nativeWindow.Exists) { break; }
+    appStatus = nativeApplicationService.ProcessSystemMessages(nativeApplication);
 
-    if (currentWidth != nativeWindow.Width || currentHeight != nativeWindow.Height)
+    renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
+
+    if (currentWidth != renderSize.Width || currentHeight != renderSize.Height)
     {
-        graphicsDevice.MainSwapchain.Resize((uint)nativeWindow.Width, (uint)nativeWindow.Height);
-        imGuiController.WindowResized(nativeWindow.Width, nativeWindow.Height);
+        graphicsDevice.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
+        imGuiController.WindowResized(renderSize.Width, renderSize.Height, renderSize.UIScale);
 
         graphicsDevice.DisposeWhenIdle(cpuTexture);
         graphicsDevice.DisposeWhenIdle(texture);
         graphicsDevice.DisposeWhenIdle(textureView);
 
-        textureData = new byte[nativeWindow.Width * nativeWindow.Height * 4].AsSpan();
-        cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
-        texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)nativeWindow.Width, (uint)nativeWindow.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
+        textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
+        cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)renderSize.Width, (uint)renderSize.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
+        texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)renderSize.Width, (uint)renderSize.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
         textureView = graphicsDevice.ResourceFactory.CreateTextureView(texture);
         imGuiController.ResetSurfaceTexture();
 
-        Console.WriteLine($"Resize Native Window Size: {nativeWindow.Width}x{nativeWindow.Height}");
+        Console.WriteLine($"Resize Native Window Size: {renderSize}");
         Console.WriteLine($"Resize FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
 
-        currentWidth = nativeWindow.Width;
-        currentHeight = nativeWindow.Height;
+        currentWidth = renderSize.Width;
+        currentHeight = renderSize.Height;
     }
 
-    imGuiController.Update(1.0f / 60.0f, snapshot);
+    imGuiController.Update(1.0f / 60.0f, inputState);
 
     stopwatch.Restart();
-    for (var i = 0; i < textureData.Length; i+=4)
+    for (var i = 0; i < textureData.Length; i++)
     {
-        random.NextBytes(textureData.Slice(i, 3));
-
-        textureData[i + 3] = 255;
+        var color = (byte)(frameCount % 255);
+        textureData[i] = (uint) (255 << 24 | color << 16 | color << 8 | color);
     }
+
     stopwatch.Stop();
-    Console.WriteLine($"Delta: {stopwatch.ElapsedMilliseconds}");
+    nativeUIService.SetWindowTitle(nativeWindow, $"Delta: {stopwatch.ElapsedMilliseconds}");
 
     graphicsDevice.UpdateTexture(cpuTexture, textureData, 0, 0, 0, cpuTexture.Width, cpuTexture.Height, 1, 0, 0);
     ImGui.ShowDemoWindow();
@@ -93,7 +93,6 @@ while (nativeWindow.Exists)
 
     commandList.Begin();
     commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
-    commandList.ClearColorTarget(0, new RgbaFloat(1, 1, 0, 1));
 
     commandList.CopyTexture(cpuTexture, texture);
 
@@ -108,7 +107,7 @@ while (nativeWindow.Exists)
     frameCount++;
 }
 
-static unsafe GraphicsDevice CreateGraphicsDevice(Sdl2Window nativeWindow)
+static unsafe GraphicsDevice CreateGraphicsDevice(INativeUIService nativeUIService, NativeWindow nativeWindow)
 {
     var graphicsDeviceOptions = new GraphicsDeviceOptions(
             debug: true, 
@@ -118,21 +117,19 @@ static unsafe GraphicsDevice CreateGraphicsDevice(Sdl2Window nativeWindow)
             preferDepthRangeZeroToOne: true, 
             preferStandardClipSpaceYDirection: true);
 
-    SDL_SysWMinfo sysWmInfo;
-    Sdl2Native.SDL_GetVersion(&sysWmInfo.version);
-    Sdl2Native.SDL_GetWMWindowInfo(nativeWindow.SdlWindowHandle, &sysWmInfo);
+    var nativeWindowSystemHandle = nativeUIService.GetWindowSystemHandle(nativeWindow);
+    var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
     GraphicsDevice? graphicsDevice = null;
 
     if (OperatingSystem.IsWindows())
     {
-        Win32WindowInfo w32Info = Unsafe.Read<Win32WindowInfo>(&sysWmInfo.info);
-        var swapchainSource = SwapchainSource.CreateWin32(w32Info.Sdl2Window, w32Info.hinstance);
+        var swapchainSource = SwapchainSource.CreateWin32(nativeWindowSystemHandle, 0);
 
         var swapchainDescription = new SwapchainDescription(
                         swapchainSource,
-                        (uint)nativeWindow.Width,
-                        (uint)nativeWindow.Height,
+                        (uint)renderSize.Width,
+                        (uint)renderSize.Height,
                         graphicsDeviceOptions.SwapchainDepthFormat,
                         graphicsDeviceOptions.SyncToVerticalBlank,
                         graphicsDeviceOptions.SwapchainSrgbFormat);
@@ -142,14 +139,12 @@ static unsafe GraphicsDevice CreateGraphicsDevice(Sdl2Window nativeWindow)
 
     else if (OperatingSystem.IsMacOS())
     {
-        CocoaWindowInfo cocoaInfo = Unsafe.Read<CocoaWindowInfo>(&sysWmInfo.info);
-        IntPtr nsWindow = cocoaInfo.Window;
-        var swapchainSource = SwapchainSource.CreateNSWindow(nsWindow);
+        var swapchainSource = SwapchainSource.CreateNSWindow(nativeWindowSystemHandle);
 
         var swapchainDescription = new SwapchainDescription(
                         swapchainSource,
-                        (uint)nativeWindow.Width,
-                        (uint)nativeWindow.Height,
+                        (uint)renderSize.Width,
+                        (uint)renderSize.Height,
                         graphicsDeviceOptions.SwapchainDepthFormat,
                         graphicsDeviceOptions.SyncToVerticalBlank,
                         graphicsDeviceOptions.SwapchainSrgbFormat);

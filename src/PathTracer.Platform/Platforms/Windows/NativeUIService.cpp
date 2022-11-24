@@ -9,6 +9,7 @@ struct NativeWindow
     HWND WindowHandle;
     int Width;
     int Height;
+    float UIScale;
 };
 
 struct NativeImageSurface
@@ -29,7 +30,7 @@ DllExport void* PT_CreateWindow(void* application, unsigned char* title, int wid
         WS_EX_DLGMODALFRAME,
         L"PathTracerWindowClass",
         ConvertUtf8ToWString(title).c_str(),
-        WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+        WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
         width,
@@ -74,31 +75,26 @@ DllExport void* PT_CreateWindow(void* application, unsigned char* title, int wid
     }
 
     SetWindowPos(window, nullptr, x, y, width, height, 0);
+    ShowWindow(window, SW_NORMAL);
 
     if (windowState == NativeWindowState::Maximized)
     {
         ShowWindow(window, SW_MAXIMIZE);
     }
 
-    HWND hwndButton = CreateWindowEx(0,  
-    L"BUTTON",  // Predefined class; Unicode assumed 
-    L"OK",      // Button text 
-    WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,  // Styles 
-    10,         // x position 
-    10,         // y position 
-    100,        // Button width
-    100,        // Button height
-    window,     // Parent window
-    NULL,       // No menu.
-    (HINSTANCE)GetWindowLongPtr(window, GWLP_HINSTANCE), 
-    NULL);
-    
     auto nativeWindow = new NativeWindow();
     nativeWindow->WindowHandle = window;
     nativeWindow->Width = width;
     nativeWindow->Height = height;
+    nativeWindow->UIScale = mainScreenScaling;
 
     return nativeWindow;
+}
+
+DllExport void* PT_GetWindowSystemHandle(void* window)
+{
+    auto nativeWindow = (NativeWindow*)window;
+    return nativeWindow->WindowHandle;
 }
 
 DllExport NativeWindowSize PT_GetWindowRenderSize(void* window)
@@ -108,12 +104,17 @@ DllExport NativeWindowSize PT_GetWindowRenderSize(void* window)
     RECT windowRectangle;
 	GetClientRect(nativeWindow->WindowHandle, &windowRectangle);
 
+    auto mainScreenDpi = GetDpiForWindow(nativeWindow->WindowHandle);
+    auto mainScreenScaling = static_cast<float>(mainScreenDpi) / 96.0f;
+
     nativeWindow->Width = windowRectangle.right - windowRectangle.left;
     nativeWindow->Height = windowRectangle.bottom - windowRectangle.top;
-    
+    nativeWindow->UIScale = mainScreenScaling;
+
     auto result = NativeWindowSize();
     result.Width = nativeWindow->Width;
     result.Height = nativeWindow->Height;
+    result.UIScale = nativeWindow->UIScale;
 
     return result;
 }
@@ -182,28 +183,10 @@ DllExport void PT_UpdateImageSurface(void* imageSurface, unsigned char* data)
 
 DllExport void* PT_CreatePanel(void* window)
 {
-    auto nativeWindow = (NativeWindow*)window;
-    printf("Create Panel\n");
-
-    auto panel = CreateWindowEx(
-            0, 
-            L"PathTracerWindowClass", 
-            L"", 
-            WS_VISIBLE | WS_BORDER | WS_CHILD | WS_CLIPCHILDREN, 
-            0, 
-            0, 
-            200, 
-            400, 
-            nativeWindow->WindowHandle, 
-            nullptr, 
-            (HINSTANCE)GetWindowLongPtr(nativeWindow->WindowHandle, GWLP_HINSTANCE), 
-            0);
-
     return nullptr;
 }
 
 DllExport void* PT_CreateButton(void* parent, unsigned char* text)
 {
-    printf("Create Button\n");
     return nullptr;
 }

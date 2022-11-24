@@ -5,15 +5,12 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using ImGuiNET;
+using PathTracer.Platform.Inputs;
 using Veldrid;
 
 namespace PathTracer
 {
-    /// <summary>
-    /// A modified version of Veldrid.ImGui's ImGuiRenderer.
-    /// Manages input for ImGui and handles rendering ImGui's DrawLists with Veldrid.
-    /// </summary>
-    public class ImGuiController : IDisposable
+    public class ImGuiBackend : IDisposable
     {
         private GraphicsDevice _gd;
         private bool _frameBegun;
@@ -32,12 +29,7 @@ namespace PathTracer
         private ResourceSet _mainResourceSet;
         private ResourceSet _fontTextureResourceSet;
 
-        private IntPtr _fontAtlasID = (IntPtr)1;
-        private bool _controlDown;
-        private bool _shiftDown;
-        private bool _altDown;
-        private bool _winKeyDown;
-
+        private readonly IntPtr _fontAtlasID = (IntPtr)1;
         private int _windowWidth;
         private int _windowHeight;
         private Vector2 _scaleFactor = new Vector2(1, 1);
@@ -63,23 +55,23 @@ namespace PathTracer
         /// <summary>
         /// Constructs a new ImGuiController.
         /// </summary>
-        public ImGuiController(GraphicsDevice gd, OutputDescription outputDescription, int width, int height)
+        public ImGuiBackend(GraphicsDevice gd, OutputDescription outputDescription, int width, int height, float uiScale)
         {
             _gd = gd;
             _windowWidth = width;
             _windowHeight = height;
 
-            IntPtr context = ImGui.CreateContext();
+            var context = ImGui.CreateContext();
+
             ImGui.SetCurrentContext(context);
-            var fonts = ImGui.GetIO().Fonts;
             ImGui.GetIO().Fonts.AddFontDefault();
             ImGui.GetIO().BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
             ImGui.GetIO().ConfigFlags |= ImGuiConfigFlags.DpiEnableScaleFonts | ImGuiConfigFlags.DpiEnableScaleViewports | ImGuiConfigFlags.DockingEnable;
-            //ImGui.GetIO().DisplayFramebufferScale = new Vector2(2.0f, 2.0f);
-            //ImGui.GetIO().FontGlobalScale = 2;
+
+            _scaleFactor = new Vector2(uiScale, uiScale);
 
             CreateDeviceResources(gd, outputDescription);
-            SetKeyMappings();
+            //SetKeyMappings();
 
             SetPerFrameImGuiData(1f / 60f);
 
@@ -87,10 +79,11 @@ namespace PathTracer
             _frameBegun = true;
         }
 
-        public void WindowResized(int width, int height)
+        public void WindowResized(int width, int height, float uiScale)
         {
             _windowWidth = width;
             _windowHeight = height;
+            _scaleFactor = new Vector2(uiScale, uiScale);
         }
 
         public void DestroyDeviceObjects()
@@ -98,9 +91,8 @@ namespace PathTracer
             Dispose();
         }
 
-        public void CreateDeviceResources(GraphicsDevice gd, OutputDescription outputDescription)
+        private void CreateDeviceResources(GraphicsDevice gd, OutputDescription outputDescription)
         {
-            _gd = gd;
             ResourceFactory factory = gd.ResourceFactory;
             _vertexBuffer = factory.CreateBuffer(new BufferDescription(10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
             _vertexBuffer.Name = "ImGui.NET Vertex Buffer";
@@ -227,20 +219,10 @@ namespace PathTracer
             _lastAssignedID = 100;
         }
 
-        private byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
+        private static byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name, ShaderStages stage)
         {
             switch (factory.BackendType)
             {
-                case GraphicsBackend.Direct3D11:
-                {
-                    string resourceName = name + ".hlsl.bytes";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
-                case GraphicsBackend.OpenGL:
-                {
-                    string resourceName = name + ".glsl";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
                 case GraphicsBackend.Vulkan:
                 {
                     string resourceName = name + ".spv";
@@ -256,15 +238,19 @@ namespace PathTracer
             }
         }
 
-        private byte[] GetEmbeddedResourceBytes(string resourceName)
+        private static byte[] GetEmbeddedResourceBytes(string resourceName)
         {
-            Assembly assembly = typeof(ImGuiController).Assembly;
-            using (Stream s = assembly.GetManifestResourceStream(resourceName))
+            var assembly = typeof(ImGuiBackend).Assembly;
+            using Stream? resourceStream = assembly.GetManifestResourceStream(resourceName);
+
+            if (resourceStream is null)
             {
-                byte[] ret = new byte[s.Length];
-                s.Read(ret, 0, (int)s.Length);
-                return ret;
+                return Array.Empty<byte>();
             }
+
+            byte[] ret = new byte[resourceStream.Length];
+            resourceStream.Read(ret, 0, (int)resourceStream.Length);
+            return ret;
         }
 
         /// <summary>
@@ -324,7 +310,7 @@ namespace PathTracer
         /// <summary>
         /// Updates ImGui input and IO configuration state.
         /// </summary>
-        public void Update(float deltaSeconds, InputSnapshot snapshot)
+        public void Update(float deltaSeconds, NativeInputState inputState)
         {
             if (_frameBegun)
             {
@@ -332,7 +318,7 @@ namespace PathTracer
             }
 
             SetPerFrameImGuiData(deltaSeconds);
-            UpdateImGuiInput(snapshot);
+            //UpdateImGuiInput(snapshot);
 
             _frameBegun = true;
             ImGui.NewFrame();
@@ -352,7 +338,7 @@ namespace PathTracer
             io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
         }
 
-        private void UpdateImGuiInput(InputSnapshot snapshot)
+        /*private void UpdateImGuiInput(InputSnapshot snapshot)
         {
             ImGuiIOPtr io = ImGui.GetIO();
 
@@ -446,7 +432,7 @@ namespace PathTracer
             io.KeyMap[(int)ImGuiKey.X] = (int)Key.X;
             io.KeyMap[(int)ImGuiKey.Y] = (int)Key.Y;
             io.KeyMap[(int)ImGuiKey.Z] = (int)Key.Z;
-        }
+        }*/
 
         private void RenderImDrawData(ImDrawDataPtr draw_data, GraphicsDevice gd, CommandList cl)
         {

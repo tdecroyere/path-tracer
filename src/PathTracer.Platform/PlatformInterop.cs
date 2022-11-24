@@ -32,6 +32,9 @@ namespace PathTracer.Platform.NativeUI
         internal static partial nint PT_CreateWindow(nint application, string title, int width, int height, NativeWindowState windowState);
 
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
+        internal static partial nint PT_GetWindowSystemHandle(nint window); 
+
+        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
         internal static partial NativeWindowSize PT_GetWindowRenderSize(nint window); 
 
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]

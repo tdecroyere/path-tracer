@@ -24,6 +24,7 @@ struct NativeWindowSize
 {
     int Width;
     int Height;
+    float UIScale;
 };
 
 enum NativeInputObjectType
