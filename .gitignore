@@ -5,6 +5,7 @@
 
 TestData/
 coverage/
+imgui.ini
 
 # User-specific files
 *.rsuser

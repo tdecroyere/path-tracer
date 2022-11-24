@@ -533,6 +533,11 @@ namespace PathTracer
             }
         }
 
+        public void RenderTexture(GraphicsDevice graphicsDevice, CommandList commandList, Texture texture)
+        {
+            // TODO
+        }
+
         /// <summary>
         /// Frees all graphics resources used by the renderer.
         /// </summary>

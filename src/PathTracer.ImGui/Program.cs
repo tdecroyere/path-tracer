@@ -43,12 +43,15 @@ while (nativeWindow.Exists)
     graphicsDevice.UpdateTexture(cpuTexture, textureData, 0, 0, 0, cpuTexture.Width, cpuTexture.Height, 1, 0, 0);
     ImGui.ShowDemoWindow();
 
+    ImGui.Text("Teeeest");
+
     commandList.Begin();
     commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
     commandList.ClearColorTarget(0, new RgbaFloat(1, 1, 0, 1));
 
     commandList.CopyTexture(cpuTexture, texture);
 
+    imGuiController.RenderTexture(graphicsDevice, commandList, texture);
     imGuiController.Render(graphicsDevice, commandList);
 
     commandList.End();
