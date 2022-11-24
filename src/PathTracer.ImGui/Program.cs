@@ -1,9 +1,23 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using ImGuiNET;
+using Microsoft.Extensions.DependencyInjection;
 using PathTracer;
+using PathTracer.Platform;
+using PathTracer.Platform.NativeUI;
 using Veldrid;
 using Veldrid.Sdl2;
+
+var serviceCollection = new ServiceCollection();
+serviceCollection.UsePathTracerPlatform();
+
+var serviceProvider = serviceCollection.BuildServiceProvider();
+
+var nativeApplicationService = serviceProvider.GetRequiredService<INativeApplicationService>();
+var nativeUIService = serviceProvider.GetRequiredService<INativeUIService>();
+
+var nativeApplication = nativeApplicationService.CreateApplication("PathTracer IMGui");
+var nativeWindow2 = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
 
 Sdl2Native.SDL_Init(SDLInitFlags.Video);
 

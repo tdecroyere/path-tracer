@@ -7,7 +7,7 @@
     
     <!-- TODO: Try to use the main project output path -->
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">../../Build/Debug/Windows</OutputPath>
+    <!--<OutputPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">../../Build/Debug/Windows</OutputPath>-->
     <OutputPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">../../Build/Debug/MacOS/PathTracer.app/Contents/MacOS</OutputPath>
     
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -36,6 +36,20 @@
       <BuildScript>$(MSBuildProjectDirectory)/Platforms/MacOS/Build.ps1</BuildScript>
     </PropertyGroup>
     <Exec Command="$(PowerShellCommand) -ExecutionPolicy Unrestricted -NoProfile -File $(BuildScript) -outputDirectory $(OutputPath) -configuration $(Configuration)" />
-  </Target>
+</Target>
+
+<ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Content Include="$(OutputPath)/PathTracer.Platform.Native.dll">
+      <TargetPath>PathTracer.Platform.Native.dll</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+</ItemGroup>   
+
+<ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Content Include="$(OutputPath)/PathTracer.Platform.Native.dylib">
+      <TargetPath>PathTracer.Platform.Native.dylib</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+</ItemGroup>   
 
 </Project>
