@@ -49,10 +49,10 @@
       <TargetPath>PathTracer.Platform.Native.dylib</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="$(OutputPath)/PathTracer.Platform.Native.dylib.dSYM">
+    <!--<Content Include="$(OutputPath)/PathTracer.Platform.Native.dylib.dSYM">
       <TargetPath>PathTracer.Platform.Native.dylib.dSYM</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </Content>-->
 </ItemGroup>   
 
 </Project>

@@ -70,7 +70,13 @@ public func getWindowRenderSize(window: UnsafeRawPointer) -> NativeWindowSize {
     size.width *= mainScreenScaling;
     size.height *= mainScreenScaling;
 
-    return NativeWindowSize(Width: Int32(size.width), Height: Int32(size.height))
+    return NativeWindowSize(Width: Int32(size.width), Height: Int32(size.height), UIScale: Float(mainScreenScaling))
+}
+
+@_cdecl("PT_GetWindowSystemHandle")
+public func getWindowSystemHandle(window: UnsafeRawPointer) -> UnsafeMutableRawPointer {
+    let nativeWindow = Unmanaged<NativeWindow>.fromOpaque(window).takeUnretainedValue()
+    return Unmanaged.passRetained(nativeWindow.window).toOpaque()
 }
 
 @_cdecl("PT_SetWindowTitle")

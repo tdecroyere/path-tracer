@@ -21,17 +21,10 @@ var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer 
 var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
 var graphicsDevice = CreateGraphicsDevice(nativeUIService, nativeWindow);
-var imGuiController = new ImGuiBackend(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height, renderSize.UIScale);
+var imGuiBackend = new ImGuiBackend(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height, renderSize.UIScale);
 
-var cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)renderSize.Width, (uint)renderSize.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
-var texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)renderSize.Width, (uint)renderSize.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
-var textureView = graphicsDevice.ResourceFactory.CreateTextureView(texture);
+var textureRenderer = new TextureRenderer(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height);
 var textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
-
-for (var i = 0; i < textureData.Length; i++)
-{
-    textureData[i] = 255;
-}
 
 Console.WriteLine($"Native Window Size: {renderSize}");
 Console.WriteLine($"FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
@@ -55,17 +48,11 @@ while (appStatus.IsRunning == 1)
     if (currentWidth != renderSize.Width || currentHeight != renderSize.Height)
     {
         graphicsDevice.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
-        imGuiController.WindowResized(renderSize.Width, renderSize.Height, renderSize.UIScale);
-
-        graphicsDevice.DisposeWhenIdle(cpuTexture);
-        graphicsDevice.DisposeWhenIdle(texture);
-        graphicsDevice.DisposeWhenIdle(textureView);
-
+        
+        imGuiBackend.Resize(renderSize.Width, renderSize.Height, renderSize.UIScale);
+        textureRenderer.Resize(renderSize.Width, renderSize.Height);
+        
         textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
-        cpuTexture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)renderSize.Width, (uint)renderSize.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
-        texture = graphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)renderSize.Width, (uint)renderSize.Height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
-        textureView = graphicsDevice.ResourceFactory.CreateTextureView(texture);
-        imGuiController.ResetSurfaceTexture();
 
         Console.WriteLine($"Resize Native Window Size: {renderSize}");
         Console.WriteLine($"Resize FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
@@ -74,7 +61,7 @@ while (appStatus.IsRunning == 1)
         currentHeight = renderSize.Height;
     }
 
-    imGuiController.Update(1.0f / 60.0f, inputState);
+    imGuiBackend.Update(1.0f / 60.0f, inputState);
 
     stopwatch.Restart();
     for (var i = 0; i < textureData.Length; i++)
@@ -86,18 +73,14 @@ while (appStatus.IsRunning == 1)
     stopwatch.Stop();
     nativeUIService.SetWindowTitle(nativeWindow, $"Delta: {stopwatch.ElapsedMilliseconds}");
 
-    graphicsDevice.UpdateTexture(cpuTexture, textureData, 0, 0, 0, cpuTexture.Width, cpuTexture.Height, 1, 0, 0);
     ImGui.ShowDemoWindow();
-
     ImGui.Text("Teeeest");
 
     commandList.Begin();
     commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
 
-    commandList.CopyTexture(cpuTexture, texture);
-
-    imGuiController.RenderTexture(graphicsDevice, commandList, textureView);
-    imGuiController.Render(graphicsDevice, commandList);
+    textureRenderer.RenderTexture<uint>(commandList, textureData);
+    imGuiBackend.Render(graphicsDevice, commandList);
 
     commandList.End();
 
@@ -150,6 +133,7 @@ static unsafe GraphicsDevice CreateGraphicsDevice(INativeUIService nativeUIServi
                         graphicsDeviceOptions.SwapchainSrgbFormat);
 
         graphicsDevice = GraphicsDevice.CreateMetal(graphicsDeviceOptions, swapchainDescription);
+        graphicsDevice.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
     }
 
     if (graphicsDevice == null)

@@ -1,44 +1,80 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Numerics;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using ImGuiNET;
-using PathTracer.Platform.Inputs;
 using Veldrid;
 
 namespace PathTracer
 {
-    public class TextureRenderer : IDisposable
+    public class TextureRenderer : BaseRenderer, IDisposable
     {
-        private GraphicsDevice _gd;
+        private readonly Shader _vertexShader;
+        private readonly Shader _fragmentShader;
+        private readonly DeviceBuffer _projectionMatrixBuffer;
+        private readonly ResourceLayout _layout;
+        private readonly ResourceLayout _textureLayout;
+        private readonly Pipeline _pipeline;
+        private readonly DeviceBuffer _surfaceVertexBuffer;
+        private readonly DeviceBuffer _surfaceIndexBuffer;
+        private readonly ResourceSet _mainSurfaceResourceSet;
 
-        // Veldrid objects
-        private Shader _vertexShader;
-        private Shader _fragmentShader;
-        private ResourceLayout _layout;
-        private ResourceLayout _textureLayout;
-        private Pipeline _pipeline;
+        private int _width;
+        private int _height;
 
-        private int _windowWidth;
-        private int _windowHeight;
-
-        // Texture Surface Draw
-        private DeviceBuffer _surfaceVertexBuffer;
-        private DeviceBuffer _surfaceIndexBuffer;
-        private DeviceBuffer _surfaceProjMatrixBuffer;
-        private ResourceSet _mainSurfaceResourceSet;
         private ResourceSet? _surfaceTextureResourceSet;
-        private bool _surfaceInitialized;
+        private Texture _cpuTexture;
+        private Texture _gpuTexture;
+        private TextureView _textureView;
 
-        public TextureRenderer(GraphicsDevice gd, OutputDescription outputDescription, int width, int height, float uiScale)
+        public TextureRenderer(GraphicsDevice graphicsDevice, OutputDescription outputDescription, int width, int height) : base(graphicsDevice)
         {
-            _gd = gd;
-            _windowWidth = width;
-            _windowHeight = height;
+            _width = width;
+            _height = height;
 
-            CreateDeviceResources(outputDescription);
+            _vertexShader = LoadShader("imgui-vertex", ShaderStages.Vertex);
+            _fragmentShader = LoadShader("imgui-frag", ShaderStages.Fragment);
+            
+            var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left: 0.0f, right: 1.0f, bottom: 1.0f, top: 0.0f, zNearPlane: -1.0f, zFarPlane: 1.0f);
+            var indices = new ushort[] { 0, 1, 2, 2, 1, 3 };
+
+            var vertices = new TextureRendererVextex[]
+            {
+                new() { Position = new Vector2(0.0f, 0.0f), TextureCoordinates = new Vector2(0.0f, 0.0f) },
+                new() { Position = new Vector2(1.0f, 0.0f), TextureCoordinates = new Vector2(1.0f, 0.0f) },
+                new() { Position = new Vector2(0.0f, 1.0f), TextureCoordinates = new Vector2(0.0f, 1.0f) },
+                new() { Position = new Vector2(1.0f, 1.0f), TextureCoordinates = new Vector2(1.0f, 1.0f) }
+            };
+
+            _projectionMatrixBuffer = CreateBuffer(projectionMatrix, BufferUsage.UniformBuffer);
+            _surfaceVertexBuffer = CreateBuffer<TextureRendererVextex>(vertices, BufferUsage.VertexBuffer);
+            _surfaceIndexBuffer = CreateBuffer<ushort>(indices, BufferUsage.IndexBuffer);
+            
+            var vertexLayouts = new VertexLayoutDescription[]
+            {
+                new VertexLayoutDescription(
+                    new VertexElementDescription("in_position", VertexElementSemantic.Position, VertexElementFormat.Float2),
+                    new VertexElementDescription("in_texCoord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
+                    new VertexElementDescription("in_color", VertexElementSemantic.Color, VertexElementFormat.Byte4_Norm))
+            };
+
+            _layout = GraphicsDevice.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(
+                new ResourceLayoutElementDescription("ProjectionMatrixBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex),
+                new ResourceLayoutElementDescription("MainSampler", ResourceKind.Sampler, ShaderStages.Fragment)));
+            _textureLayout = GraphicsDevice.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(
+                new ResourceLayoutElementDescription("MainTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
+
+            var pipelineDescription = new GraphicsPipelineDescription(
+                BlendStateDescription.SingleDisabled,
+                new DepthStencilStateDescription(false, false, ComparisonKind.Always),
+                new RasterizerStateDescription(FaceCullMode.Back, PolygonFillMode.Solid, FrontFace.Clockwise, false, true),
+                PrimitiveTopology.TriangleList,
+                new ShaderSetDescription(vertexLayouts, new[] { _vertexShader, _fragmentShader }),
+                new ResourceLayout[] { _layout, _textureLayout },
+                outputDescription,
+                ResourceBindingModel.Default);
+
+            _pipeline = GraphicsDevice.ResourceFactory.CreateGraphicsPipeline(ref pipelineDescription);
+
+            _mainSurfaceResourceSet = GraphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_layout, _projectionMatrixBuffer, GraphicsDevice.PointSampler));
+            
+            CreateTextures(_width, _height, out _cpuTexture, out _gpuTexture, out _textureView);
         }
 
         public void Dispose()
@@ -55,137 +91,26 @@ namespace PathTracer
             }
         }
 
-        public void WindowResized(int width, int height)
+        public void Resize(int width, int height)
         {
-            _windowWidth = width;
-            _windowHeight = height;
+            _width = width;
+            _height = height;
             
             _surfaceTextureResourceSet = null;
+
+            GraphicsDevice.DisposeWhenIdle(_cpuTexture);
+            GraphicsDevice.DisposeWhenIdle(_gpuTexture);
+            GraphicsDevice.DisposeWhenIdle(_textureView);
+            
+            CreateTextures(_width, _height, out _cpuTexture, out _gpuTexture, out _textureView);
         }
 
-        private void CreateDeviceResources(OutputDescription outputDescription)
+        public void RenderTexture<T>(CommandList commandList, ReadOnlySpan<T> textureData) where T : unmanaged
         {
-            ResourceFactory factory = _gd.ResourceFactory;
-        
-            _surfaceProjMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer));
-            _surfaceProjMatrixBuffer.Name = "Surface Projection Buffer";
-
-            byte[] vertexShaderBytes = LoadEmbeddedShaderCode(_gd.ResourceFactory, "imgui-vertex");
-            byte[] fragmentShaderBytes = LoadEmbeddedShaderCode(_gd.ResourceFactory, "imgui-frag");
-            _vertexShader = factory.CreateShader(new ShaderDescription(ShaderStages.Vertex, vertexShaderBytes, _gd.BackendType == GraphicsBackend.Metal ? "VS" : "main"));
-            _fragmentShader = factory.CreateShader(new ShaderDescription(ShaderStages.Fragment, fragmentShaderBytes, _gd.BackendType == GraphicsBackend.Metal ? "FS" : "main"));
-
-            var vertexLayouts = new VertexLayoutDescription[]
-            {
-                new VertexLayoutDescription(
-                    new VertexElementDescription("in_position", VertexElementSemantic.Position, VertexElementFormat.Float2),
-                    new VertexElementDescription("in_texCoord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
-                    new VertexElementDescription("in_color", VertexElementSemantic.Color, VertexElementFormat.Byte4_Norm))
-            };
-
-            _layout = factory.CreateResourceLayout(new ResourceLayoutDescription(
-                new ResourceLayoutElementDescription("ProjectionMatrixBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex),
-                new ResourceLayoutElementDescription("MainSampler", ResourceKind.Sampler, ShaderStages.Fragment)));
-            _textureLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
-                new ResourceLayoutElementDescription("MainTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
-
-            var pd = new GraphicsPipelineDescription(
-                BlendStateDescription.SingleAlphaBlend,
-                new DepthStencilStateDescription(false, false, ComparisonKind.Always),
-                new RasterizerStateDescription(FaceCullMode.None, PolygonFillMode.Solid, FrontFace.Clockwise, false, true),
-                PrimitiveTopology.TriangleList,
-                new ShaderSetDescription(vertexLayouts, new[] { _vertexShader, _fragmentShader }),
-                new ResourceLayout[] { _layout, _textureLayout },
-                outputDescription,
-                ResourceBindingModel.Default);
-
-            _pipeline = factory.CreateGraphicsPipeline(ref pd);
-
-            _mainSurfaceResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout, _surfaceProjMatrixBuffer, _gd.PointSampler));
-
-            uint totalVBSize = (uint)(4 * Unsafe.SizeOf<ImDrawVert>());
-            _surfaceVertexBuffer = _gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalVBSize), BufferUsage.VertexBuffer));
-
-            uint totalIBSize = (uint)(6 * sizeof(ushort));
-            _surfaceIndexBuffer = _gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalIBSize), BufferUsage.IndexBuffer));
-        }
-
-        private static byte[] LoadEmbeddedShaderCode(ResourceFactory factory, string name)
-        {
-            switch (factory.BackendType)
-            {
-                case GraphicsBackend.Vulkan:
-                {
-                    string resourceName = name + ".spv";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
-                case GraphicsBackend.Metal:
-                {
-                    string resourceName = name + ".metallib";
-                    return GetEmbeddedResourceBytes(resourceName);
-                }
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
-        private static byte[] GetEmbeddedResourceBytes(string resourceName)
-        {
-            var assembly = typeof(ImGuiBackend).Assembly;
-            using Stream? resourceStream = assembly.GetManifestResourceStream(resourceName);
-
-            if (resourceStream is null)
-            {
-                return Array.Empty<byte>();
-            }
-
-            byte[] ret = new byte[resourceStream.Length];
-            resourceStream.Read(ret, 0, (int)resourceStream.Length);
-            return ret;
-        }
-
-        public void RenderTexture(GraphicsDevice graphicsDevice, CommandList commandList, TextureView texture)
-        {
-            // TODO
-            if (!_surfaceInitialized)
-            {
-                var vertices = new ImDrawVert[]
-                {
-                    new() { pos = new Vector2(0.0f, 0.0f), uv = new Vector2(0.0f, 0.0f), col = uint.MaxValue },
-                    new() { pos = new Vector2(0.0f, 1.0f), uv = new Vector2(0.0f, 1.0f), col = uint.MaxValue },
-                    new() { pos = new Vector2(1.0f, 0.0f), uv = new Vector2(1.0f, 0.0f), col = uint.MaxValue },
-                    new() { pos = new Vector2(1.0f, 1.0f), uv = new Vector2(1.0f, 1.0f), col = uint.MaxValue }
-                };
-
-                var indices = new ushort[]
-                {
-                    0, 1, 2, 2, 1, 3
-                };
-
-                commandList.UpdateBuffer(
-                    _surfaceVertexBuffer,
-                    0,
-                    vertices);
-
-                commandList.UpdateBuffer(
-                    _surfaceIndexBuffer,
-                    0,
-                    indices);
-
-                _surfaceInitialized = true;
-            }
-
-            _surfaceTextureResourceSet ??= graphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, texture));
-
-            Matrix4x4 mvp = Matrix4x4.CreateOrthographicOffCenter(
-                0f,
-                1,
-                1,
-                0.0f,
-                -1.0f,
-                1.0f);
-
-            _gd.UpdateBuffer(_surfaceProjMatrixBuffer, 0, ref mvp);
+            GraphicsDevice.UpdateTexture(_cpuTexture, textureData, 0, 0, 0, (uint)_width, (uint)_height, 1, 0, 0);
+            commandList.CopyTexture(_cpuTexture, _gpuTexture);
+            
+            _surfaceTextureResourceSet ??= GraphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _gpuTexture));
 
             commandList.SetVertexBuffer(0, _surfaceVertexBuffer);
             commandList.SetIndexBuffer(_surfaceIndexBuffer, IndexFormat.UInt16);
@@ -196,5 +121,20 @@ namespace PathTracer
             
             commandList.DrawIndexed(6, 1, 0, 0, 0);
         }
+
+        private void CreateTextures(int width, int height, out Texture cpuTexture, out Texture gpuTexture, out TextureView textureView)
+        {
+            cpuTexture = GraphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)width, (uint)height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Staging, TextureType.Texture2D));
+            gpuTexture = GraphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)width, (uint)height, 1, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled, TextureType.Texture2D));
+            textureView = GraphicsDevice.ResourceFactory.CreateTextureView(gpuTexture);
+        }
+    }
+    
+    internal readonly record struct TextureRendererVextex
+    {
+        public TextureRendererVextex() {}
+        public required Vector2 Position { get; init; }
+        public required Vector2 TextureCoordinates { get; init; }
+        public uint Reserved { get; init; } = uint.MaxValue;
     }
 }
