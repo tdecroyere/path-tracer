@@ -51,7 +51,7 @@ public class PathTracerApplication
         var renderingStopwatch = new Stopwatch();
 
         var appStatus = new NativeApplicationStatus();
-        var inputState = new NativeInputState();
+        var inputState = new NativeInputStateOld();
         var camera = new Camera();
 
         while (appStatus.IsRunning == 1)
@@ -85,7 +85,7 @@ public class PathTracerApplication
     }
 
     // TODO: To be converted to an ECS System
-    private static Camera UpdateCamera(Camera camera, NativeInputState inputState, float deltaTime)
+    private static Camera UpdateCamera(Camera camera, NativeInputStateOld inputState, float deltaTime)
     {
         var forwardInput = inputState.Keyboard.KeyZ.Value - inputState.Keyboard.KeyS.Value;
         var sideInput = inputState.Keyboard.KeyD.Value - inputState.Keyboard.KeyQ.Value;

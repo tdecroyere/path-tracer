@@ -42,6 +42,12 @@ var inputState = new NativeInputState();
 while (appStatus.IsRunning == 1)
 {
     appStatus = nativeApplicationService.ProcessSystemMessages(nativeApplication);
+    nativeInputService.UpdateInputState(nativeApplication, ref inputState);
+
+    if (inputState.Mouse.MouseLeftButton.IsPressed)
+    {
+        Console.WriteLine($"{new System.Numerics.Vector2(inputState.Mouse.AxisX.Value, inputState.Mouse.AxisY.Value)}");
+    }
 
     renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
@@ -80,7 +86,7 @@ while (appStatus.IsRunning == 1)
     commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
 
     textureRenderer.RenderTexture<uint>(commandList, textureData);
-    imGuiBackend.Render(graphicsDevice, commandList);
+    imGuiBackend.Render(commandList);
 
     commandList.End();
 

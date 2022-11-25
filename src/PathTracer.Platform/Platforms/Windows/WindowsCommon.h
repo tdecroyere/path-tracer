@@ -21,3 +21,11 @@
 #define AssertIfFailed(result) assert(!FAILED(result))
 
 #define DllExport extern "C" __declspec(dllexport)
+
+struct WindowsEvent
+{
+    HWND Window;
+    UINT Message;
+    WPARAM WParam;
+    LPARAM LParam;
+};

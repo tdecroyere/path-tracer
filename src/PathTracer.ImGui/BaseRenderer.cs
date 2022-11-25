@@ -25,6 +25,17 @@ public abstract class BaseRenderer
         return buffer;
     }
     
+    protected DeviceBuffer CheckSizeAndIncreaseBuffer(DeviceBuffer buffer, uint size, float increaseFactor = 1.5f)
+    {
+        if (size > buffer.SizeInBytes)
+        {
+            GraphicsDevice.DisposeWhenIdle(buffer);
+            return GraphicsDevice.ResourceFactory.CreateBuffer(new BufferDescription((uint)(size * increaseFactor), buffer.Usage));
+        }
+
+        return buffer;
+    }
+    
     protected Shader LoadShader(string name, ShaderStages shaderStage)
     {
         var entryPoint = shaderStage switch

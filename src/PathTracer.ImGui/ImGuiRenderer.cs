@@ -1,333 +1,219 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using ImGuiNET;
-using PathTracer.Platform.Inputs;
 using Veldrid;
 
-namespace PathTracer
+namespace PathTracer;
+
+public class ImGuiRenderer : BaseRenderer, IDisposable
 {
-    public class ImGuiRenderer : BaseRenderer, IDisposable
+    private readonly DeviceBuffer _projMatrixBuffer;
+    private readonly Texture _fontTexture;
+    private readonly TextureView _fontTextureView;
+    private readonly Shader _vertexShader;
+    private readonly Shader _fragmentShader;
+    private readonly ResourceLayout _layout;
+    private readonly ResourceLayout _textureLayout;
+    private readonly Pipeline _pipeline;
+    private readonly ResourceSet _mainResourceSet;
+    private readonly ResourceSet _fontTextureResourceSet;
+
+    private readonly nint _fontAtlasID = 1;
+    private readonly uint _vertexSizeInBytes;
+
+    private DeviceBuffer _vertexBuffer;
+    private DeviceBuffer _indexBuffer;
+
+    public ImGuiRenderer(GraphicsDevice graphicsDevice, OutputDescription outputDescription, ref ImFontAtlasPtr font) : base(graphicsDevice)
     {
-        private DeviceBuffer _vertexBuffer;
-        private DeviceBuffer _indexBuffer;
-        private DeviceBuffer _projMatrixBuffer;
-        private Texture _fontTexture;
-        private TextureView _fontTextureView;
-        private Shader _vertexShader;
-        private Shader _fragmentShader;
-        private ResourceLayout _layout;
-        private ResourceLayout _textureLayout;
-        private Pipeline _pipeline;
-        private ResourceSet _mainResourceSet;
-        private ResourceSet _fontTextureResourceSet;
+        _fontAtlasID = 1;
+        _vertexSizeInBytes = (uint)Unsafe.SizeOf<ImDrawVert>();
 
-        private readonly nint _fontAtlasID = 1;
+        ResourceFactory factory = GraphicsDevice.ResourceFactory;
+        _vertexBuffer = factory.CreateBuffer(new BufferDescription(10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
+        _vertexBuffer.Name = "ImGui Vertex Buffer";
+        _indexBuffer = factory.CreateBuffer(new BufferDescription(2000, BufferUsage.IndexBuffer | BufferUsage.Dynamic));
+        _indexBuffer.Name = "ImGui Index Buffer";
 
-        // Image trackers
-        private readonly Dictionary<TextureView, ResourceSetInfo> _setsByView
-            = new Dictionary<TextureView, ResourceSetInfo>();
-        private readonly Dictionary<Texture, TextureView> _autoViewsByTexture
-            = new Dictionary<Texture, TextureView>();
-        private readonly Dictionary<IntPtr, ResourceSetInfo> _viewsById = new Dictionary<IntPtr, ResourceSetInfo>();
-        private readonly List<IDisposable> _ownedResources = new List<IDisposable>();
-        private int _lastAssignedID = 100;
+        _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
+        _projMatrixBuffer.Name = "ImGui Projection Buffer";
 
-        /// <summary>
-        /// Constructs a new ImGuiController.
-        /// </summary>
-        public ImGuiRenderer(GraphicsDevice graphicsDevice, OutputDescription outputDescription, ImFontAtlasPtr font) : base(graphicsDevice)
-        {
-            CreateDeviceResources(graphicsDevice, outputDescription, font);
-            //SetKeyMappings();
-        }
+        _vertexShader = LoadShader("imgui-vertex", ShaderStages.Vertex);
+        _fragmentShader = LoadShader("imgui-frag", ShaderStages.Fragment);
         
-        public void DestroyDeviceObjects()
+        VertexLayoutDescription[] vertexLayouts = new VertexLayoutDescription[]
         {
-            Dispose();
+            new VertexLayoutDescription(
+                new VertexElementDescription("in_position", VertexElementSemantic.Position, VertexElementFormat.Float2),
+                new VertexElementDescription("in_texCoord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
+                new VertexElementDescription("in_color", VertexElementSemantic.Color, VertexElementFormat.Byte4_Norm))
+        };
+
+        _layout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("ProjectionMatrixBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex),
+            new ResourceLayoutElementDescription("MainSampler", ResourceKind.Sampler, ShaderStages.Fragment)));
+        _textureLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
+            new ResourceLayoutElementDescription("MainTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
+
+        var pd = new GraphicsPipelineDescription(
+            BlendStateDescription.SingleAlphaBlend,
+            new DepthStencilStateDescription(false, false, ComparisonKind.Always),
+            new RasterizerStateDescription(FaceCullMode.None, PolygonFillMode.Solid, FrontFace.Clockwise, false, true),
+            PrimitiveTopology.TriangleList,
+            new ShaderSetDescription(vertexLayouts, new[] { _vertexShader, _fragmentShader }),
+            new ResourceLayout[] { _layout, _textureLayout },
+            outputDescription,
+            ResourceBindingModel.Default);
+        _pipeline = factory.CreateGraphicsPipeline(ref pd);
+
+        _mainResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout, _projMatrixBuffer, GraphicsDevice.PointSampler));
+
+        _fontTexture = RecreateFontDeviceTexture(ref font);
+        _fontTextureView = GraphicsDevice.ResourceFactory.CreateTextureView(_fontTexture);
+        _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _fontTextureView));
+    }
+
+    private Texture RecreateFontDeviceTexture(ref ImFontAtlasPtr font)
+    {
+        font.GetTexDataAsRGBA32(out nint pixels, out var width, out var height, out var bytesPerPixel);
+        font.SetTexID(_fontAtlasID);
+
+        var texture = GraphicsDevice.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled));
+        texture.Name = "ImGui Font Texture";
+
+        GraphicsDevice.UpdateTexture(
+            texture,
+            pixels,
+            (uint)(bytesPerPixel * width * height),
+            0,
+            0,
+            0,
+            (uint)width,
+            (uint)height,
+            1,
+            0,
+            0);
+
+        font.ClearTexData();
+
+        return texture;
+    }
+
+    public void RenderImDrawData(CommandList commandList, ref ImDrawDataPtr drawData)
+    {
+        if (drawData.CmdListsCount == 0)
+        {
+            return;
         }
 
-        private void CreateDeviceResources(GraphicsDevice gd, OutputDescription outputDescription, ImFontAtlasPtr font)
+        CopyGpuData(commandList, ref drawData);
+
+        commandList.SetVertexBuffer(0, _vertexBuffer);
+        commandList.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
+        commandList.SetPipeline(_pipeline);
+        commandList.SetGraphicsResourceSet(0, _mainResourceSet);
+
+        drawData.ScaleClipRects(drawData.FramebufferScale);
+
+        var vertexBufferOffset = 0;
+        var indexBufferOffset = 0;
+
+        for (var i = 0; i < drawData.CmdListsCount; i++)
         {
-            ResourceFactory factory = gd.ResourceFactory;
-            _vertexBuffer = factory.CreateBuffer(new BufferDescription(10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
-            _vertexBuffer.Name = "ImGui.NET Vertex Buffer";
-            _indexBuffer = factory.CreateBuffer(new BufferDescription(2000, BufferUsage.IndexBuffer | BufferUsage.Dynamic));
-            _indexBuffer.Name = "ImGui.NET Index Buffer";
+            var drawDataCommandList = drawData.CmdListsRange[i];
+            RenderDrawDataCommandList(commandList, vertexBufferOffset, indexBufferOffset, ref drawDataCommandList);
 
-            _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-            _projMatrixBuffer.Name = "ImGui.NET Projection Buffer";
-
-            _vertexShader = LoadShader("imgui-vertex", ShaderStages.Vertex);
-            _fragmentShader = LoadShader("imgui-frag", ShaderStages.Fragment);
-            
-            VertexLayoutDescription[] vertexLayouts = new VertexLayoutDescription[]
-            {
-                new VertexLayoutDescription(
-                    new VertexElementDescription("in_position", VertexElementSemantic.Position, VertexElementFormat.Float2),
-                    new VertexElementDescription("in_texCoord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
-                    new VertexElementDescription("in_color", VertexElementSemantic.Color, VertexElementFormat.Byte4_Norm))
-            };
-
-            _layout = factory.CreateResourceLayout(new ResourceLayoutDescription(
-                new ResourceLayoutElementDescription("ProjectionMatrixBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex),
-                new ResourceLayoutElementDescription("MainSampler", ResourceKind.Sampler, ShaderStages.Fragment)));
-            _textureLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
-                new ResourceLayoutElementDescription("MainTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
-
-            GraphicsPipelineDescription pd = new GraphicsPipelineDescription(
-                BlendStateDescription.SingleAlphaBlend,
-                new DepthStencilStateDescription(false, false, ComparisonKind.Always),
-                new RasterizerStateDescription(FaceCullMode.None, PolygonFillMode.Solid, FrontFace.Clockwise, false, true),
-                PrimitiveTopology.TriangleList,
-                new ShaderSetDescription(vertexLayouts, new[] { _vertexShader, _fragmentShader }),
-                new ResourceLayout[] { _layout, _textureLayout },
-                outputDescription,
-                ResourceBindingModel.Default);
-            _pipeline = factory.CreateGraphicsPipeline(ref pd);
-
-            _mainResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout,
-                _projMatrixBuffer,
-                gd.PointSampler));
-
-            RecreateFontDeviceTexture(font);
-            _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _fontTextureView));
+            vertexBufferOffset += drawDataCommandList.VtxBuffer.Size;
+            indexBufferOffset += drawDataCommandList.IdxBuffer.Size;
         }
+    }
 
-        /// <summary>
-        /// Gets or creates a handle for a texture to be drawn with ImGui.
-        /// Pass the returned handle to Image() or ImageButton().
-        /// </summary>
-        public nint GetOrCreateImGuiBinding(ResourceFactory factory, TextureView textureView)
+    private void RenderDrawDataCommandList(CommandList commandList, int vertexBufferOffset, int indexBufferOffset, ref ImDrawListPtr drawDataCommandList)
+    {
+        for (var i = 0; i < drawDataCommandList.CmdBuffer.Size; i++)
         {
-            if (!_setsByView.TryGetValue(textureView, out ResourceSetInfo rsi))
-            {
-                ResourceSet resourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, textureView));
-                rsi = new ResourceSetInfo(GetNextImGuiBindingID(), resourceSet);
+            var drawCommand = drawDataCommandList.CmdBuffer[i];
 
-                _setsByView.Add(textureView, rsi);
-                _viewsById.Add(rsi.ImGuiBinding, rsi);
-                _ownedResources.Add(resourceSet);
+            if (drawCommand.UserCallback != nint.Zero)
+            {
+                throw new NotImplementedException();
             }
-
-            return rsi.ImGuiBinding;
-        }
-
-        private nint GetNextImGuiBindingID()
-        {
-            return _lastAssignedID++;
-        }
-
-        /// <summary>
-        /// Gets or creates a handle for a texture to be drawn with ImGui.
-        /// Pass the returned handle to Image() or ImageButton().
-        /// </summary>
-        public IntPtr GetOrCreateImGuiBinding(ResourceFactory factory, Texture texture)
-        {
-            if (!_autoViewsByTexture.TryGetValue(texture, out TextureView textureView))
+            else
             {
-                textureView = factory.CreateTextureView(texture);
-                _autoViewsByTexture.Add(texture, textureView);
-                _ownedResources.Add(textureView);
-            }
-
-            return GetOrCreateImGuiBinding(factory, textureView);
-        }
-
-        /// <summary>
-        /// Retrieves the shader texture binding for the given helper handle.
-        /// </summary>
-        public ResourceSet GetImageResourceSet(IntPtr imGuiBinding)
-        {
-            if (!_viewsById.TryGetValue(imGuiBinding, out ResourceSetInfo tvi))
-            {
-                throw new InvalidOperationException("No registered ImGui binding with id " + imGuiBinding.ToString());
-            }
-
-            return tvi.ResourceSet;
-        }
-
-        public void ClearCachedImageResources()
-        {
-            foreach (IDisposable resource in _ownedResources)
-            {
-                resource.Dispose();
-            }
-
-            _ownedResources.Clear();
-            _setsByView.Clear();
-            _viewsById.Clear();
-            _autoViewsByTexture.Clear();
-            _lastAssignedID = 100;
-        }
-
-        private void RecreateFontDeviceTexture(ImFontAtlasPtr font)
-        {
-            font.GetTexDataAsRGBA32(out nint pixels, out var width, out var height, out var bytesPerPixel);
-            // Store our identifier
-            font.SetTexID(_fontAtlasID);
-
-            _fontTexture = GraphicsDevice.ResourceFactory.CreateTexture(TextureDescription.Texture2D(
-                (uint)width,
-                (uint)height,
-                1,
-                1,
-                PixelFormat.R8_G8_B8_A8_UNorm,
-                TextureUsage.Sampled));
-            _fontTexture.Name = "ImGui.NET Font Texture";
-            GraphicsDevice.UpdateTexture(
-                _fontTexture,
-                pixels,
-                (uint)(bytesPerPixel * width * height),
-                0,
-                0,
-                0,
-                (uint)width,
-                (uint)height,
-                1,
-                0,
-                0);
-            _fontTextureView = GraphicsDevice.ResourceFactory.CreateTextureView(_fontTexture);
-
-            font.ClearTexData();
-        }
-
-        public void RenderImDrawData(ImDrawDataPtr draw_data, GraphicsDevice gd, CommandList cl)
-        {
-            uint vertexOffsetInVertices = 0;
-            uint indexOffsetInElements = 0;
-
-            if (draw_data.CmdListsCount == 0)
-            {
-                return;
-            }
-
-            uint totalVBSize = (uint)(draw_data.TotalVtxCount * Unsafe.SizeOf<ImDrawVert>());
-            if (totalVBSize > _vertexBuffer.SizeInBytes)
-            {
-                gd.DisposeWhenIdle(_vertexBuffer);
-                _vertexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalVBSize * 1.5f), BufferUsage.VertexBuffer | BufferUsage.Dynamic));
-            }
-
-            uint totalIBSize = (uint)(draw_data.TotalIdxCount * sizeof(ushort));
-            if (totalIBSize > _indexBuffer.SizeInBytes)
-            {
-                gd.DisposeWhenIdle(_indexBuffer);
-                _indexBuffer = gd.ResourceFactory.CreateBuffer(new BufferDescription((uint)(totalIBSize * 1.5f), BufferUsage.IndexBuffer | BufferUsage.Dynamic));
-            }
-
-            for (int i = 0; i < draw_data.CmdListsCount; i++)
-            {
-                ImDrawListPtr cmd_list = draw_data.CmdListsRange[i];
-
-                cl.UpdateBuffer(
-                    _vertexBuffer,
-                    vertexOffsetInVertices * (uint)Unsafe.SizeOf<ImDrawVert>(),
-                    cmd_list.VtxBuffer.Data,
-                    (uint)(cmd_list.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>()));
-
-                cl.UpdateBuffer(
-                    _indexBuffer,
-                    indexOffsetInElements * sizeof(ushort),
-                    cmd_list.IdxBuffer.Data,
-                    (uint)(cmd_list.IdxBuffer.Size * sizeof(ushort)));
-
-                vertexOffsetInVertices += (uint)cmd_list.VtxBuffer.Size;
-                indexOffsetInElements += (uint)cmd_list.IdxBuffer.Size;
-            }
-
-            // Setup orthographic projection matrix into our constant buffer
-            Matrix4x4 mvp = Matrix4x4.CreateOrthographicOffCenter(
-                0f,
-                draw_data.DisplaySize.X,
-                draw_data.DisplaySize.Y,
-                0.0f,
-                -1.0f,
-                1.0f);
-
-            GraphicsDevice.UpdateBuffer(_projMatrixBuffer, 0, ref mvp);
-
-            cl.SetVertexBuffer(0, _vertexBuffer);
-            cl.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
-            cl.SetPipeline(_pipeline);
-            cl.SetGraphicsResourceSet(0, _mainResourceSet);
-
-            draw_data.ScaleClipRects(draw_data.FramebufferScale);
-
-            // Render command lists
-            int vtx_offset = 0;
-            int idx_offset = 0;
-            for (int n = 0; n < draw_data.CmdListsCount; n++)
-            {
-                ImDrawListPtr cmd_list = draw_data.CmdListsRange[n];
-                for (int cmd_i = 0; cmd_i < cmd_list.CmdBuffer.Size; cmd_i++)
+                if (drawCommand.TextureId != nint.Zero)
                 {
-                    ImDrawCmdPtr pcmd = cmd_list.CmdBuffer[cmd_i];
-                    if (pcmd.UserCallback != IntPtr.Zero)
+                    if (drawCommand.TextureId == _fontAtlasID)
                     {
-                        throw new NotImplementedException();
+                        commandList.SetGraphicsResourceSet(1, _fontTextureResourceSet);
                     }
                     else
                     {
-                        if (pcmd.TextureId != IntPtr.Zero)
-                        {
-                            if (pcmd.TextureId == _fontAtlasID)
-                            {
-                                cl.SetGraphicsResourceSet(1, _fontTextureResourceSet);
-                            }
-                            else
-                            {
-                                cl.SetGraphicsResourceSet(1, GetImageResourceSet(pcmd.TextureId));
-                            }
-                        }
-
-                        cl.SetScissorRect(
-                            0,
-                            (uint)pcmd.ClipRect.X,
-                            (uint)pcmd.ClipRect.Y,
-                            (uint)(pcmd.ClipRect.Z - pcmd.ClipRect.X),
-                            (uint)(pcmd.ClipRect.W - pcmd.ClipRect.Y));
-
-                        cl.DrawIndexed(pcmd.ElemCount, 1, pcmd.IdxOffset + (uint)idx_offset, (int)pcmd.VtxOffset + vtx_offset, 0);
+                        // TODO: Don't forget to cache images 
+                        throw new InvalidOperationException("IMGui with other texture than font texture is not supported yet.");
                     }
                 }
-                vtx_offset += cmd_list.VtxBuffer.Size;
-                idx_offset += cmd_list.IdxBuffer.Size;
+
+                var clipRectX = (uint)drawCommand.ClipRect.X;
+                var clipRectY = (uint)drawCommand.ClipRect.Y;
+                var clipRectWidth = (uint)drawCommand.ClipRect.Z - clipRectX;
+                var clipRectHeight = (uint)drawCommand.ClipRect.W - clipRectY;
+
+                commandList.SetScissorRect(0, clipRectX, clipRectY, clipRectWidth, clipRectHeight);
+                commandList.DrawIndexed(drawCommand.ElemCount, 1, drawCommand.IdxOffset + (uint)indexBufferOffset, (int)drawCommand.VtxOffset + vertexBufferOffset, 0);
             }
         }
+    }
 
-        /// <summary>
-        /// Frees all graphics resources used by the renderer.
-        /// </summary>
-        public void Dispose()
+    private void CopyGpuData(CommandList commandList, ref ImDrawDataPtr drawData)
+    {
+        var vertexOffsetInVertices = 0u;
+        var indexOffsetInElements = 0u;
+
+        var totalVBSize = (uint)(drawData.TotalVtxCount * _vertexSizeInBytes);
+        _vertexBuffer = CheckSizeAndIncreaseBuffer(_vertexBuffer, totalVBSize);
+
+        var totalIBSize = (uint)(drawData.TotalIdxCount * sizeof(ushort));
+        _indexBuffer = CheckSizeAndIncreaseBuffer(_indexBuffer, totalIBSize);
+
+        for (var i = 0; i < drawData.CmdListsCount; i++)
         {
-            _vertexBuffer.Dispose();
-            _indexBuffer.Dispose();
-            _projMatrixBuffer.Dispose();
-            _fontTexture.Dispose();
-            _fontTextureView.Dispose();
-            _vertexShader.Dispose();
-            _fragmentShader.Dispose();
-            _layout.Dispose();
-            _textureLayout.Dispose();
-            _pipeline.Dispose();
-            _mainResourceSet.Dispose();
+            var drawDataCommandList = drawData.CmdListsRange[i];
 
-            foreach (IDisposable resource in _ownedResources)
-            {
-                resource.Dispose();
-            }
+            commandList.UpdateBuffer(
+                _vertexBuffer,
+                vertexOffsetInVertices * _vertexSizeInBytes,
+                drawDataCommandList.VtxBuffer.Data,
+                (uint)(drawDataCommandList.VtxBuffer.Size * _vertexSizeInBytes));
+
+            commandList.UpdateBuffer(
+                _indexBuffer,
+                indexOffsetInElements * sizeof(ushort),
+                drawDataCommandList.IdxBuffer.Data,
+                (uint)(drawDataCommandList.IdxBuffer.Size * sizeof(ushort)));
+
+            vertexOffsetInVertices += (uint)drawDataCommandList.VtxBuffer.Size;
+            indexOffsetInElements += (uint)drawDataCommandList.IdxBuffer.Size;
         }
 
-        private struct ResourceSetInfo
-        {
-            public readonly IntPtr ImGuiBinding;
-            public readonly ResourceSet ResourceSet;
+        var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left: 0.0f, right: drawData.DisplaySize.X, bottom: drawData.DisplaySize.Y, top: 0.0f, zNearPlane: -1.0f, zFarPlane: 1.0f);
+        GraphicsDevice.UpdateBuffer(_projMatrixBuffer, 0, ref projectionMatrix);
+    }
 
-            public ResourceSetInfo(IntPtr imGuiBinding, ResourceSet resourceSet)
-            {
-                ImGuiBinding = imGuiBinding;
-                ResourceSet = resourceSet;
-            }
-        }
+    /// <summary>
+    /// Frees all graphics resources used by the renderer.
+    /// </summary>
+    public void Dispose()
+    {
+        _vertexBuffer.Dispose();
+        _indexBuffer.Dispose();
+        _projMatrixBuffer.Dispose();
+        _fontTexture.Dispose();
+        _fontTextureView.Dispose();
+        _vertexShader.Dispose();
+        _fragmentShader.Dispose();
+        _layout.Dispose();
+        _textureLayout.Dispose();
+        _pipeline.Dispose();
+        _mainResourceSet.Dispose();
     }
 }

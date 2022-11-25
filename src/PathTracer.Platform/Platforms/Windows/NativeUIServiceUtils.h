@@ -3,8 +3,19 @@
 
 #undef CreateWindow
 
+void NativeInputProcessKeyboardEvent(void *application, WindowsEvent event);
+
 LRESULT CALLBACK Win32WindowCallBack(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
+	// TODO: Bind correct application
+	WindowsEvent event
+	{
+		window,
+		message,
+		wParam,
+		lParam
+	};
+
 	switch (message)
 	{
 	case WM_ACTIVATE:
@@ -13,11 +24,11 @@ LRESULT CALLBACK Win32WindowCallBack(HWND window, UINT message, WPARAM wParam, L
 		break;
 	}
 	case WM_KEYDOWN:
+	case WM_LBUTTONUP:
+	case WM_LBUTTONDOWN:
+	case WM_MOUSEMOVE:
 	{
-		/*if (globalInputService != nullptr)
-		{
-			globalInputService->UpdateRawInputKeyboardState(WM_KEYDOWN, wParam);
-		}*/
+		NativeInputProcessKeyboardEvent(nullptr, event);
 		break;
 	}
 	case WM_SYSKEYUP:
@@ -37,6 +48,8 @@ LRESULT CALLBACK Win32WindowCallBack(HWND window, UINT message, WPARAM wParam, L
 			::PostQuitMessage(0);
 			break;
 		}
+		
+		NativeInputProcessKeyboardEvent(nullptr, event);
 
 		/*if (globalInputService != nullptr)
 		{
