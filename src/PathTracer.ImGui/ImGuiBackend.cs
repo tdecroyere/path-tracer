@@ -60,6 +60,16 @@ public class ImGuiBackend : IDisposable
         _scaleFactor = new Vector2(uiScale, uiScale);
     }
     
+    public nint RegisterTexture(TextureView textureView)
+    {
+        return _imGuiRenderer.RegisterTexture(textureView);
+    }
+
+    public void UpdateTexture(nint id, TextureView textureView)
+    {
+        _imGuiRenderer.UpdateTexture(id, textureView);
+    }
+
     public void Render(CommandList commandList)
     {
         if (_frameBegun)
@@ -103,13 +113,13 @@ public class ImGuiBackend : IDisposable
         io.DeltaTime = deltaTime;
     }
 
-    private void ProcessKey(ImGuiIOPtr io, NativeInputObject inputObject, ImGuiKey key, char character)
+    private static void ProcessKey(ImGuiIOPtr io, NativeInputObject inputObject, ImGuiKey key, char? character)
     {
         io.KeysDown[(int)key] = inputObject.IsPressed;
 
-        if (inputObject.HasRepeatChanged)
+        if (character is not null && inputObject.HasRepeatChanged)
         {
-            io.AddInputCharacter(character);
+            io.AddInputCharacter(character.Value);
         }
     }
 

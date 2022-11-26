@@ -47,7 +47,7 @@
 <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <Content Include="$(OutputPath)/PathTracer.Platform.Native.dylib">
       <TargetPath>PathTracer.Platform.Native.dylib</TargetPath>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <!--<Content Include="$(OutputPath)/PathTracer.Platform.Native.dylib.dSYM">
       <TargetPath>PathTracer.Platform.Native.dylib.dSYM</TargetPath>

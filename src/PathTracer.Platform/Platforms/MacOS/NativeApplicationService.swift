@@ -7,6 +7,9 @@ class NativeApplication {
 
 @_cdecl("PT_CreateApplication")
 public func createApplication(applicationName: UnsafeMutablePointer<Int8>) -> UnsafeMutableRawPointer {
+    var processSerialNumber = ProcessSerialNumber(highLongOfPSN: 0, lowLongOfPSN: UInt32(kCurrentProcess))
+    TransformProcessType(&processSerialNumber, UInt32(kProcessTransformToForegroundApplication))
+
     NSApplication.shared.activate(ignoringOtherApps: true)
     NSApplication.shared.finishLaunching()
     
@@ -34,19 +37,13 @@ public func processSystemMessages(application: UnsafeMutablePointer<Int8>) -> Na
         }
 
         switch event.type {
-        case .keyUp, .keyDown:
+        case .keyUp, .keyDown, .mouseMoved, .leftMouseDown, .leftMouseUp, .leftMouseDragged:
             if (!event.modifierFlags.contains(.command)) {
-                nativeInputProcessKeyboardEvent(application, event)
-            } else {
+                nativeInputProcessEvent(application, event)
             }
-            NSApplication.shared.sendEvent(event)
-        /*case .mouseMoved, .leftMouseDragged:
-            inputsManager.processMouseMovedEvent(event)
-            NSApplication.shared.sendEvent(event)
-        case .leftMouseUp, .leftMouseDown:
-            // TODO: Prevent the event to be catched when dragging the window title
-            inputsManager.processMouseLeftButtonEvent(event)
-            NSApplication.shared.sendEvent(event)*/
+            if (event.type == .leftMouseDown || event.type == .leftMouseUp || event.modifierFlags.contains(.command)) {
+                NSApplication.shared.sendEvent(event)
+            }
         default:
             NSApplication.shared.sendEvent(event)
         }

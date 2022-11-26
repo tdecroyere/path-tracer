@@ -24,10 +24,13 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
     private DeviceBuffer _vertexBuffer;
     private DeviceBuffer _indexBuffer;
 
+    private IList<ResourceSet> _textureResourceSets;
+
     public ImGuiRenderer(GraphicsDevice graphicsDevice, OutputDescription outputDescription, ref ImFontAtlasPtr font) : base(graphicsDevice)
     {
         _fontAtlasID = 1;
         _vertexSizeInBytes = (uint)Unsafe.SizeOf<ImDrawVert>();
+        _textureResourceSets = new List<ResourceSet>();
 
         ResourceFactory factory = GraphicsDevice.ResourceFactory;
         _vertexBuffer = factory.CreateBuffer(new BufferDescription(10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
@@ -73,30 +76,20 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
         _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _fontTextureView));
     }
 
-    private Texture RecreateFontDeviceTexture(ref ImFontAtlasPtr font)
+    public nint RegisterTexture(TextureView textureView)
     {
-        font.GetTexDataAsRGBA32(out nint pixels, out var width, out var height, out var bytesPerPixel);
-        font.SetTexID(_fontAtlasID);
+        var textureResourceSet = GraphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, textureView));
+        _textureResourceSets.Add(textureResourceSet);
+        return _textureResourceSets.Count + 1;
+    }
 
-        var texture = GraphicsDevice.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled));
-        texture.Name = "ImGui Font Texture";
+    public void UpdateTexture(nint id, TextureView textureView)
+    {
+        var oldResourceSet = _textureResourceSets[(int)id - 2];
+        GraphicsDevice.DisposeWhenIdle(oldResourceSet);
 
-        GraphicsDevice.UpdateTexture(
-            texture,
-            pixels,
-            (uint)(bytesPerPixel * width * height),
-            0,
-            0,
-            0,
-            (uint)width,
-            (uint)height,
-            1,
-            0,
-            0);
-
-        font.ClearTexData();
-
-        return texture;
+        var textureResourceSet = GraphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, textureView));
+        _textureResourceSets[(int)id - 2] = textureResourceSet;
     }
 
     public void RenderImDrawData(CommandList commandList, ref ImDrawDataPtr drawData)
@@ -128,6 +121,32 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
         }
     }
 
+    private Texture RecreateFontDeviceTexture(ref ImFontAtlasPtr font)
+    {
+        font.GetTexDataAsRGBA32(out nint pixels, out var width, out var height, out var bytesPerPixel);
+        font.SetTexID(_fontAtlasID);
+
+        var texture = GraphicsDevice.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled));
+        texture.Name = "ImGui Font Texture";
+
+        GraphicsDevice.UpdateTexture(
+            texture,
+            pixels,
+            (uint)(bytesPerPixel * width * height),
+            0,
+            0,
+            0,
+            (uint)width,
+            (uint)height,
+            1,
+            0,
+            0);
+
+        font.ClearTexData();
+
+        return texture;
+    }
+
     private void RenderDrawDataCommandList(CommandList commandList, int vertexBufferOffset, int indexBufferOffset, ref ImDrawListPtr drawDataCommandList)
     {
         for (var i = 0; i < drawDataCommandList.CmdBuffer.Size; i++)
@@ -148,8 +167,7 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
                     }
                     else
                     {
-                        // TODO: Don't forget to cache images 
-                        throw new InvalidOperationException("IMGui with other texture than font texture is not supported yet.");
+                        commandList.SetGraphicsResourceSet(1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
                     }
                 }
 

@@ -91,6 +91,8 @@ public class TextureRenderer : BaseRenderer, IDisposable
         }
     }
 
+    public TextureView TextureView => _textureView;
+
     public void Resize(int width, int height)
     {
         _width = width;
@@ -105,11 +107,14 @@ public class TextureRenderer : BaseRenderer, IDisposable
         CreateTextures(_width, _height, out _cpuTexture, out _gpuTexture, out _textureView);
     }
 
-    public void RenderTexture<T>(CommandList commandList, ReadOnlySpan<T> textureData) where T : unmanaged
+    public void UpdateTexture<T>(CommandList commandList, ReadOnlySpan<T> textureData) where T : unmanaged
     {
         GraphicsDevice.UpdateTexture(_cpuTexture, textureData, 0, 0, 0, (uint)_width, (uint)_height, 1, 0, 0);
         commandList.CopyTexture(_cpuTexture, _gpuTexture);
-        
+    }
+
+    public void RenderTexture(CommandList commandList)
+    {
         _surfaceTextureResourceSet ??= GraphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _gpuTexture));
 
         commandList.SetVertexBuffer(0, _surfaceVertexBuffer);

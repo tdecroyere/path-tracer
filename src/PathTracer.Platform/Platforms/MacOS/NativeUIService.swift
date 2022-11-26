@@ -39,6 +39,8 @@ class NativeImageSurface {
     }
 }
 
+var globalWindow: NativeWindow?
+
 @_cdecl("PT_CreateWindow")
 public func createWindow(application: UnsafeRawPointer, title: UnsafeMutablePointer<Int8>, width: Int, height: Int, windowState: NativeWindowState) -> UnsafeMutableRawPointer {
     let window = NSWindow(contentRect: NSMakeRect(0, 0, CGFloat(width), CGFloat(height)), 
@@ -56,6 +58,7 @@ public func createWindow(application: UnsafeRawPointer, title: UnsafeMutablePoin
     }
 
     let nativeWindow = NativeWindow(window)
+    globalWindow = nativeWindow
     return Unmanaged.passRetained(nativeWindow).toOpaque()
 }
 

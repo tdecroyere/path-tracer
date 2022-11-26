@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
 using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using PathTracer;
@@ -25,6 +26,7 @@ var imGuiBackend = new ImGuiBackend(graphicsDevice, graphicsDevice.MainSwapchain
 
 var textureRenderer = new TextureRenderer(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height);
 var textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
+var textureId = imGuiBackend.RegisterTexture(textureRenderer.TextureView);
 
 Console.WriteLine($"Native Window Size: {renderSize}");
 Console.WriteLine($"FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
@@ -36,6 +38,9 @@ var stopwatch = new Stopwatch();
 var currentWidth = renderSize.Width;
 var currentHeight = renderSize.Height;
 
+var currentViewportWidth = 0;
+var currentViewportHeight = 0;
+
 var appStatus = new NativeApplicationStatus();
 var inputState = new NativeInputState();
 
@@ -43,12 +48,6 @@ while (appStatus.IsRunning == 1)
 {
     appStatus = nativeApplicationService.ProcessSystemMessages(nativeApplication);
     nativeInputService.UpdateInputState(nativeApplication, ref inputState);
-
-    if (inputState.Mouse.MouseLeftButton.IsPressed)
-    {
-        Console.WriteLine($"{new System.Numerics.Vector2(inputState.Mouse.AxisX.Value, inputState.Mouse.AxisY.Value)}");
-    }
-
     renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
     if (currentWidth != renderSize.Width || currentHeight != renderSize.Height)
@@ -56,10 +55,7 @@ while (appStatus.IsRunning == 1)
         graphicsDevice.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
         
         imGuiBackend.Resize(renderSize.Width, renderSize.Height, renderSize.UIScale);
-        textureRenderer.Resize(renderSize.Width, renderSize.Height);
-        
-        textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
-
+       
         Console.WriteLine($"Resize Native Window Size: {renderSize}");
         Console.WriteLine($"Resize FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
 
@@ -79,13 +75,47 @@ while (appStatus.IsRunning == 1)
     stopwatch.Stop();
     nativeUIService.SetWindowTitle(nativeWindow, $"Delta: {stopwatch.ElapsedMilliseconds}");
 
+    ImGui.Begin("PathTracer");
+
+    var dockId = ImGui.GetID("PathTracerDock");
+    ImGui.DockSpace(dockId, Vector2.Zero);
+
     ImGui.ShowDemoWindow();
-    ImGui.Text("Teeeest");
+
+    ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0.0f, 0.0f));
+    ImGui.Begin("Viewport");
+
+    var size = ImGui.GetContentRegionAvail();
+    var viewportWidth = (int)size.X;
+    var viewportHeight = (int)size.Y;
+
+    ImGui.Image(textureId, new Vector2(viewportWidth, viewportHeight));
+    ImGui.PopStyleVar();
+    ImGui.End();
+
+    ImGui.End();
+
+    if (currentViewportWidth != viewportWidth || currentViewportHeight != viewportHeight)
+    {
+        var textureWidth = (int)(viewportWidth * renderSize.UIScale);
+        var textureHeight = (int)(viewportHeight * renderSize.UIScale);
+
+        textureRenderer.Resize(textureWidth, textureHeight);
+        imGuiBackend.UpdateTexture(textureId, textureRenderer.TextureView);
+        
+        textureData = new uint[textureWidth * textureHeight].AsSpan();
+
+        Console.WriteLine($"Resize Viewport: {textureWidth}x{textureHeight}");
+
+        currentViewportWidth = viewportWidth;
+        currentViewportHeight = viewportHeight;
+    }
 
     commandList.Begin();
     commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
+    commandList.ClearColorTarget(0, RgbaFloat.Black);
 
-    textureRenderer.RenderTexture<uint>(commandList, textureData);
+    textureRenderer.UpdateTexture<uint>(commandList, textureData);
     imGuiBackend.Render(commandList);
 
     commandList.End();
