@@ -1,11 +1,12 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ImGuiNET;
 using Veldrid;
 
 namespace PathTracer;
 
-public class ImGuiRenderer : BaseRenderer, IDisposable
+public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
 {
     private readonly DeviceBuffer _projMatrixBuffer;
     private readonly Texture _fontTexture;
@@ -17,6 +18,7 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
     private readonly Pipeline _pipeline;
     private readonly ResourceSet _mainResourceSet;
     private readonly ResourceSet _fontTextureResourceSet;
+    private readonly IList<ResourceSet> _textureResourceSets;
 
     private readonly nint _fontAtlasID = 1;
     private readonly uint _vertexSizeInBytes;
@@ -24,9 +26,8 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
     private DeviceBuffer _vertexBuffer;
     private DeviceBuffer _indexBuffer;
 
-    private IList<ResourceSet> _textureResourceSets;
 
-    public ImGuiRenderer(GraphicsDevice graphicsDevice, OutputDescription outputDescription, ref ImFontAtlasPtr font) : base(graphicsDevice)
+    public ImGuiRenderer(GraphicsDevice graphicsDevice, OutputDescription outputDescription, string? fontName) : base(graphicsDevice)
     {
         _fontAtlasID = 1;
         _vertexSizeInBytes = (uint)Unsafe.SizeOf<ImDrawVert>();
@@ -43,7 +44,7 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
 
         _vertexShader = LoadShader("imgui-vertex", ShaderStages.Vertex);
         _fragmentShader = LoadShader("imgui-frag", ShaderStages.Fragment);
-        
+
         VertexLayoutDescription[] vertexLayouts = new VertexLayoutDescription[]
         {
             new VertexLayoutDescription(
@@ -71,9 +72,31 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
 
         _mainResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout, _projMatrixBuffer, GraphicsDevice.PointSampler));
 
-        _fontTexture = RecreateFontDeviceTexture(ref font);
+        var io = ImGui.GetIO();
+
+        if (fontName is not null)
+        {
+            LoadFont(io, fontName);
+        }
+
+        var fontAtlas = io.Fonts;
+        _fontTexture = RecreateFontDeviceTexture(ref fontAtlas);
         _fontTextureView = GraphicsDevice.ResourceFactory.CreateTextureView(_fontTexture);
         _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _fontTextureView));
+    }
+
+    private static void LoadFont(ImGuiIOPtr io, string fontName)
+    {
+        var fontData = GetEmbeddedResourceBytes($"{fontName}.ttf");
+
+        // create the object on the native side
+        var nativeConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+        (*nativeConfig).OversampleH = 4;
+        (*nativeConfig).OversampleV = 4;
+
+        var handle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
+        io.Fonts.AddFontFromMemoryTTF(handle.AddrOfPinnedObject(), fontData.Length, 13, nativeConfig);
+        handle.Free();
     }
 
     public nint RegisterTexture(TextureView textureView)

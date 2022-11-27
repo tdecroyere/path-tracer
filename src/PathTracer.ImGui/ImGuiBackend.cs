@@ -15,25 +15,24 @@ public class ImGuiBackend : IDisposable
     private int _windowHeight;
     private Vector2 _scaleFactor;
 
-    public ImGuiBackend(GraphicsDevice graphicsDevice, OutputDescription outputDescription, int width, int height, float uiScale)
+    public ImGuiBackend(GraphicsDevice graphicsDevice, OutputDescription outputDescription, int width, int height, float uiScale, string? fontName = null)
     {
         _windowWidth = width;
         _windowHeight = height;
         _scaleFactor = new Vector2(uiScale, uiScale);
 
         var context = ImGui.CreateContext();
-
         ImGui.SetCurrentContext(context);
-        ImGui.GetIO().Fonts.AddFontDefault();
-        ImGui.GetIO().BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
-        ImGui.GetIO().ConfigFlags |= ImGuiConfigFlags.DpiEnableScaleFonts | ImGuiConfigFlags.DpiEnableScaleViewports | ImGuiConfigFlags.DockingEnable;
 
-        //SetKeyMappings();
+        var io = ImGui.GetIO();
+        io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
+        io.ConfigFlags |= ImGuiConfigFlags.DpiEnableScaleFonts | ImGuiConfigFlags.DpiEnableScaleViewports | ImGuiConfigFlags.DockingEnable;
+        io.ConfigDockingAlwaysTabBar = false;
+        //io.IniSavingRate = 0;
 
         SetPerFrameImGuiData(1.0f / 60f);
 
-        var font = ImGui.GetIO().Fonts;
-        _imGuiRenderer = new ImGuiRenderer(graphicsDevice, outputDescription, ref font);
+        _imGuiRenderer = new ImGuiRenderer(graphicsDevice, outputDescription, fontName);
 
         ImGui.NewFrame();
         _frameBegun = true;

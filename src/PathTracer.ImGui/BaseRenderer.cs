@@ -56,7 +56,7 @@ public abstract class BaseRenderer
         return GraphicsDevice.ResourceFactory.CreateShader(new ShaderDescription(shaderStage, shaderData, entryPoint));
     }
 
-    private static byte[] GetEmbeddedResourceBytes(string resourceName)
+    protected static byte[] GetEmbeddedResourceBytes(string resourceName)
     {
         var assembly = typeof(ImGuiBackend).Assembly;
         using var resourceStream = assembly.GetManifestResourceStream(resourceName);

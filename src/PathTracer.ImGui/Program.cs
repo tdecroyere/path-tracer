@@ -22,8 +22,9 @@ var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer 
 var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
 var graphicsDevice = CreateGraphicsDevice(nativeUIService, nativeWindow);
-var imGuiBackend = new ImGuiBackend(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height, renderSize.UIScale);
+var imGuiBackend = new ImGuiBackend(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height, renderSize.UIScale, "Menlo-Regular");
 
+// TODO: Don't create texture when init do this on resize only
 var textureRenderer = new TextureRenderer(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height);
 var textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
 var textureId = imGuiBackend.RegisterTexture(textureRenderer.TextureView);
@@ -43,6 +44,8 @@ var currentViewportHeight = 0;
 
 var appStatus = new NativeApplicationStatus();
 var inputState = new NativeInputState();
+
+var dockId = ImGui.GetID("PathTracerDock");
 
 while (appStatus.IsRunning == 1)
 {
@@ -73,24 +76,43 @@ while (appStatus.IsRunning == 1)
     }
 
     stopwatch.Stop();
-    nativeUIService.SetWindowTitle(nativeWindow, $"Delta: {stopwatch.ElapsedMilliseconds}");
 
-    ImGui.Begin("PathTracer");
+    var viewport = ImGui.GetMainViewport();
+    ImGui.SetNextWindowPos(viewport.WorkPos);
+	ImGui.SetNextWindowSize(viewport.WorkSize);
+	ImGui.SetNextWindowViewport(viewport.ID);
 
-    var dockId = ImGui.GetID("PathTracerDock");
-    ImGui.DockSpace(dockId, Vector2.Zero);
-
-    ImGui.ShowDemoWindow();
+    var windowFlags = ImGuiWindowFlags.NoDocking;
+    windowFlags |= ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove;
+	windowFlags |= ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus | ImGuiWindowFlags.NoBackground;
 
     ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0.0f, 0.0f));
-    ImGui.Begin("Viewport");
+    ImGui.Begin("PathTracer", windowFlags);
+    ImGui.PopStyleVar();
+    
+    ImGui.DockSpace(dockId, Vector2.Zero, ImGuiDockNodeFlags.PassthruCentralNode | ImGuiDockNodeFlags.AutoHideTabBar);
+
+    ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0.0f, 0.0f));
+    ImGui.Begin("Viewport", ImGuiWindowFlags.NoTitleBar);
+    ImGui.PopStyleVar();
 
     var size = ImGui.GetContentRegionAvail();
     var viewportWidth = (int)size.X;
     var viewportHeight = (int)size.Y;
 
     ImGui.Image(textureId, new Vector2(viewportWidth, viewportHeight));
-    ImGui.PopStyleVar();
+    ImGui.End();
+    
+    ImGui.Begin("Inspector", ImGuiWindowFlags.NoCollapse);
+
+    var visible = true;
+    ImGui.CollapsingHeader("Status", ref visible);
+    ImGui.Text($"Render Size: {viewportWidth * renderSize.UIScale}x{viewportHeight * renderSize.UIScale}");
+    ImGui.Text($"Delta: {stopwatch.ElapsedMilliseconds}");
+    
+    var framerate = ImGui.GetIO().Framerate;
+    ImGui.Text($"Application average {1000.0f / framerate:0.##} ms/frame ({framerate:0.#} FPS)");
+
     ImGui.End();
 
     ImGui.End();
@@ -100,13 +122,14 @@ while (appStatus.IsRunning == 1)
         var textureWidth = (int)(viewportWidth * renderSize.UIScale);
         var textureHeight = (int)(viewportHeight * renderSize.UIScale);
 
+        // TODO: Crash if minimized
         textureRenderer.Resize(textureWidth, textureHeight);
         imGuiBackend.UpdateTexture(textureId, textureRenderer.TextureView);
         
         textureData = new uint[textureWidth * textureHeight].AsSpan();
 
         Console.WriteLine($"Resize Viewport: {textureWidth}x{textureHeight}");
-
+        
         currentViewportWidth = viewportWidth;
         currentViewportHeight = viewportHeight;
     }
