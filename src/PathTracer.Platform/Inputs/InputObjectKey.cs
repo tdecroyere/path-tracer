@@ -1,39 +1,6 @@
-#pragma once
+namespace PathTracer.Platform.Inputs;
 
-struct NativeAppStatus
-{
-    int IsRunning;
-    int IsActive;
-};
-
-enum NativeWindowState
-{
-    Normal,
-    Maximized
-};
-
-struct NativeWindowSize
-{
-    int Width;
-    int Height;
-    float UIScale;
-};
-
-struct InputObject
-{
-    float Value;
-    float PreviousValue;
-    short Repeatcount;
-    short PreviousRepeatCount;
-};
-
-struct InputState
-{
-    void *InputObjectPointer;
-    int InputObjectCount;
-};
-
-enum InputObjectKey
+public enum InputObjectKey
 {
     KeyA = 0,
     KeyB = 1,
@@ -67,7 +34,7 @@ enum InputObjectKey
     Menu = 28,
     Pause = 29,
     Capital = 30,
-    KeyEscape = 31,
+    Escape = 31,
     Space = 32,
     End = 33,
     Home = 34,
@@ -117,4 +84,4 @@ enum InputObjectKey
     MouseAxisY = 77,
     MouseLeftButton = 78,
     MaxValue = 79
-};
+}

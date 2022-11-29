@@ -5,7 +5,6 @@ using Microsoft.Extensions.DependencyInjection;
 using PathTracer;
 using PathTracer.Platform;
 using PathTracer.Platform.Inputs;
-using PathTracer.Platform.NativeUI;
 using Veldrid;
 
 var serviceCollection = new ServiceCollection();
@@ -15,10 +14,10 @@ var serviceProvider = serviceCollection.BuildServiceProvider();
 
 var nativeApplicationService = serviceProvider.GetRequiredService<INativeApplicationService>();
 var nativeUIService = serviceProvider.GetRequiredService<INativeUIService>();
-var nativeInputService = serviceProvider.GetRequiredService<INativeInputService>();
+var nativeInputService = serviceProvider.GetRequiredService<IInputService>();
 
 var nativeApplication = nativeApplicationService.CreateApplication("PathTracer IMGui");
-var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
+var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Maximized);
 var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
 var graphicsDevice = CreateGraphicsDevice(nativeUIService, nativeWindow);
@@ -43,7 +42,7 @@ var currentViewportWidth = 0;
 var currentViewportHeight = 0;
 
 var appStatus = new NativeApplicationStatus();
-var inputState = new NativeInputState();
+var inputState = new InputState();
 
 var dockId = ImGui.GetID("PathTracerDock");
 

@@ -217,14 +217,6 @@ public class PlatformServiceGenerator : IIncrementalGenerator
     private static void GenerateServiceExtensions(StringBuilder sourceCode, IList<PlatformServiceToGenerate> platformServices)
     {
         sourceCode.AppendLine("using Microsoft.Extensions.DependencyInjection;");
-
-        foreach (var platformService in platformServices)
-        {
-            if (platformService.Namespace is not null)
-            {
-                sourceCode.AppendLine($"using {platformService.Namespace};");
-            }
-        }
         
         sourceCode.AppendLine();
         sourceCode.AppendLine("namespace PathTracer.Platform;");
@@ -237,7 +229,7 @@ public class PlatformServiceGenerator : IIncrementalGenerator
 
         foreach (var platformService in platformServices)
         {
-            sourceCode.AppendLine($"serviceCollection.AddSingleton<{platformService.InterfaceName}, {platformService.ImplementationClassName}>();");
+            sourceCode.AppendLine($"serviceCollection.AddSingleton<{platformService.Namespace}.{platformService.InterfaceName}, {platformService.Namespace}.{platformService.ImplementationClassName}>();");
         }
 
         sourceCode.AppendLine("}");

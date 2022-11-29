@@ -84,7 +84,7 @@ public class ImGuiBackend : IDisposable
     /// <summary>
     /// Updates ImGui input and IO configuration state.
     /// </summary>
-    public void Update(float deltaTime, NativeInputState inputState)
+    public void Update(float deltaTime, InputState inputState)
     {
         if (_frameBegun)
         {
@@ -112,7 +112,7 @@ public class ImGuiBackend : IDisposable
         io.DeltaTime = deltaTime;
     }
 
-    private static void ProcessKey(ImGuiIOPtr io, NativeInputObject inputObject, ImGuiKey key, char? character)
+    private static void ProcessKey(ImGuiIOPtr io, InputObject inputObject, ImGuiKey key, char? character)
     {
         io.KeysDown[(int)key] = inputObject.IsPressed;
 
@@ -122,7 +122,7 @@ public class ImGuiBackend : IDisposable
         }
     }
 
-    private void UpdateImGuiInput(NativeInputState inputState)
+    private void UpdateImGuiInput(InputState inputState)
     {
         ImGuiIOPtr io = ImGui.GetIO();
 

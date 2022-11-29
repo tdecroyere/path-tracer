@@ -1,4 +1,4 @@
-namespace PathTracer.Platform.NativeUI;
+namespace PathTracer.Platform;
 
 public enum NativeWindowState
 {

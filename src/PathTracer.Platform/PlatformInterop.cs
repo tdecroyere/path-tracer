@@ -17,14 +17,14 @@ namespace PathTracer.Platform
 
 namespace PathTracer.Platform.Inputs
 {
-    internal static partial class NativeInputServiceInterop
+    internal static partial class InputServiceInterop
     {
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial void PT_UpdateInputState(nint application, ref NativeInputState state);
+        internal static partial void PT_UpdateInputState(nint application, ref InputState state);
     }
 }
 
-namespace PathTracer.Platform.NativeUI
+namespace PathTracer.Platform
 {
     internal static partial class NativeUIServiceInterop
     {
@@ -39,20 +39,5 @@ namespace PathTracer.Platform.NativeUI
 
         [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
         internal static partial void PT_SetWindowTitle(nint window, string title);
-
-        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial nint PT_CreateImageSurface(nint window, int width, int height);
-
-        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial NativeImageSurfaceInfo PT_GetImageSurfaceInfo(nint imageSurface);
-
-        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial void PT_UpdateImageSurface(nint imageSurface, ReadOnlySpan<byte> data);
-
-        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial nint PT_CreatePanel(nint window);
-
-        [LibraryImport("PathTracer.Platform.Native", StringMarshalling = StringMarshalling.Utf8)]
-        internal static partial nint PT_CreateButton(nint parent, string text);
     }
 }

@@ -1,8 +1,8 @@
 namespace PathTracer.Platform.Inputs;
 
-internal partial class NativeInputService
+internal partial class InputService
 {
-    public void UpdateInputState(NativeApplication application, ref NativeInputState inputState)
+    public void UpdateInputState(NativeApplication application, ref InputState inputState)
     {
         for (var i = 0; i < inputState.InputObjects.Length; i++)
         {
