@@ -224,7 +224,7 @@ public class PlatformServiceGenerator : IIncrementalGenerator
 
         sourceCode.AppendLine($"public static class ServiceExtensions");
         sourceCode.AppendLine("{");
-        sourceCode.AppendLine("public static void UsePathTracerPlatform(this ServiceCollection serviceCollection)");
+        sourceCode.AppendLine("public static void UseNativePlatform(this ServiceCollection serviceCollection)");
         sourceCode.AppendLine("{");
 
         foreach (var platformService in platformServices)

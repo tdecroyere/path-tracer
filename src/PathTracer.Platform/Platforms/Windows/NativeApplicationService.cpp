@@ -15,6 +15,7 @@ DllExport void* PT_CreateApplication(unsigned char* applicationName)
 	windowClass.hInstance = application->ApplicationInstance;
 	windowClass.lpszClassName = L"PathTracerWindowClass";
 	windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
+    windowClass.hbrBackground = CreateSolidBrush(RGB(0, 0, 0));
 
     RegisterClass(&windowClass);
 

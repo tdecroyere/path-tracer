@@ -4,34 +4,43 @@ using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using PathTracer;
 using PathTracer.Platform;
+using PathTracer.Platform.Graphics;
 using PathTracer.Platform.Inputs;
 using Veldrid;
 
 var serviceCollection = new ServiceCollection();
-serviceCollection.UsePathTracerPlatform();
+serviceCollection.UseNativePlatform();
+serviceCollection.UseGraphicsPlatform();
 
 var serviceProvider = serviceCollection.BuildServiceProvider();
 
 var nativeApplicationService = serviceProvider.GetRequiredService<INativeApplicationService>();
 var nativeUIService = serviceProvider.GetRequiredService<INativeUIService>();
 var nativeInputService = serviceProvider.GetRequiredService<IInputService>();
+var graphicsService = serviceProvider.GetRequiredService<IGraphicsService>();
 
 var nativeApplication = nativeApplicationService.CreateApplication("PathTracer IMGui");
-var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Maximized);
-var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
+var nativeWindowOld = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
+var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
+var renderSize = nativeUIService.GetWindowRenderSize(nativeWindowOld);
 
-var graphicsDevice = CreateGraphicsDevice(nativeUIService, nativeWindow);
-var imGuiBackend = new ImGuiBackend(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height, renderSize.UIScale, "Menlo-Regular");
+var graphicsDevice = graphicsService.CreateDevice(nativeWindow);
+Console.WriteLine(graphicsDevice);
+
+var graphicsDeviceOld = CreateGraphicsDevice(nativeUIService, nativeWindowOld);
+var imGuiBackend = new ImGuiBackend(renderSize.Width, renderSize.Height, renderSize.UIScale);
+var imGuiRendererOld = new ImGuiRendererOld(graphicsDeviceOld, graphicsDeviceOld.MainSwapchain.Framebuffer.OutputDescription, "Menlo-Regular");
+var imGuiRenderer = new ImGuiRenderer(graphicsService, graphicsDevice, "Menlo-Regular");
 
 // TODO: Don't create texture when init do this on resize only
-var textureRenderer = new TextureRenderer(graphicsDevice, graphicsDevice.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height);
+var textureRenderer = new TextureRenderer(graphicsDeviceOld, graphicsDeviceOld.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height);
 var textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
-var textureId = imGuiBackend.RegisterTexture(textureRenderer.TextureView);
+var textureId = imGuiRendererOld.RegisterTexture(textureRenderer.TextureView);
 
 Console.WriteLine($"Native Window Size: {renderSize}");
-Console.WriteLine($"FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
+Console.WriteLine($"FrameBuffer Size: {graphicsDeviceOld.MainSwapchain.Framebuffer.Width}x{graphicsDeviceOld.MainSwapchain.Framebuffer.Height}");
 
-var commandList = graphicsDevice.ResourceFactory.CreateCommandList();
+var commandList = graphicsDeviceOld.ResourceFactory.CreateCommandList();
 var frameCount = 0;
 var stopwatch = new Stopwatch();
 
@@ -44,22 +53,20 @@ var currentViewportHeight = 0;
 var appStatus = new NativeApplicationStatus();
 var inputState = new InputState();
 
-var dockId = ImGui.GetID("PathTracerDock");
-
 while (appStatus.IsRunning == 1)
 {
     appStatus = nativeApplicationService.ProcessSystemMessages(nativeApplication);
     nativeInputService.UpdateInputState(nativeApplication, ref inputState);
-    renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
+    renderSize = nativeUIService.GetWindowRenderSize(nativeWindowOld);
 
     if (currentWidth != renderSize.Width || currentHeight != renderSize.Height)
     {
-        graphicsDevice.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
+        graphicsDeviceOld.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
         
         imGuiBackend.Resize(renderSize.Width, renderSize.Height, renderSize.UIScale);
        
         Console.WriteLine($"Resize Native Window Size: {renderSize}");
-        Console.WriteLine($"Resize FrameBuffer Size: {graphicsDevice.MainSwapchain.Framebuffer.Width}x{graphicsDevice.MainSwapchain.Framebuffer.Height}");
+        Console.WriteLine($"Resize FrameBuffer Size: {graphicsDeviceOld.MainSwapchain.Framebuffer.Width}x{graphicsDeviceOld.MainSwapchain.Framebuffer.Height}");
 
         currentWidth = renderSize.Width;
         currentHeight = renderSize.Height;
@@ -75,6 +82,8 @@ while (appStatus.IsRunning == 1)
     }
 
     stopwatch.Stop();
+
+    var dockId = ImGui.GetID("PathTracerDock");
 
     var viewport = ImGui.GetMainViewport();
     ImGui.SetNextWindowPos(viewport.WorkPos);
@@ -123,7 +132,8 @@ while (appStatus.IsRunning == 1)
 
         // TODO: Crash if minimized
         textureRenderer.Resize(textureWidth, textureHeight);
-        imGuiBackend.UpdateTexture(textureId, textureRenderer.TextureView);
+        imGuiRendererOld.UpdateTexture(textureId, textureRenderer.TextureView);
+        //imGuiRenderer.UpdateTexture(textureId, textureRenderer.TextureView);
         
         textureData = new uint[textureWidth * textureHeight].AsSpan();
 
@@ -134,21 +144,25 @@ while (appStatus.IsRunning == 1)
     }
 
     commandList.Begin();
-    commandList.SetFramebuffer(graphicsDevice.MainSwapchain.Framebuffer);
+    commandList.SetFramebuffer(graphicsDeviceOld.MainSwapchain.Framebuffer);
     commandList.ClearColorTarget(0, RgbaFloat.Black);
 
     textureRenderer.UpdateTexture<uint>(commandList, textureData);
-    imGuiBackend.Render(commandList);
+    imGuiBackend.Render();
+
+    var drawData = ImGui.GetDrawData();
+    imGuiRendererOld.RenderImDrawData(commandList, ref drawData);
+    //imGuiRenderer.RenderImDrawData(commandList, ref drawData);
 
     commandList.End();
 
-    graphicsDevice.SubmitCommands(commandList);
-    graphicsDevice.SwapBuffers(graphicsDevice.MainSwapchain);
+    graphicsDeviceOld.SubmitCommands(commandList);
+    graphicsDeviceOld.SwapBuffers(graphicsDeviceOld.MainSwapchain);
 
     frameCount++;
 }
 
-static unsafe GraphicsDevice CreateGraphicsDevice(INativeUIService nativeUIService, NativeWindow nativeWindow)
+static unsafe Veldrid.GraphicsDevice CreateGraphicsDevice(INativeUIService nativeUIService, NativeWindow nativeWindow)
 {
     var graphicsDeviceOptions = new GraphicsDeviceOptions(
             debug: true, 
@@ -161,7 +175,7 @@ static unsafe GraphicsDevice CreateGraphicsDevice(INativeUIService nativeUIServi
     var nativeWindowSystemHandle = nativeUIService.GetWindowSystemHandle(nativeWindow);
     var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
-    GraphicsDevice? graphicsDevice = null;
+    Veldrid.GraphicsDevice? graphicsDevice = null;
 
     if (OperatingSystem.IsWindows())
     {
@@ -175,7 +189,7 @@ static unsafe GraphicsDevice CreateGraphicsDevice(INativeUIService nativeUIServi
                         graphicsDeviceOptions.SyncToVerticalBlank,
                         graphicsDeviceOptions.SwapchainSrgbFormat);
 
-        graphicsDevice = GraphicsDevice.CreateVulkan(graphicsDeviceOptions, swapchainDescription);
+        graphicsDevice = Veldrid.GraphicsDevice.CreateVulkan(graphicsDeviceOptions, swapchainDescription);
     }
 
     else if (OperatingSystem.IsMacOS())
@@ -190,7 +204,7 @@ static unsafe GraphicsDevice CreateGraphicsDevice(INativeUIService nativeUIServi
                         graphicsDeviceOptions.SyncToVerticalBlank,
                         graphicsDeviceOptions.SwapchainSrgbFormat);
 
-        graphicsDevice = GraphicsDevice.CreateMetal(graphicsDeviceOptions, swapchainDescription);
+        graphicsDevice = Veldrid.GraphicsDevice.CreateMetal(graphicsDeviceOptions, swapchainDescription);
         graphicsDevice.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
     }
 

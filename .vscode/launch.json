@@ -33,6 +33,16 @@
             "stopAtEntry": false
         },
         {
+            "name": "ImGui Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/src/PathTracer.ImGui/bin/x64/Debug/net7.0",
+            "program": "${workspaceFolder}/src/PathTracer.ImGui/bin/x64/Debug/net7.0/PathTracer.ImGui.dll",
+            "args": [],
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach"

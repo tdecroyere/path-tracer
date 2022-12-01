@@ -15,10 +15,16 @@
   
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Veldrid" />
+    <PackageReference Include="ErrorProne.NET.Structs">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Platforms\**\*" />
+    <Compile Remove="Platforms\Windows\**\*" />
+    <Compile Remove="Platforms\MacOS\**\*" />
   </ItemGroup>
 
   <Target Name="BuildPlatformNative" BeforeTargets="CoreCompile" >

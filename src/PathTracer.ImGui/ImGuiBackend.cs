@@ -6,16 +6,14 @@ using Veldrid;
 
 namespace PathTracer;
 
-public class ImGuiBackend : IDisposable
+public class ImGuiBackend
 {
-    private readonly ImGuiRenderer _imGuiRenderer;
-
     private bool _frameBegun;
     private int _windowWidth;
     private int _windowHeight;
     private Vector2 _scaleFactor;
 
-    public ImGuiBackend(GraphicsDevice graphicsDevice, OutputDescription outputDescription, int width, int height, float uiScale, string? fontName = null)
+    public ImGuiBackend(int width, int height, float uiScale)
     {
         _windowWidth = width;
         _windowHeight = height;
@@ -31,25 +29,6 @@ public class ImGuiBackend : IDisposable
         //io.IniSavingRate = 0;
 
         SetPerFrameImGuiData(1.0f / 60f);
-
-        _imGuiRenderer = new ImGuiRenderer(graphicsDevice, outputDescription, fontName);
-
-        ImGui.NewFrame();
-        _frameBegun = true;
-    }
-    
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _imGuiRenderer.Dispose();
-        }
     }
 
     public void Resize(int width, int height, float uiScale)
@@ -59,31 +38,15 @@ public class ImGuiBackend : IDisposable
         _scaleFactor = new Vector2(uiScale, uiScale);
     }
     
-    public nint RegisterTexture(TextureView textureView)
-    {
-        return _imGuiRenderer.RegisterTexture(textureView);
-    }
-
-    public void UpdateTexture(nint id, TextureView textureView)
-    {
-        _imGuiRenderer.UpdateTexture(id, textureView);
-    }
-
-    public void Render(CommandList commandList)
+    public void Render()
     {
         if (_frameBegun)
         {
             _frameBegun = false;
             ImGui.Render();
-
-            var drawData = ImGui.GetDrawData();
-            _imGuiRenderer.RenderImDrawData(commandList, ref drawData);
         }
     }
 
-    /// <summary>
-    /// Updates ImGui input and IO configuration state.
-    /// </summary>
     public void Update(float deltaTime, InputState inputState)
     {
         if (_frameBegun)
@@ -98,16 +61,10 @@ public class ImGuiBackend : IDisposable
         ImGui.NewFrame();
     }
 
-    /// <summary>
-    /// Sets per-frame data based on the associated window.
-    /// This is called by Update(float).
-    /// </summary>
     private void SetPerFrameImGuiData(float deltaTime)
     {
-        ImGuiIOPtr io = ImGui.GetIO();
-        io.DisplaySize = new Vector2(
-            _windowWidth / _scaleFactor.X,
-            _windowHeight / _scaleFactor.Y);
+        var io = ImGui.GetIO();
+        io.DisplaySize = new Vector2(_windowWidth / _scaleFactor.X, _windowHeight / _scaleFactor.Y);
         io.DisplayFramebufferScale = _scaleFactor;
         io.DeltaTime = deltaTime;
     }

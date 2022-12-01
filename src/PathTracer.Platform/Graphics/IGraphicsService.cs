@@ -2,5 +2,7 @@ namespace PathTracer.Platform.Graphics;
 
 public interface IGraphicsService
 {
-    GraphicsDevice CreateGraphicsDevice(NativeWindow window);
+    GraphicsDevice CreateDevice(NativeWindow window);
+
+    Shader CreateShader(GraphicsDevice graphicsDevice, ReadOnlySpan<byte> byteCode);
 }

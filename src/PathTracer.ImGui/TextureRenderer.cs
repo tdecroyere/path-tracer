@@ -3,7 +3,7 @@ using Veldrid;
 
 namespace PathTracer;
 
-public class TextureRenderer : BaseRenderer, IDisposable
+public class TextureRenderer : BaseRendererOld, IDisposable
 {
     private readonly Shader _vertexShader;
     private readonly Shader _fragmentShader;

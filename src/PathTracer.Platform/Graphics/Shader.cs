@@ -1,6 +1,6 @@
 namespace PathTracer.Platform.Graphics;
 
 [PlatformNativePointer]
-public readonly partial record struct GraphicsDevice
+public readonly partial record struct Shader
 {
 }

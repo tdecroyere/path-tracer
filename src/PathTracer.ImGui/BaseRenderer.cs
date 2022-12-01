@@ -1,17 +1,20 @@
 using System.Runtime.CompilerServices;
-using Veldrid;
+using System.Runtime.InteropServices;
+using PathTracer.Platform.Graphics;
 
 namespace PathTracer;
 
 public abstract class BaseRenderer
 {
-    protected BaseRenderer(GraphicsDevice graphicsDevice)
+    protected BaseRenderer(IGraphicsService graphicsService, GraphicsDevice graphicsDevice)
     {
+        GraphicsService = graphicsService;
         GraphicsDevice = graphicsDevice;
     }
 
+    protected IGraphicsService GraphicsService { get; init; }
     protected GraphicsDevice GraphicsDevice { get; init; }  
-
+/*
     protected DeviceBuffer CreateBuffer<T>(T data, BufferUsage bufferUsage) where T : unmanaged
     {
         return CreateBuffer<T>(new T[] { data }, bufferUsage);
@@ -34,28 +37,21 @@ public abstract class BaseRenderer
         }
 
         return buffer;
+    }*/
+    
+    protected Shader LoadShader(string name)
+    {
+        var shaderExtension = OperatingSystem.IsWindows() ? "spv" : "metallib";
+        var vertexShaderName = $"{name}-vertex.{shaderExtension}";
+        var pixelShaderName = $"{name}-frag.{shaderExtension}";
+
+        var vertexShaderData = GetEmbeddedResourceBytes(vertexShaderName);
+        var pixelShaderData = GetEmbeddedResourceBytes(pixelShaderName);
+        var shaderData = BuildShaderData(vertexShaderData, pixelShaderData);
+
+        return GraphicsService.CreateShader(GraphicsDevice, shaderData);
     }
     
-    protected Shader LoadShader(string name, ShaderStages shaderStage)
-    {
-        var entryPoint = shaderStage switch
-        {
-            ShaderStages.Vertex when GraphicsDevice.BackendType == GraphicsBackend.Metal => "VS",
-            ShaderStages.Fragment when GraphicsDevice.BackendType == GraphicsBackend.Metal => "FS",
-            _ => "main"
-        };
-
-        var resourceName = GraphicsDevice.BackendType switch
-        {
-            GraphicsBackend.Vulkan => name + ".spv",
-            GraphicsBackend.Metal => name + ".metallib",
-            _ => throw new NotImplementedException()
-        };     
-
-        var shaderData = GetEmbeddedResourceBytes(resourceName);
-        return GraphicsDevice.ResourceFactory.CreateShader(new ShaderDescription(shaderStage, shaderData, entryPoint));
-    }
-
     protected static byte[] GetEmbeddedResourceBytes(string resourceName)
     {
         var assembly = typeof(ImGuiBackend).Assembly;
@@ -69,5 +65,26 @@ public abstract class BaseRenderer
         var result = new byte[resourceStream.Length];
         resourceStream.Read(result, 0, (int)resourceStream.Length);
         return result;
+    }
+
+    private static ReadOnlySpan<byte> BuildShaderData(byte[] vertexShaderData, byte[] pixelShaderData)
+    {
+        var vertexShaderDataLength = vertexShaderData.Length;
+        var pixelShaderDataLength = pixelShaderData.Length;
+
+        var shaderData = new byte[vertexShaderDataLength + pixelShaderDataLength + 2 * sizeof(int)].AsSpan();
+
+        var copyShaderData = shaderData;
+        MemoryMarshal.Write(copyShaderData, ref vertexShaderDataLength);
+        copyShaderData = copyShaderData[sizeof(int)..];
+
+        MemoryMarshal.Write(copyShaderData, ref pixelShaderDataLength);
+        copyShaderData = copyShaderData[sizeof(int)..];
+
+        vertexShaderData.CopyTo(copyShaderData);
+        copyShaderData = copyShaderData[vertexShaderDataLength..];
+
+        pixelShaderData.CopyTo(copyShaderData);
+        return shaderData;
     }
 }
