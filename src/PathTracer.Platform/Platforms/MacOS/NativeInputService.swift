@@ -12,13 +12,13 @@ public func nativeInputProcessEvent(_ application: UnsafeMutablePointer<Int8>, _
 }
 
 @_cdecl("PT_UpdateInputState")
-public func updateInputState(application: UnsafeMutablePointer<Int8>, inputState: UnsafeMutablePointer<NativeInputState>) {
+public func updateInputState(application: UnsafeMutablePointer<Int8>, inputState: UnsafeMutablePointer<InputState>) {
     guard let queue = applicationInputQueues[application] else {
         return
     } 
 
     for event in queue { 
-        let inputObjects = inputState.pointee.InputObjectPointer.bindMemory(to: NativeInputObject.self, capacity: Int(inputState.pointee.InputObjectCount))
+        let inputObjects = inputState.pointee.InputObjectPointer.bindMemory(to: InputObject.self, capacity: Int(inputState.pointee.InputObjectCount))
         //let inputObjects = [NativeInputObject](Array(UnsafeBufferPointer(start: inputState.pointee.InputObjectPointer, count: Int(inputState.pointee.InputObjectCount))))
         //let inputObjects = UnsafeMutableBufferPointer<NativeInputObject>(start: UnsafeMutablePointer<NativeInputObject>(inputState.pointee.InputObjectPointer), count: Int(inputState.pointee.InputObjectCount))        
 
@@ -76,7 +76,7 @@ public func updateInputState(application: UnsafeMutablePointer<Int8>, inputState
             let contentView = globalWindow!.window.contentView! as NSView
             let mainScreenScaling = globalWindow!.window.screen!.backingScaleFactor
 
-            var size = contentView.frame.size
+            let size = contentView.frame.size
             
             inputObjects[Int(MouseAxisX.rawValue)].Value = Float(event.locationInWindow.x) * Float(mainScreenScaling)
             inputObjects[Int(MouseAxisY.rawValue)].Value = (Float(size.height) - Float(event.locationInWindow.y)) * Float(mainScreenScaling)
@@ -86,11 +86,11 @@ public func updateInputState(application: UnsafeMutablePointer<Int8>, inputState
     applicationInputQueues[application] = []
 }
 
-private func processKey(_ inputObjects: UnsafeMutablePointer<NativeInputObject>, _ key: NativeInputObjectKey, _ keyCode: String, _ event: NSEvent) {
+private func processKey(_ inputObjects: UnsafeMutablePointer<InputObject>, _ key: InputObjectKey, _ keyCode: String, _ event: NSEvent) {
    processKey(inputObjects, key, Int(Character(keyCode).asciiValue!), event) 
 }
 
-private func processKey(_ inputObjects: UnsafeMutablePointer<NativeInputObject>, _ key: NativeInputObjectKey, _ keyCode: Int, _ event: NSEvent)
+private func processKey(_ inputObjects: UnsafeMutablePointer<InputObject>, _ key: InputObjectKey, _ keyCode: Int, _ event: NSEvent)
 {
     var isValid = false
     // TODO: Check keycode first
@@ -115,6 +115,6 @@ private func processKey(_ inputObjects: UnsafeMutablePointer<NativeInputObject>,
     }
 }
 
-private func updateInputObject(_ inputObject: inout NativeInputObject, _ event: NSEvent) {
+private func updateInputObject(_ inputObject: inout InputObject, _ event: NSEvent) {
     inputObject.Value = (event.type == .keyDown || event.type == .leftMouseDown) ? 1.0 : 0.0
 }
