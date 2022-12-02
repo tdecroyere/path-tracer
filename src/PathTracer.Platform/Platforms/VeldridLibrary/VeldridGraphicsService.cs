@@ -17,7 +17,17 @@ public class VeldridGraphicsService : IGraphicsService
         _shaders = new List<VeldridShader>();
     }
 
-    public Graphics.GraphicsDevice CreateDevice(NativeWindow window)
+    public Graphics.GraphicsDevice CreateDevice()
+    {
+        return 1;
+    }
+    
+    public CommandQueue CreateCommandQueue(Graphics.GraphicsDevice graphicsDevice, CommandQueueType type)
+    {
+        return 1;
+    }
+    
+    public SwapChain CreateSwapChain(CommandQueue commandQueue, NativeWindow window)
     {
         if (!(OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()))
         {
@@ -75,6 +85,43 @@ public class VeldridGraphicsService : IGraphicsService
 
         _graphicsDevices.Add(graphicsDevice);
         return _graphicsDevices.Count;
+    }
+
+    public void PresentSwapChain(SwapChain swapChain)
+    {
+        var veldridGraphicsDevice = _graphicsDevices[ToIndex(swapChain)];
+
+        // TEST CODE
+        var commandList = veldridGraphicsDevice.ResourceFactory.CreateCommandList();
+        
+        commandList.Begin();
+        commandList.SetFramebuffer(veldridGraphicsDevice.MainSwapchain.Framebuffer);
+        commandList.ClearColorTarget(0, RgbaFloat.Yellow);
+        commandList.End();
+
+        veldridGraphicsDevice.SubmitCommands(commandList);
+        // END TEST CODE
+    
+        veldridGraphicsDevice.SwapBuffers(veldridGraphicsDevice.MainSwapchain);
+    }
+
+    public GraphicsHeap CreateGraphicsHeap(Graphics.GraphicsDevice graphicsDevice, GraphicsHeapType type, nuint sizeInBytes)
+    {
+        return 1;
+    }
+    
+    public GraphicsAllocationInfos GetBufferAllocationInfos(GraphicsHeap graphicsHeap, nuint sizeInBytes)
+    {
+        return new GraphicsAllocationInfos()
+        {
+            Alignment = 64,
+            SizeInBytes = sizeInBytes
+        };
+    }
+
+    public GraphicsBuffer CreateBuffer(GraphicsHeap graphicsHeap, GraphicsBufferUsage usage, nuint heapOffset, nuint sizeInBytes)
+    {
+        return 1;
     }
 
     public Graphics.Shader CreateShader(Graphics.GraphicsDevice graphicsDevice, ReadOnlySpan<byte> byteCode)

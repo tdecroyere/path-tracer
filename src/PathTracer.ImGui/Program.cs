@@ -24,8 +24,9 @@ var nativeWindowOld = nativeUIService.CreateWindow(nativeApplication, "Path Trac
 var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
 var renderSize = nativeUIService.GetWindowRenderSize(nativeWindowOld);
 
-var graphicsDevice = graphicsService.CreateDevice(nativeWindow);
-Console.WriteLine(graphicsDevice);
+var graphicsDevice = graphicsService.CreateDevice();
+var renderCommandQueue = graphicsService.CreateCommandQueue(graphicsDevice, CommandQueueType.Render);
+var swapChain = graphicsService.CreateSwapChain(renderCommandQueue, nativeWindow);
 
 var graphicsDeviceOld = CreateGraphicsDevice(nativeUIService, nativeWindowOld);
 var imGuiBackend = new ImGuiBackend(renderSize.Width, renderSize.Height, renderSize.UIScale);
@@ -158,6 +159,8 @@ while (appStatus.IsRunning == 1)
 
     graphicsDeviceOld.SubmitCommands(commandList);
     graphicsDeviceOld.SwapBuffers(graphicsDeviceOld.MainSwapchain);
+
+    graphicsService.PresentSwapChain(swapChain);
 
     frameCount++;
 }

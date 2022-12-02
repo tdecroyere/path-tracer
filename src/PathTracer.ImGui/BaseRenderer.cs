@@ -6,14 +6,30 @@ namespace PathTracer;
 
 public abstract class BaseRenderer
 {
+    private readonly GraphicsHeap _gpuGraphicsHeap;
+    private nuint _currentGpuHeapOffset;
+
     protected BaseRenderer(IGraphicsService graphicsService, GraphicsDevice graphicsDevice)
     {
         GraphicsService = graphicsService;
         GraphicsDevice = graphicsDevice;
+
+        _gpuGraphicsHeap = graphicsService.CreateGraphicsHeap(graphicsDevice, GraphicsHeapType.Gpu, 1024 * 1024 * 400);
     }
 
     protected IGraphicsService GraphicsService { get; init; }
     protected GraphicsDevice GraphicsDevice { get; init; }  
+
+    protected GraphicsBuffer CreateBuffer(nuint sizeInBytes)
+    {
+        // TODO: Buffers needs to be dynamic so create one per frame in flights
+        // For now we wait for the current frame to finish so it will work
+        var bufferAllocation = GraphicsService.GetBufferAllocationInfos(_gpuGraphicsHeap, sizeInBytes);
+        var buffer = GraphicsService.CreateBuffer(_gpuGraphicsHeap, GraphicsBufferUsage.Storage, _currentGpuHeapOffset, sizeInBytes);
+
+        _currentGpuHeapOffset += bufferAllocation.SizeInBytes;
+        return buffer;
+    }
 /*
     protected DeviceBuffer CreateBuffer<T>(T data, BufferUsage bufferUsage) where T : unmanaged
     {

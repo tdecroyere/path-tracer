@@ -113,7 +113,7 @@ public class PlatformNativePointerGenerator : IIncrementalGenerator
         var implementationCode = """
                                  public partial record struct ##NAME##
                                  {
-                                    internal nint NativePointer { get; init; }
+                                    public nint NativePointer { get; init; }
 
                                     public static implicit operator nint(##NAME## src) => src.NativePointer;
                                     public static implicit operator ##NAME##(nint src) => new() { NativePointer = src };

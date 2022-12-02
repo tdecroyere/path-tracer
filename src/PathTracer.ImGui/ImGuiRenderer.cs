@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using ImGuiNET;
 using PathTracer.Platform.Graphics;
 
@@ -7,10 +6,17 @@ namespace PathTracer;
 public class ImGuiRenderer : BaseRenderer, IDisposable
 {
     private readonly Shader _shader;
+    private readonly GraphicsBuffer _vertexBuffer;
+    private readonly GraphicsBuffer _indexBuffer;
+    private readonly GraphicsBuffer _projectionMatrixBuffer;
 
     public ImGuiRenderer(IGraphicsService graphicsService, GraphicsDevice graphicsDevice, string? fontName) : base(graphicsService, graphicsDevice)
     {
         _shader = LoadShader("imgui");
+
+        _vertexBuffer = CreateBuffer(10000);
+        _indexBuffer = CreateBuffer(2000);
+        _projectionMatrixBuffer = CreateBuffer(64);
 
         /*_fontAtlasID = 1;
         _vertexSizeInBytes = (uint)Unsafe.SizeOf<ImDrawVert>();
