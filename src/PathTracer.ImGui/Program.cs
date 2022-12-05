@@ -4,7 +4,7 @@ using ImGuiNET;
 using Microsoft.Extensions.DependencyInjection;
 using PathTracer;
 using PathTracer.Platform;
-using PathTracer.Platform.Graphics;
+using PathTracer.Platform.GraphicsLegacy;
 using PathTracer.Platform.Inputs;
 using Veldrid;
 
@@ -24,9 +24,7 @@ var nativeWindowOld = nativeUIService.CreateWindow(nativeApplication, "Path Trac
 var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
 var renderSize = nativeUIService.GetWindowRenderSize(nativeWindowOld);
 
-var graphicsDevice = graphicsService.CreateDevice();
-var renderCommandQueue = graphicsService.CreateCommandQueue(graphicsDevice, CommandQueueType.Render);
-var swapChain = graphicsService.CreateSwapChain(renderCommandQueue, nativeWindow);
+var graphicsDevice = graphicsService.CreateDevice(nativeWindow);
 
 var graphicsDeviceOld = CreateGraphicsDevice(nativeUIService, nativeWindowOld);
 var imGuiBackend = new ImGuiBackend(renderSize.Width, renderSize.Height, renderSize.UIScale);
@@ -160,7 +158,7 @@ while (appStatus.IsRunning == 1)
     graphicsDeviceOld.SubmitCommands(commandList);
     graphicsDeviceOld.SwapBuffers(graphicsDeviceOld.MainSwapchain);
 
-    graphicsService.PresentSwapChain(swapChain);
+    graphicsService.PresentSwapChain(graphicsDevice);
 
     frameCount++;
 }

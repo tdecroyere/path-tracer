@@ -1,61 +1,35 @@
+using System.Runtime.CompilerServices;
 using ImGuiNET;
-using PathTracer.Platform.Graphics;
+using PathTracer.Platform.GraphicsLegacy;
 
 namespace PathTracer;
 
 public class ImGuiRenderer : BaseRenderer, IDisposable
 {
     private readonly Shader _shader;
+    private readonly PipelineState _pipelineState;
     private readonly GraphicsBuffer _vertexBuffer;
     private readonly GraphicsBuffer _indexBuffer;
     private readonly GraphicsBuffer _projectionMatrixBuffer;
+
+    private readonly uint _fontAtlasID;
+    private readonly uint _vertexSizeInBytes;
 
     public ImGuiRenderer(IGraphicsService graphicsService, GraphicsDevice graphicsDevice, string? fontName) : base(graphicsService, graphicsDevice)
     {
         _shader = LoadShader("imgui");
 
-        _vertexBuffer = CreateBuffer(10000);
-        _indexBuffer = CreateBuffer(2000);
-        _projectionMatrixBuffer = CreateBuffer(64);
-
-        /*_fontAtlasID = 1;
+        _fontAtlasID = 1;
         _vertexSizeInBytes = (uint)Unsafe.SizeOf<ImDrawVert>();
-        _textureResourceSets = new List<ResourceSet>();
+        //_textureResourceSets = new List<ResourceSet>();
 
-        ResourceFactory factory = GraphicsDevice.ResourceFactory;
-        _vertexBuffer = factory.CreateBuffer(new BufferDescription(10000, BufferUsage.VertexBuffer | BufferUsage.Dynamic));
-        _vertexBuffer.Name = "ImGui Vertex Buffer";
-        _indexBuffer = factory.CreateBuffer(new BufferDescription(2000, BufferUsage.IndexBuffer | BufferUsage.Dynamic));
-        _indexBuffer.Name = "ImGui Index Buffer";
+        _vertexBuffer = GraphicsService.CreateBuffer(GraphicsDevice, 10000, GraphicsBufferUsage.VertexBuffer | GraphicsBufferUsage.Dynamic);
+        _indexBuffer = GraphicsService.CreateBuffer(GraphicsDevice, 2000, GraphicsBufferUsage.IndexBuffer | GraphicsBufferUsage.Dynamic);
+        _projectionMatrixBuffer = GraphicsService.CreateBuffer(GraphicsDevice, 64, GraphicsBufferUsage.UniformBuffer | GraphicsBufferUsage.Dynamic);
 
-        _projMatrixBuffer = factory.CreateBuffer(new BufferDescription(64, BufferUsage.UniformBuffer | BufferUsage.Dynamic));
-        _projMatrixBuffer.Name = "ImGui Projection Buffer";
+        _pipelineState = GraphicsService.CreatePipelineState(GraphicsDevice, _shader);
 
-        VertexLayoutDescription[] vertexLayouts = new VertexLayoutDescription[]
-        {
-            new VertexLayoutDescription(
-                new VertexElementDescription("in_position", VertexElementSemantic.Position, VertexElementFormat.Float2),
-                new VertexElementDescription("in_texCoord", VertexElementSemantic.TextureCoordinate, VertexElementFormat.Float2),
-                new VertexElementDescription("in_color", VertexElementSemantic.Color, VertexElementFormat.Byte4_Norm))
-        };
-
-        _layout = factory.CreateResourceLayout(new ResourceLayoutDescription(
-            new ResourceLayoutElementDescription("ProjectionMatrixBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex),
-            new ResourceLayoutElementDescription("MainSampler", ResourceKind.Sampler, ShaderStages.Fragment)));
-        _textureLayout = factory.CreateResourceLayout(new ResourceLayoutDescription(
-            new ResourceLayoutElementDescription("MainTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
-
-        var pd = new GraphicsPipelineDescription(
-            BlendStateDescription.SingleAlphaBlend,
-            new DepthStencilStateDescription(false, false, ComparisonKind.Always),
-            new RasterizerStateDescription(FaceCullMode.None, PolygonFillMode.Solid, FrontFace.Clockwise, false, true),
-            PrimitiveTopology.TriangleList,
-            new ShaderSetDescription(vertexLayouts, new[] { _vertexShader, _fragmentShader }),
-            new ResourceLayout[] { _layout, _textureLayout },
-            outputDescription,
-            ResourceBindingModel.Default);
-        _pipeline = factory.CreateGraphicsPipeline(ref pd);
-
+        /*
         _mainResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout, _projMatrixBuffer, GraphicsDevice.PointSampler));
 
         var io = ImGui.GetIO();

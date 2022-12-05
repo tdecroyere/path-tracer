@@ -1,5 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using PathTracer.Platform.Graphics;
+using PathTracer.Platform.GraphicsLegacy;
 using PathTracer.Platform.Platforms.VeldridLibrary;
 
 namespace PathTracer.Platform;

@@ -97,7 +97,7 @@ public class PlatformNativePointerGenerator : IIncrementalGenerator
             {
                 var sourceCode = new StringBuilder();
                 GenerateImplementationClass(sourceCode, structToGenerate);
-                context.AddSource($"{structToGenerate.StructName}.g.cs", SourceText.From(sourceCode.ToString(), Encoding.UTF8));
+                context.AddSource($"{structToGenerate.Namespace}.{structToGenerate.StructName}.g.cs", SourceText.From(sourceCode.ToString(), Encoding.UTF8));
             }
         }
     }
