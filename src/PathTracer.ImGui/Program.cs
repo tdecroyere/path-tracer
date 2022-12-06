@@ -39,7 +39,8 @@ var textureId = imGuiRendererOld.RegisterTexture(textureRenderer.TextureView);
 Console.WriteLine($"Native Window Size: {renderSize}");
 Console.WriteLine($"FrameBuffer Size: {graphicsDeviceOld.MainSwapchain.Framebuffer.Width}x{graphicsDeviceOld.MainSwapchain.Framebuffer.Height}");
 
-var commandList = graphicsDeviceOld.ResourceFactory.CreateCommandList();
+var commandList = graphicsService.CreateCommandList(graphicsDevice);
+var commandListOld = graphicsDeviceOld.ResourceFactory.CreateCommandList();
 var frameCount = 0;
 var stopwatch = new Stopwatch();
 
@@ -142,21 +143,27 @@ while (appStatus.IsRunning == 1)
         currentViewportHeight = viewportHeight;
     }
 
-    commandList.Begin();
-    commandList.SetFramebuffer(graphicsDeviceOld.MainSwapchain.Framebuffer);
-    commandList.ClearColorTarget(0, RgbaFloat.Black);
+    commandListOld.Begin();
+    commandListOld.SetFramebuffer(graphicsDeviceOld.MainSwapchain.Framebuffer);
+    commandListOld.ClearColorTarget(0, RgbaFloat.Black);
 
-    textureRenderer.UpdateTexture<uint>(commandList, textureData);
+    textureRenderer.UpdateTexture<uint>(commandListOld, textureData);
     imGuiBackend.Render();
 
     var drawData = ImGui.GetDrawData();
-    imGuiRendererOld.RenderImDrawData(commandList, ref drawData);
+    imGuiRendererOld.RenderImDrawData(commandListOld, ref drawData);
     //imGuiRenderer.RenderImDrawData(commandList, ref drawData);
 
-    commandList.End();
+    commandListOld.End();
 
-    graphicsDeviceOld.SubmitCommands(commandList);
+    graphicsDeviceOld.SubmitCommands(commandListOld);
     graphicsDeviceOld.SwapBuffers(graphicsDeviceOld.MainSwapchain);
+    
+    // TEST CODE
+    graphicsService.ResetCommandList(commandList);
+    //commandList.ClearColorTarget(0, RgbaFloat.Yellow);
+    graphicsService.SubmitCommandList(commandList);
+    // END TEST CODE
 
     graphicsService.PresentSwapChain(graphicsDevice);
 

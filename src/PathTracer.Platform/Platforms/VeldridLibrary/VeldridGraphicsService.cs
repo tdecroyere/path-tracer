@@ -9,16 +9,24 @@ public class VeldridGraphicsService : IGraphicsService
 {
     private readonly INativeUIService _nativeUIService;
     private readonly IList<Veldrid.GraphicsDevice> _graphicsDevices;
+    private readonly IList<VeldridCommandList> _commandLists;
     private readonly IList<VeldridShader> _shaders;
     private readonly IList<VeldridBuffer> _buffers;
+    private readonly IList<VeldridTexture> _textures;
+    private readonly IList<Veldrid.ResourceLayout> _layouts;
+    private readonly IList<Veldrid.ResourceSet> _resourceSets;
     private readonly IList<VeldridPipeline> _pipelines;
 
     public VeldridGraphicsService(INativeUIService nativeUIService)
     {
         _nativeUIService = nativeUIService;
         _graphicsDevices = new List<Veldrid.GraphicsDevice>();
+        _commandLists = new List<VeldridCommandList>();
         _shaders = new List<VeldridShader>();
         _buffers = new List<VeldridBuffer>();
+        _textures = new List<VeldridTexture>();
+        _layouts = new List<Veldrid.ResourceLayout>();
+        _resourceSets = new List<Veldrid.ResourceSet>();
         _pipelines = new List<VeldridPipeline>();
     }
 
@@ -86,18 +94,36 @@ public class VeldridGraphicsService : IGraphicsService
     {
         var veldridGraphicsDevice = _graphicsDevices[ToIndex(graphicsDevice)];
 
-        // TEST CODE
-        var commandList = veldridGraphicsDevice.ResourceFactory.CreateCommandList();
-        
-        commandList.Begin();
-        commandList.SetFramebuffer(veldridGraphicsDevice.MainSwapchain.Framebuffer);
-        commandList.ClearColorTarget(0, RgbaFloat.Yellow);
-        commandList.End();
-
-        veldridGraphicsDevice.SubmitCommands(commandList);
-        // END TEST CODE
+    
     
         veldridGraphicsDevice.SwapBuffers(veldridGraphicsDevice.MainSwapchain);
+    }
+
+    public GraphicsLegacy.CommandList CreateCommandList(GraphicsLegacy.GraphicsDevice graphicsDevice)
+    {
+        var veldridGraphicsDevice = _graphicsDevices[ToIndex(graphicsDevice)];
+
+        _commandLists.Add(new VeldridCommandList()
+        {
+            CommandList = veldridGraphicsDevice.ResourceFactory.CreateCommandList(),
+            GraphicsDevice = veldridGraphicsDevice
+        });
+
+        return _commandLists.Count;
+    }
+
+    public void ResetCommandList(GraphicsLegacy.CommandList commandList)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        veldridCommandList.CommandList.Begin();
+        veldridCommandList.CommandList.SetFramebuffer(veldridCommandList.GraphicsDevice.MainSwapchain.Framebuffer);
+    }
+
+    public void SubmitCommandList(GraphicsLegacy.CommandList commandList)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        veldridCommandList.CommandList.End();
+        veldridCommandList.GraphicsDevice.SubmitCommands(veldridCommandList.CommandList);
     }
 
     public GraphicsBuffer CreateBuffer(GraphicsLegacy.GraphicsDevice graphicsDevice, nuint sizeInBytes, GraphicsBufferUsage usage)
@@ -138,6 +164,29 @@ public class VeldridGraphicsService : IGraphicsService
         veldridBuffer.GraphicsDevice.UpdateBuffer(veldridBuffer.Buffer, (uint)offset, data);
     }
 
+    public GraphicsLegacy.Texture CreateTexture(GraphicsLegacy.GraphicsDevice graphicsDevice, int width, int height, int depth, int mipLevels, int arrayLayers, TextureFormat format, GraphicsLegacy.TextureUsage usage, GraphicsLegacy.TextureType type)
+    {
+        var veldridGraphicsDevice = _graphicsDevices[ToIndex(graphicsDevice)];
+
+        var texture = veldridGraphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)width, (uint)height, (uint)depth, (uint)mipLevels, (uint)arrayLayers, (PixelFormat)(byte)format, (Veldrid.TextureUsage)(byte)usage, (Veldrid.TextureType)type));
+        var textureView = veldridGraphicsDevice.ResourceFactory.CreateTextureView(texture);
+        
+        _textures.Add(new VeldridTexture
+        {
+            Texture = texture,
+            TextureView = textureView,
+            GraphicsDevice = veldridGraphicsDevice
+        });
+
+        return _textures.Count;
+    }
+
+    public void UpdateTexture<T>(GraphicsLegacy.Texture texture, ReadOnlySpan<T> data) where T : unmanaged
+    {
+        var veldridTexture = _textures[ToIndex(texture)];
+        veldridTexture.GraphicsDevice.UpdateTexture(veldridTexture.Texture, data, 0, 0, 0, veldridTexture.Texture.Width, veldridTexture.Texture.Height, 1, 0, 0);
+    }
+
     public GraphicsLegacy.Shader CreateShader(GraphicsLegacy.GraphicsDevice graphicsDevice, ReadOnlySpan<byte> byteCode)
     {
         var veldridGraphicsDevice = _graphicsDevices[ToIndex(graphicsDevice)];
@@ -166,15 +215,56 @@ public class VeldridGraphicsService : IGraphicsService
         return _shaders.Count;
     }
 
-    private static int ToIndex(nint value)
+    public GraphicsLegacy.ResourceLayout CreateResourceLayout(GraphicsLegacy.GraphicsDevice graphicsDevice, ReadOnlySpan<ResourceLayoutElement> elements)
     {
-        return (int)value - 1;
+        var veldridGraphicsDevice = _graphicsDevices[ToIndex(graphicsDevice)];
+        var layoutElements = new ResourceLayoutElementDescription[elements.Length];
+
+        for (var i = 0; i < elements.Length; i++)
+        {
+            var element = elements[i];
+            layoutElements[i] = new ResourceLayoutElementDescription(element.Name, (ResourceKind)(byte)element.ResourceKind, (ShaderStages)(byte)element.ShaderStages);
+        }
+
+        var description = new ResourceLayoutDescription(layoutElements);
+        var layout = veldridGraphicsDevice.ResourceFactory.CreateResourceLayout(description);
+
+        _layouts.Add(layout);
+        return _layouts.Count;
     }
 
-    public PipelineState CreatePipelineState(GraphicsLegacy.GraphicsDevice graphicsDevice, GraphicsLegacy.Shader shader)
+    public GraphicsLegacy.ResourceSet CreateResourceSet(GraphicsLegacy.ResourceLayout resourceLayout, GraphicsBuffer buffer)
     {
-        // TODO: For the moment the shader parameters are hardcoded
-        // This code is temporary
+        var veldridBuffer = _buffers[ToIndex(buffer)];
+        var layout = _layouts[ToIndex(resourceLayout)];
+        var graphicsDevice = veldridBuffer.GraphicsDevice;
+
+        // TODO: This is a hack, normally we should create a resource set from bindable resources
+        // here we support only one resource per resource set. This is ok because resource layout will not exist anymore
+        // with unbound resources.
+        var resourceSet = graphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(layout, veldridBuffer.Buffer, graphicsDevice.PointSampler));
+        
+        _resourceSets.Add(resourceSet);
+        return _resourceSets.Count;
+    }
+    
+    public GraphicsLegacy.ResourceSet CreateResourceSet(GraphicsLegacy.ResourceLayout resourceLayout, GraphicsLegacy.Texture texture)
+    {
+        var veldridTexture = _textures[ToIndex(texture)];
+        var layout = _layouts[ToIndex(resourceLayout)];
+        var graphicsDevice = veldridTexture.GraphicsDevice;
+
+        // TODO: This is a hack, normally we should create a resource set from bindable resources
+        // here we support only one resource per resource set. This is ok because resource layout will not exist anymore
+        // with unbound resources.
+        var resourceSet = graphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(layout, veldridTexture.TextureView));
+        
+        _resourceSets.Add(resourceSet);
+        return _resourceSets.Count;
+    }
+
+    public PipelineState CreatePipelineState(GraphicsLegacy.GraphicsDevice graphicsDevice, GraphicsLegacy.Shader shader, ReadOnlySpan<GraphicsLegacy.ResourceLayout> layouts)
+    {
         var veldridGraphicsDevice = _graphicsDevices[ToIndex(graphicsDevice)];
         var veldridShader = _shaders[ToIndex(shader)];
 
@@ -186,11 +276,12 @@ public class VeldridGraphicsService : IGraphicsService
                 new VertexElementDescription("in_color", VertexElementSemantic.Color, VertexElementFormat.Byte4_Norm))
         };
 
-        var layout = veldridGraphicsDevice.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(
-            new ResourceLayoutElementDescription("ProjectionMatrixBuffer", ResourceKind.UniformBuffer, ShaderStages.Vertex),
-            new ResourceLayoutElementDescription("MainSampler", ResourceKind.Sampler, ShaderStages.Fragment)));
-        var textureLayout = veldridGraphicsDevice.ResourceFactory.CreateResourceLayout(new ResourceLayoutDescription(
-            new ResourceLayoutElementDescription("MainTexture", ResourceKind.TextureReadOnly, ShaderStages.Fragment)));
+        var veldridLayouts = new Veldrid.ResourceLayout[layouts.Length];
+
+        for (var i = 0; i < layouts.Length; i++)
+        {
+            veldridLayouts[i] = _layouts[ToIndex(layouts[i])];
+        }
 
         var pd = new GraphicsPipelineDescription(
             BlendStateDescription.SingleAlphaBlend,
@@ -198,7 +289,7 @@ public class VeldridGraphicsService : IGraphicsService
             new RasterizerStateDescription(FaceCullMode.None, PolygonFillMode.Solid, FrontFace.Clockwise, false, true),
             PrimitiveTopology.TriangleList,
             new ShaderSetDescription(vertexLayouts, new[] { veldridShader.VertexShader, veldridShader.FragmentShader }),
-            new ResourceLayout[] { layout, textureLayout },
+            veldridLayouts,
             veldridGraphicsDevice.MainSwapchain.Framebuffer.OutputDescription,
             ResourceBindingModel.Default);
 
@@ -206,12 +297,15 @@ public class VeldridGraphicsService : IGraphicsService
 
         var veldridPipeline = new VeldridPipeline
         {
-            MainLayout = layout,
-            TextureLayout = textureLayout,
             Pipeline = pipeline
         };
 
         _pipelines.Add(veldridPipeline);
         return _pipelines.Count;
+    }
+
+    private static int ToIndex(nint value)
+    {
+        return (int)value - 1;
     }
 }

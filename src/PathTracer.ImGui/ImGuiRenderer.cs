@@ -1,18 +1,25 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using ImGuiNET;
 using PathTracer.Platform.GraphicsLegacy;
 
 namespace PathTracer;
 
-public class ImGuiRenderer : BaseRenderer, IDisposable
+public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
 {
     private readonly Shader _shader;
+    private readonly ResourceLayout _mainLayout;
+    private readonly ResourceLayout _textureLayout;
     private readonly PipelineState _pipelineState;
     private readonly GraphicsBuffer _vertexBuffer;
     private readonly GraphicsBuffer _indexBuffer;
     private readonly GraphicsBuffer _projectionMatrixBuffer;
+    private readonly Texture _fontTexture;
 
-    private readonly uint _fontAtlasID;
+    private readonly ResourceSet _mainResourceSet;
+    private readonly ResourceSet _fontTextureResourceSet;
+
+    private readonly nint _fontAtlasID;
     private readonly uint _vertexSizeInBytes;
 
     public ImGuiRenderer(IGraphicsService graphicsService, GraphicsDevice graphicsDevice, string? fontName) : base(graphicsService, graphicsDevice)
@@ -27,10 +34,20 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
         _indexBuffer = GraphicsService.CreateBuffer(GraphicsDevice, 2000, GraphicsBufferUsage.IndexBuffer | GraphicsBufferUsage.Dynamic);
         _projectionMatrixBuffer = GraphicsService.CreateBuffer(GraphicsDevice, 64, GraphicsBufferUsage.UniformBuffer | GraphicsBufferUsage.Dynamic);
 
-        _pipelineState = GraphicsService.CreatePipelineState(GraphicsDevice, _shader);
+        _mainLayout = GraphicsService.CreateResourceLayout(GraphicsDevice, new ResourceLayoutElement[]
+        {
+            new ResourceLayoutElement() { Name = "ProjectionMatrixBuffer", ResourceKind = ResourceLayoutKind.UniformBuffer, ShaderStages = ResourceLayoutShaderStages.Vertex },
+            new ResourceLayoutElement() { Name = "MainSampler", ResourceKind = ResourceLayoutKind.Sampler, ShaderStages = ResourceLayoutShaderStages.Fragment }
+        });
+        
+        _textureLayout = GraphicsService.CreateResourceLayout(GraphicsDevice, new ResourceLayoutElement[]
+        {
+            new ResourceLayoutElement() { Name = "MainTexture", ResourceKind = ResourceLayoutKind.TextureReadOnly, ShaderStages = ResourceLayoutShaderStages.Fragment },
+        });
 
-        /*
-        _mainResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_layout, _projMatrixBuffer, GraphicsDevice.PointSampler));
+        _pipelineState = GraphicsService.CreatePipelineState(GraphicsDevice, _shader, new ResourceLayout[] { _mainLayout, _textureLayout });
+
+        _mainResourceSet = GraphicsService.CreateResourceSet(_mainLayout, _projectionMatrixBuffer);
 
         var io = ImGui.GetIO();
 
@@ -41,8 +58,7 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
 
         var fontAtlas = io.Fonts;
         _fontTexture = RecreateFontDeviceTexture(ref fontAtlas);
-        _fontTextureView = GraphicsDevice.ResourceFactory.CreateTextureView(_fontTexture);
-        _fontTextureResourceSet = factory.CreateResourceSet(new ResourceSetDescription(_textureLayout, _fontTextureView));*/
+        _fontTextureResourceSet = GraphicsService.CreateResourceSet(_textureLayout, _fontTexture);
     }
 
     public void Dispose()
@@ -103,34 +119,21 @@ public class ImGuiRenderer : BaseRenderer, IDisposable
            vertexBufferOffset += drawDataCommandList.VtxBuffer.Size;
            indexBufferOffset += drawDataCommandList.IdxBuffer.Size;
        }
-   }
+   }*/
 
-   private Texture RecreateFontDeviceTexture(ref ImFontAtlasPtr font)
-   {
-       font.GetTexDataAsRGBA32(out nint pixels, out var width, out var height, out var bytesPerPixel);
-       font.SetTexID(_fontAtlasID);
+    private Texture RecreateFontDeviceTexture(ref ImFontAtlasPtr font)
+    {
+        font.GetTexDataAsRGBA32(out nint pixels, out var width, out var height, out var bytesPerPixel);
+        font.SetTexID(_fontAtlasID);
 
-       var texture = GraphicsDevice.ResourceFactory.CreateTexture(TextureDescription.Texture2D((uint)width, (uint)height, 1, 1, PixelFormat.R8_G8_B8_A8_UNorm, TextureUsage.Sampled));
-       texture.Name = "ImGui Font Texture";
+        var texture = GraphicsService.CreateTexture(GraphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Sampled, TextureType.Texture2D);
+        GraphicsService.UpdateTexture(texture, new ReadOnlySpan<byte>(pixels.ToPointer(), width * height * bytesPerPixel));
 
-       GraphicsDevice.UpdateTexture(
-           texture,
-           pixels,
-           (uint)(bytesPerPixel * width * height),
-           0,
-           0,
-           0,
-           (uint)width,
-           (uint)height,
-           1,
-           0,
-           0);
+        font.ClearTexData();
 
-       font.ClearTexData();
-
-       return texture;
-   }
-
+        return texture;
+    }
+/*
    private void RenderDrawDataCommandList(CommandList commandList, int vertexBufferOffset, int indexBufferOffset, ref ImDrawListPtr drawDataCommandList)
    {
        for (var i = 0; i < drawDataCommandList.CmdBuffer.Size; i++)
