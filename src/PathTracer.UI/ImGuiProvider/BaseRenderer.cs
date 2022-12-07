@@ -2,11 +2,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using PathTracer.Platform.GraphicsLegacy;
 
-namespace PathTracer;
+namespace PathTracer.UI.ImGuiProvider;
 
-public abstract class BaseRendererOld
+internal abstract class BaseRenderer
 {
-    protected BaseRendererOld(IGraphicsService graphicsService, GraphicsDevice graphicsDevice)
+    protected BaseRenderer(IGraphicsService graphicsService, GraphicsDevice graphicsDevice)
     {
         GraphicsService = graphicsService;
         GraphicsDevice = graphicsDevice;
@@ -56,7 +56,7 @@ public abstract class BaseRendererOld
     
     protected static byte[] GetEmbeddedResourceBytes(string resourceName)
     {
-        var assembly = typeof(BaseRendererOld).Assembly;
+        var assembly = typeof(BaseRenderer).Assembly;
         using var resourceStream = assembly.GetManifestResourceStream(resourceName);
         
         if (resourceStream is null)

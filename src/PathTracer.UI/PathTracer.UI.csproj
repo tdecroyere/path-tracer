@@ -15,11 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Shaders/SPIR-V/imgui-vertex.spv" LogicalName="imgui-vertex.spv" />
-    <EmbeddedResource Include="Shaders/SPIR-V/imgui-frag.spv" LogicalName="imgui-frag.spv" />
-    <EmbeddedResource Include="Shaders/Metal/imgui-vertex.metallib" LogicalName="imgui-vertex.metallib" />
-    <EmbeddedResource Include="Shaders/Metal/imgui-frag.metallib" LogicalName="imgui-frag.metallib" />
-    <EmbeddedResource Include="Fonts/Menlo-Regular.ttf" LogicalName="Menlo-Regular.ttf" />
+    <EmbeddedResource Include="ImGuiProvider/Shaders/SPIR-V/imgui-vertex.spv" LogicalName="imgui-vertex.spv" />
+    <EmbeddedResource Include="ImGuiProvider/Shaders/SPIR-V/imgui-frag.spv" LogicalName="imgui-frag.spv" />
+    <EmbeddedResource Include="ImGuiProvider/Shaders/Metal/imgui-vertex.metallib" LogicalName="imgui-vertex.metallib" />
+    <EmbeddedResource Include="ImGuiProvider/Shaders/Metal/imgui-frag.metallib" LogicalName="imgui-frag.metallib" />
+    <EmbeddedResource Include="ImGuiProvider/Fonts/Menlo-Regular.ttf" LogicalName="Menlo-Regular.ttf" />
   </ItemGroup>
 
 </Project>

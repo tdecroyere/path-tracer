@@ -4,9 +4,9 @@ using System.Runtime.InteropServices;
 using ImGuiNET;
 using PathTracer.Platform.GraphicsLegacy;
 
-namespace PathTracer;
+namespace PathTracer.UI.ImGuiProvider;
 
-public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
+internal unsafe class ImGuiRenderer : BaseRenderer, IDisposable
 {
     private readonly Shader _shader;
     private readonly ResourceLayout _mainLayout;
@@ -153,7 +153,7 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
                     }
                     else
                     {
-                        GraphicsService.SetResourceSet(commandList, 1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
+                        //GraphicsService.SetResourceSet(commandList, 1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
                     }
                 }
 

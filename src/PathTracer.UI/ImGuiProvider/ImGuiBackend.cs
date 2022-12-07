@@ -1,12 +1,10 @@
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using ImGuiNET;
 using PathTracer.Platform.Inputs;
-using Veldrid;
 
-namespace PathTracer;
+namespace PathTracer.UI.ImGuiProvider;
 
-public class ImGuiBackend
+internal class ImGuiBackend
 {
     private bool _frameBegun;
     private int _windowWidth;
