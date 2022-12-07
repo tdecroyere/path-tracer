@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using ImGuiNET;
@@ -11,8 +12,6 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
     private readonly ResourceLayout _mainLayout;
     private readonly ResourceLayout _textureLayout;
     private readonly PipelineState _pipelineState;
-    private readonly GraphicsBuffer _vertexBuffer;
-    private readonly GraphicsBuffer _indexBuffer;
     private readonly GraphicsBuffer _projectionMatrixBuffer;
     private readonly Texture _fontTexture;
 
@@ -22,6 +21,9 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
     private readonly nint _fontAtlasID;
     private readonly uint _vertexSizeInBytes;
 
+    private GraphicsBuffer _vertexBuffer;
+    private GraphicsBuffer _indexBuffer;
+    
     public ImGuiRenderer(IGraphicsService graphicsService, GraphicsDevice graphicsDevice, string? fontName) : base(graphicsService, graphicsDevice)
     {
         _shader = LoadShader("imgui");
@@ -46,7 +48,6 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
         });
 
         _pipelineState = GraphicsService.CreatePipelineState(GraphicsDevice, _shader, new ResourceLayout[] { _mainLayout, _textureLayout });
-
         _mainResourceSet = GraphicsService.CreateResourceSet(_mainLayout, _projectionMatrixBuffer);
 
         var io = ImGui.GetIO();
@@ -63,7 +64,6 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
 
     public void Dispose()
     {
-        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
@@ -72,6 +72,7 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
     {
         if (disposing)
         {
+            // TODO
         }
     }
 
@@ -90,36 +91,34 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
 
        var textureResourceSet = GraphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, textureView));
        _textureResourceSets[(int)id - 2] = textureResourceSet;
-   }
-
-   public void RenderImDrawData(CommandList commandList, ref ImDrawDataPtr drawData)
-   {
-       if (drawData.CmdListsCount == 0)
-       {
-           return;
-       }
-
-       CopyGpuData(commandList, ref drawData);
-
-       commandList.SetVertexBuffer(0, _vertexBuffer);
-       commandList.SetIndexBuffer(_indexBuffer, IndexFormat.UInt16);
-       commandList.SetPipeline(_pipeline);
-       commandList.SetGraphicsResourceSet(0, _mainResourceSet);
-
-       drawData.ScaleClipRects(drawData.FramebufferScale);
-
-       var vertexBufferOffset = 0;
-       var indexBufferOffset = 0;
-
-       for (var i = 0; i < drawData.CmdListsCount; i++)
-       {
-           var drawDataCommandList = drawData.CmdListsRange[i];
-           RenderDrawDataCommandList(commandList, vertexBufferOffset, indexBufferOffset, ref drawDataCommandList);
-
-           vertexBufferOffset += drawDataCommandList.VtxBuffer.Size;
-           indexBufferOffset += drawDataCommandList.IdxBuffer.Size;
-       }
    }*/
+
+    public void RenderImDrawData(CommandList commandList, ref ImDrawDataPtr drawData)
+    {
+        if (drawData.CmdListsCount == 0)
+        {
+            return;
+        }
+
+        CopyGpuData(commandList, ref drawData);
+
+        GraphicsService.SetVertexBuffer(commandList, _vertexBuffer);
+        GraphicsService.SetIndexBuffer(commandList, _indexBuffer);
+        GraphicsService.SetPipelineState(commandList, _pipelineState);
+        GraphicsService.SetResourceSet(commandList, 0, _mainResourceSet);
+
+        var vertexBufferOffset = 0;
+        var indexBufferOffset = 0;
+
+        for (var i = 0; i < drawData.CmdListsCount; i++)
+        {
+            var drawDataCommandList = drawData.CmdListsRange[i];
+            RenderDrawDataCommandList(commandList, vertexBufferOffset, indexBufferOffset, ref drawDataCommandList);
+
+            vertexBufferOffset += drawDataCommandList.VtxBuffer.Size;
+            indexBufferOffset += drawDataCommandList.IdxBuffer.Size;
+        }
+    }
 
     private Texture RecreateFontDeviceTexture(ref ImFontAtlasPtr font)
     {
@@ -133,76 +132,70 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
 
         return texture;
     }
-/*
-   private void RenderDrawDataCommandList(CommandList commandList, int vertexBufferOffset, int indexBufferOffset, ref ImDrawListPtr drawDataCommandList)
-   {
-       for (var i = 0; i < drawDataCommandList.CmdBuffer.Size; i++)
-       {
-           var drawCommand = drawDataCommandList.CmdBuffer[i];
 
-           if (drawCommand.UserCallback != nint.Zero)
-           {
-               throw new NotImplementedException();
-           }
-           else
-           {
-               if (drawCommand.TextureId != nint.Zero)
-               {
-                   if (drawCommand.TextureId == _fontAtlasID)
-                   {
-                       commandList.SetGraphicsResourceSet(1, _fontTextureResourceSet);
-                   }
-                   else
-                   {
-                       commandList.SetGraphicsResourceSet(1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
-                   }
-               }
+    private void RenderDrawDataCommandList(CommandList commandList, int vertexBufferOffset, int indexBufferOffset, ref ImDrawListPtr drawDataCommandList)
+    {
+        for (var i = 0; i < drawDataCommandList.CmdBuffer.Size; i++)
+        {
+            var drawCommand = drawDataCommandList.CmdBuffer[i];
 
-               var clipRectX = (uint)drawCommand.ClipRect.X;
-               var clipRectY = (uint)drawCommand.ClipRect.Y;
-               var clipRectWidth = (uint)drawCommand.ClipRect.Z - clipRectX;
-               var clipRectHeight = (uint)drawCommand.ClipRect.W - clipRectY;
+            if (drawCommand.UserCallback != nint.Zero)
+            {
+                throw new NotImplementedException();
+            }
+            else
+            {
+                if (drawCommand.TextureId != nint.Zero)
+                {
+                    if (drawCommand.TextureId == _fontAtlasID)
+                    {
+                        GraphicsService.SetResourceSet(commandList, 1, _fontTextureResourceSet);
+                    }
+                    else
+                    {
+                        //commandList.SetGraphicsResourceSet(1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
+                    }
+                }
 
-               commandList.SetScissorRect(0, clipRectX, clipRectY, clipRectWidth, clipRectHeight);
-               commandList.DrawIndexed(drawCommand.ElemCount, 1, drawCommand.IdxOffset + (uint)indexBufferOffset, (int)drawCommand.VtxOffset + vertexBufferOffset, 0);
-           }
-       }
-   }
+                var clipRectX = (int)drawCommand.ClipRect.X;
+                var clipRectY = (int)drawCommand.ClipRect.Y;
+                var clipRectWidth = (int)drawCommand.ClipRect.Z - clipRectX;
+                var clipRectHeight = (int)drawCommand.ClipRect.W - clipRectY;
 
-   private void CopyGpuData(CommandList commandList, ref ImDrawDataPtr drawData)
-   {
-       var vertexOffsetInVertices = 0u;
-       var indexOffsetInElements = 0u;
+                GraphicsService.SetScissorRect(commandList, clipRectX, clipRectY, clipRectWidth, clipRectHeight);
+                GraphicsService.DrawIndexed(commandList, drawCommand.ElemCount, 1, drawCommand.IdxOffset + (uint)indexBufferOffset, (int)drawCommand.VtxOffset + vertexBufferOffset, 0);
+            }
+        }
+    }
 
-       var totalVBSize = (uint)(drawData.TotalVtxCount * _vertexSizeInBytes);
-       _vertexBuffer = CheckSizeAndIncreaseBuffer(_vertexBuffer, totalVBSize);
+    private void CopyGpuData(CommandList commandList, ref ImDrawDataPtr drawData)
+    {
+        var vertexOffsetInVertices = 0u;
+        var indexOffsetInElements = 0u;
 
-       var totalIBSize = (uint)(drawData.TotalIdxCount * sizeof(ushort));
-       _indexBuffer = CheckSizeAndIncreaseBuffer(_indexBuffer, totalIBSize);
+        var totalVBSize = (uint)(drawData.TotalVtxCount * _vertexSizeInBytes);
+        _vertexBuffer = CheckSizeAndIncreaseBuffer(_vertexBuffer, totalVBSize);
 
-       for (var i = 0; i < drawData.CmdListsCount; i++)
-       {
-           var drawDataCommandList = drawData.CmdListsRange[i];
+        var totalIBSize = (uint)(drawData.TotalIdxCount * sizeof(ushort));
+        _indexBuffer = CheckSizeAndIncreaseBuffer(_indexBuffer, totalIBSize);
 
-           commandList.UpdateBuffer(
-               _vertexBuffer,
-               vertexOffsetInVertices * _vertexSizeInBytes,
-               drawDataCommandList.VtxBuffer.Data,
-               (uint)(drawDataCommandList.VtxBuffer.Size * _vertexSizeInBytes));
+        for (var i = 0; i < drawData.CmdListsCount; i++)
+        {
+            var drawDataCommandList = drawData.CmdListsRange[i];
 
-           commandList.UpdateBuffer(
-               _indexBuffer,
-               indexOffsetInElements * sizeof(ushort),
-               drawDataCommandList.IdxBuffer.Data,
-               (uint)(drawDataCommandList.IdxBuffer.Size * sizeof(ushort)));
+            var vertexBufferData = new ReadOnlySpan<byte>(drawDataCommandList.VtxBuffer.Data.ToPointer(), (int)(drawDataCommandList.VtxBuffer.Size * _vertexSizeInBytes));
+            GraphicsService.UpdateBuffer(commandList, _vertexBuffer, vertexOffsetInVertices * _vertexSizeInBytes, vertexBufferData);
 
-           vertexOffsetInVertices += (uint)drawDataCommandList.VtxBuffer.Size;
-           indexOffsetInElements += (uint)drawDataCommandList.IdxBuffer.Size;
-       }
+            var indexBufferData = new ReadOnlySpan<byte>(drawDataCommandList.IdxBuffer.Data.ToPointer(), drawDataCommandList.IdxBuffer.Size * sizeof(ushort));
+            GraphicsService.UpdateBuffer(commandList, _indexBuffer, indexOffsetInElements * sizeof(ushort), indexBufferData);
 
-       var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left: 0.0f, right: drawData.DisplaySize.X, bottom: drawData.DisplaySize.Y, top: 0.0f, zNearPlane: -1.0f, zFarPlane: 1.0f);
-       GraphicsDevice.UpdateBuffer(_projMatrixBuffer, 0, ref projectionMatrix);
-    }*/
+            vertexOffsetInVertices += (uint)drawDataCommandList.VtxBuffer.Size;
+            indexOffsetInElements += (uint)drawDataCommandList.IdxBuffer.Size;
+        }
+
+        var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left: 0.0f, right: drawData.DisplaySize.X, bottom: drawData.DisplaySize.Y, top: 0.0f, zNearPlane: -1.0f, zFarPlane: 1.0f);
+        GraphicsService.UpdateBuffer(commandList, _projectionMatrixBuffer, 0, MemoryMarshal.CreateReadOnlySpan(ref projectionMatrix, 1));
+    }
 
     private static void LoadFont(ImGuiIOPtr io, string fontName)
     {

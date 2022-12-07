@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using PathTracer.Platform.GraphicsLegacy;
@@ -88,6 +89,12 @@ public class VeldridGraphicsService : IGraphicsService
 
         _graphicsDevices.Add(graphicsDevice);
         return _graphicsDevices.Count;
+    }
+
+    public void ResizeSwapChain(GraphicsLegacy.GraphicsDevice graphicsDevice, int width, int height)
+    {
+        var veldridGraphicsDevice = _graphicsDevices[ToIndex(graphicsDevice)];
+        veldridGraphicsDevice.MainSwapchain.Resize((uint)width, (uint)height);
     }
 
     public void PresentSwapChain(GraphicsLegacy.GraphicsDevice graphicsDevice)
@@ -302,6 +309,64 @@ public class VeldridGraphicsService : IGraphicsService
 
         _pipelines.Add(veldridPipeline);
         return _pipelines.Count;
+    }
+
+    public void ClearColor(GraphicsLegacy.CommandList commandList, Vector4 color)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        veldridCommandList.CommandList.ClearColorTarget(0, new RgbaFloat(color.X, color.Y, color.Z, color.W));
+    }
+
+    public void UpdateBuffer<T>(GraphicsLegacy.CommandList commandList, GraphicsBuffer buffer, nuint offset, ReadOnlySpan<T> data) where T : unmanaged
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        var veldridBuffer = _buffers[ToIndex(buffer)];
+
+        veldridCommandList.CommandList.UpdateBuffer(veldridBuffer.Buffer, (uint)offset, data);
+    }
+
+    public void SetVertexBuffer(GraphicsLegacy.CommandList commandList, GraphicsBuffer buffer)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        var veldridBuffer = _buffers[ToIndex(buffer)];
+        
+        veldridCommandList.CommandList.SetVertexBuffer(0, veldridBuffer.Buffer);
+    }
+
+    public void SetIndexBuffer(GraphicsLegacy.CommandList commandList, GraphicsBuffer buffer)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        var veldridBuffer = _buffers[ToIndex(buffer)];
+
+        veldridCommandList.CommandList.SetIndexBuffer(veldridBuffer.Buffer, IndexFormat.UInt16);
+    }
+    
+    public void SetPipelineState(GraphicsLegacy.CommandList commandList, PipelineState pipelineState)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        var veldridPipelineState = _pipelines[ToIndex(pipelineState)];
+
+        veldridCommandList.CommandList.SetPipeline(veldridPipelineState.Pipeline);
+    }
+    
+    public void SetResourceSet(GraphicsLegacy.CommandList commandList, int slot, GraphicsLegacy.ResourceSet resourceSet)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        var veldridResourceSet = _resourceSets[ToIndex(resourceSet)];
+
+        veldridCommandList.CommandList.SetGraphicsResourceSet((uint)slot, veldridResourceSet);
+    }
+    
+    public void SetScissorRect(GraphicsLegacy.CommandList commandList, int x, int y, int width, int height)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        veldridCommandList.CommandList.SetScissorRect(0, (uint)x, (uint)y, (uint)width, (uint)height);
+    }
+    
+    public void DrawIndexed(GraphicsLegacy.CommandList commandList, uint indexCount, uint instanceCount, uint indexStart, int vertexOffset, uint instanceStart)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        veldridCommandList.CommandList.DrawIndexed(indexCount, instanceCount, indexStart, vertexOffset, instanceStart);
     }
 
     private static int ToIndex(nint value)

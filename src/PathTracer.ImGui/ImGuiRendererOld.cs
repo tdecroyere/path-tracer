@@ -128,8 +128,6 @@ public unsafe class ImGuiRendererOld : BaseRendererOld, IDisposable
         commandList.SetPipeline(_pipeline);
         commandList.SetGraphicsResourceSet(0, _mainResourceSet);
 
-        drawData.ScaleClipRects(drawData.FramebufferScale);
-
         var vertexBufferOffset = 0;
         var indexBufferOffset = 0;
 
@@ -236,7 +234,7 @@ public unsafe class ImGuiRendererOld : BaseRendererOld, IDisposable
         }
 
         var projectionMatrix = Matrix4x4.CreateOrthographicOffCenter(left: 0.0f, right: drawData.DisplaySize.X, bottom: drawData.DisplaySize.Y, top: 0.0f, zNearPlane: -1.0f, zFarPlane: 1.0f);
-        GraphicsDevice.UpdateBuffer(_projMatrixBuffer, 0, ref projectionMatrix);
+        commandList.UpdateBuffer(_projMatrixBuffer, 0, ref projectionMatrix);
     }
 
     /// <summary>

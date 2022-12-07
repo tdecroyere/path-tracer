@@ -17,7 +17,7 @@ public abstract class BaseRenderer
 
     protected GraphicsBuffer CreateBuffer<T>(T data, GraphicsBufferUsage bufferUsage) where T : unmanaged
     {
-        return CreateBuffer<T>(new T[] { data }, bufferUsage);
+        return CreateBuffer<T>(MemoryMarshal.CreateReadOnlySpan(ref data, 1), bufferUsage);
     }
 
     protected GraphicsBuffer CreateBuffer<T>(ReadOnlySpan<T> data, GraphicsBufferUsage bufferUsage) where T : unmanaged

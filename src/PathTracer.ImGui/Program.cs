@@ -22,7 +22,7 @@ var graphicsService = serviceProvider.GetRequiredService<IGraphicsService>();
 var nativeApplication = nativeApplicationService.CreateApplication("PathTracer IMGui");
 var nativeWindowOld = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
 var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
-var renderSize = nativeUIService.GetWindowRenderSize(nativeWindowOld);
+var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
 var graphicsDevice = graphicsService.CreateDevice(nativeWindow);
 
@@ -57,16 +57,16 @@ while (appStatus.IsRunning == 1)
 {
     appStatus = nativeApplicationService.ProcessSystemMessages(nativeApplication);
     nativeInputService.UpdateInputState(nativeApplication, ref inputState);
-    renderSize = nativeUIService.GetWindowRenderSize(nativeWindowOld);
+    renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
     if (currentWidth != renderSize.Width || currentHeight != renderSize.Height)
     {
         graphicsDeviceOld.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
+        graphicsService.ResizeSwapChain(graphicsDevice, renderSize.Width, renderSize.Height);
         
         imGuiBackend.Resize(renderSize.Width, renderSize.Height, renderSize.UIScale);
        
-        Console.WriteLine($"Resize Native Window Size: {renderSize}");
-        Console.WriteLine($"Resize FrameBuffer Size: {graphicsDeviceOld.MainSwapchain.Framebuffer.Width}x{graphicsDeviceOld.MainSwapchain.Framebuffer.Height}");
+        Console.WriteLine($"Resize: {renderSize}");
 
         currentWidth = renderSize.Width;
         currentHeight = renderSize.Height;
@@ -143,28 +143,27 @@ while (appStatus.IsRunning == 1)
         currentViewportHeight = viewportHeight;
     }
 
+    imGuiBackend.Render();
+    var imGuiDrawData = ImGui.GetDrawData();
+    imGuiDrawData.ScaleClipRects(imGuiDrawData.FramebufferScale);
+
     commandListOld.Begin();
     commandListOld.SetFramebuffer(graphicsDeviceOld.MainSwapchain.Framebuffer);
     commandListOld.ClearColorTarget(0, RgbaFloat.Black);
 
     textureRenderer.UpdateTexture<uint>(commandListOld, textureData);
-    imGuiBackend.Render();
-
-    var drawData = ImGui.GetDrawData();
-    imGuiRendererOld.RenderImDrawData(commandListOld, ref drawData);
-    //imGuiRenderer.RenderImDrawData(commandList, ref drawData);
+    imGuiRendererOld.RenderImDrawData(commandListOld, ref imGuiDrawData);
 
     commandListOld.End();
-
     graphicsDeviceOld.SubmitCommands(commandListOld);
     graphicsDeviceOld.SwapBuffers(graphicsDeviceOld.MainSwapchain);
     
-    // TEST CODE
     graphicsService.ResetCommandList(commandList);
-    //commandList.ClearColorTarget(0, RgbaFloat.Yellow);
-    graphicsService.SubmitCommandList(commandList);
-    // END TEST CODE
+    graphicsService.ClearColor(commandList, new Vector4(1.0f, 1.0f, 0.0f, 1.0f));
+    
+    imGuiRenderer.RenderImDrawData(commandList, ref imGuiDrawData);
 
+    graphicsService.SubmitCommandList(commandList);
     graphicsService.PresentSwapChain(graphicsDevice);
 
     frameCount++;

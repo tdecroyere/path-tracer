@@ -1,10 +1,13 @@
+using System.Numerics;
+
 namespace PathTracer.Platform.GraphicsLegacy;
 
-// NOTE: This interface is use only for the moment to make things work with Veldrid
-// This one will be replaced by a more robust interface that allows to manage Direct3D, Vulkan and Metal
+// NOTE: This interface is used only for the moment to make things work with Veldrid
+// It will be replaced by a more robust interface that allows low level operations in Direct3D, Vulkan and Metal
 public interface IGraphicsService
 {
     GraphicsDevice CreateDevice(NativeWindow window);
+    void ResizeSwapChain(GraphicsDevice graphicsDevice, int width, int height);
     void PresentSwapChain(GraphicsDevice graphicsDevice);
 
     CommandList CreateCommandList(GraphicsDevice graphicsDevice);
@@ -27,5 +30,12 @@ public interface IGraphicsService
 
     PipelineState CreatePipelineState(GraphicsDevice graphicsDevice, Shader shader, ReadOnlySpan<ResourceLayout> layouts);
 
-    // ClearColor
+    void ClearColor(CommandList commandList, Vector4 color);
+    void UpdateBuffer<T>(CommandList commandList, GraphicsBuffer buffer, nuint offset, ReadOnlySpan<T> data) where T : unmanaged;
+    void SetVertexBuffer(CommandList commandList, GraphicsBuffer buffer);
+    void SetIndexBuffer(CommandList commandList, GraphicsBuffer buffer);
+    void SetPipelineState(CommandList commandList, PipelineState pipelineState);
+    void SetResourceSet(CommandList commandList, int slot, ResourceSet resourceSet);
+    void SetScissorRect(CommandList commandList, int x, int y, int width, int height);
+    void DrawIndexed(CommandList commandList, uint indexCount, uint instanceCount, uint indexStart, int vertexOffset, uint instanceStart);
 }
