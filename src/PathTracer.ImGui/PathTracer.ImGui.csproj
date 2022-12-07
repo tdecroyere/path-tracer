@@ -13,6 +13,7 @@
     <PackageReference Include="ImGui.NET" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="..\PathTracer.Platform\PathTracer.Platform.csproj" />
+    <ProjectReference Include="..\PathTracer.UI\PathTracer.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
