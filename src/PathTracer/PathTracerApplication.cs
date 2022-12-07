@@ -52,7 +52,7 @@ public class PathTracerApplication
         _renderScaleRatio = 0.25f;
     }
 
-    public async Task RunAsync()
+    public void Run()
     {
         var stopwatch = new Stopwatch();
         var systemMessagesStopwatch = new Stopwatch();
@@ -87,7 +87,7 @@ public class PathTracerApplication
             _graphicsService.ResetCommandList(commandList);
             _graphicsService.ClearColor(commandList, new Vector4(1, 1, 0, 1));
 
-            await _renderer.RenderAsync(renderImage, camera);
+            _renderer.Render(renderImage, camera);
             renderingStopwatch.Stop();
             stopwatch.Stop();
 

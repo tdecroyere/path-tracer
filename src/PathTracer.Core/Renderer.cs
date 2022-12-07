@@ -9,7 +9,7 @@ public class Renderer<TImage> : IRenderer<TImage> where TImage : IImage
         _imageWriter = imageWriter;
     }
 
-    public Task RenderAsync(TImage image, Camera camera)
+    public void Render(TImage image, Camera camera)
     {
         var imageWidth = image.Width;
         var imageHeight = image.Height;
@@ -38,8 +38,6 @@ public class Renderer<TImage> : IRenderer<TImage> where TImage : IImage
         });
     
         _imageWriter.CommitImage(image);
-
-        return Task.CompletedTask;
     }
 
     private static Vector4 PixelShader(Vector2 pixelCoordinates, RayGenerator rayGenerator)
@@ -59,14 +57,14 @@ public class Renderer<TImage> : IRenderer<TImage> where TImage : IImage
 
         if (discriminant < 0.0f)
         {
-            return Vector4.Zero;
+            return new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
         }
 
         var t = (-b + -MathF.Sqrt(discriminant)) / (2.0f * a);
 
         if (t < 0.0f)
         {
-            return Vector4.Zero;
+            return new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
         }
 
         // Compute normal

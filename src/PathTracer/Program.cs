@@ -15,5 +15,5 @@ serviceCollection.AddScoped<PathTracerApplication>();
 
 var serviceProvider = serviceCollection.BuildServiceProvider();
 
-await serviceProvider.GetRequiredService<PathTracerApplication>()
-                     .RunAsync();
+serviceProvider.GetRequiredService<PathTracerApplication>()
+               .Run();
