@@ -153,7 +153,7 @@ internal unsafe class ImGuiRenderer : BaseRenderer, IDisposable
                     }
                     else
                     {
-                        //GraphicsService.SetResourceSet(commandList, 1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
+                        GraphicsService.SetResourceSet(commandList, 1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
                     }
                 }
 

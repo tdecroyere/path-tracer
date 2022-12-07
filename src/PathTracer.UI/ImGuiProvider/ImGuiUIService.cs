@@ -64,6 +64,16 @@ public class ImGuiUIService : IUIService
         _imGuiRenderer.RenderImDrawData(_commandList, ref imGuiDrawData);
         _graphicsService.SubmitCommandList(_commandList);
     }
+    
+    public nint RegisterTexture(Texture texture)
+    {
+        return _imGuiRenderer.RegisterTexture(texture);
+    }
+
+    public void UpdateTexture(nint id, Texture texture)
+    {
+        _imGuiRenderer.UpdateTexture(id, texture);
+    }
 
     public void BeginPanel(string title, PanelStyles panelStyles)
     {
@@ -100,5 +110,10 @@ public class ImGuiUIService : IUIService
     public void Text(string text)
     {
         ImGui.Text(text);
+    }
+
+    public void Image(nint textureId, int width, int height)
+    {
+        ImGui.Image(textureId, new Vector2(width, height));
     }
 }

@@ -17,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PathTracer.Platform\PathTracer.Platform.csproj" />
     <ProjectReference Include="..\PathTracer.Core\PathTracer.Core.csproj" />
+    <ProjectReference Include="..\PathTracer.UI\PathTracer.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

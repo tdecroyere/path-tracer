@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using PathTracer.Platform;
+using PathTracer.Platform.GraphicsLegacy;
 using PathTracer.Platform.Inputs;
-using PathTracer.Platform.NativeUI;
+using PathTracer.UI;
 
 namespace PathTracer;
 
@@ -9,26 +10,32 @@ public class PathTracerApplication
 {
     private readonly INativeApplicationService _applicationService;
     private readonly INativeUIService _nativeUIService;
-    private readonly INativeInputService _nativeInputService;
-    private readonly IRenderer<PlatformImage> _renderer;
+    private readonly IInputService _inputService;
+    private readonly IGraphicsService _graphicsService;
+    private readonly IUIService _uiService;
+    private readonly IRenderer<TextureImage> _renderer;
 
     private readonly NativeApplication _nativeApplication;
     private readonly NativeWindow _nativeWindow;
+    private readonly GraphicsDevice _graphicsDevice;
 
     private readonly int _targetMS;
 
-    private PlatformImage _platformImage;
+    private TextureImage _textureImage;
+    private nint _textureImageId;
     private NativeWindowSize _currentRenderSize;
     private readonly float _renderScaleRatio;
 
     public PathTracerApplication(INativeApplicationService applicationService,
                                  INativeUIService nativeUIService,
-                                 INativeInputService nativeInputService,
-                                 IRenderer<PlatformImage> renderer)
+                                 IInputService inputService,
+                                 IGraphicsService graphicsService,
+                                 IRenderer<TextureImage> renderer)
     {
         _applicationService = applicationService;
         _nativeUIService = nativeUIService;
-        _nativeInputService = nativeInputService;
+        _inputService = inputService;
+        _graphicsService = graphicsService;
         _renderer = renderer;
 
         var windowWidth = 1280;
@@ -36,9 +43,10 @@ public class PathTracerApplication
 
         _nativeApplication = applicationService.CreateApplication("Path Tracer");
         _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Normal);
+        _graphicsDevice = graphicsService.CreateDevice(_nativeWindow);
 
-        var testPanel = nativeUIService.CreatePanel(_nativeWindow);
-        var testButton = nativeUIService.CreateButton(testPanel, "Test Button!");
+        // TODO: Refactor that !
+        _uiService = new UI.ImGuiProvider.ImGuiUIService(_nativeUIService, _graphicsService, _graphicsDevice, _nativeWindow);
 
         _targetMS = (int)(1.0f / 60.0f * 1000.0f);
         _renderScaleRatio = 0.25f;
@@ -51,8 +59,9 @@ public class PathTracerApplication
         var renderingStopwatch = new Stopwatch();
 
         var appStatus = new NativeApplicationStatus();
-        var inputState = new NativeInputStateOld();
+        var inputState = new InputState();
         var camera = new Camera();
+        var commandList = _graphicsService.CreateCommandList(_graphicsDevice);
 
         while (appStatus.IsRunning == 1)
         {
@@ -64,34 +73,55 @@ public class PathTracerApplication
             appStatus = _applicationService.ProcessSystemMessages(_nativeApplication);
             systemMessagesStopwatch.Stop();
 
-            _nativeInputService.GetInputState(_nativeApplication, ref inputState);
+            _inputService.UpdateInputState(_nativeApplication, ref inputState);
             camera = UpdateCamera(camera, inputState, deltaTime);
 
-            camera = CreateRenderSizeDependentResources(camera);
-            var renderImage = _platformImage;
+            // TODO: Compute the correct timing
+            _uiService.Update(1.0f / 60.0f, inputState);
+
+            camera = CreateRenderSizeDependentResources(camera, commandList);
+            var renderImage = _textureImage;
 
             renderingStopwatch.Restart();
+
+            _graphicsService.ResetCommandList(commandList);
+            _graphicsService.ClearColor(commandList, new Vector4(1, 1, 0, 1));
 
             await _renderer.RenderAsync(renderImage, camera);
             renderingStopwatch.Stop();
             stopwatch.Stop();
 
+            _graphicsService.SubmitCommandList(commandList);
+
+            _uiService.BeginPanel("Render", PanelStyles.NoTitle | PanelStyles.NoPadding);
+            var renderSize = _uiService.GetPanelAvailableSize();
+            _uiService.Image(_textureImageId, (int)renderSize.X, (int)renderSize.Y);
+            _uiService.EndPanel();
+
+            _uiService.BeginPanel("Inspector");
+            _uiService.Text("Hellooooo");
+            _uiService.EndPanel();
+
+            _uiService.Render();
+
             // TODO: Do better here
             var waitingMS = Math.Clamp(_targetMS - stopwatch.ElapsedMilliseconds, 0, _targetMS);
 
             _nativeUIService.SetWindowTitle(_nativeWindow, $"Path Tracer ({renderImage.Width}x{renderImage.Height}) - Frame: {stopwatch.Elapsed.Milliseconds:00}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds:00}ms, Render: {renderingStopwatch.ElapsedMilliseconds:00}ms, Waiting: {waitingMS:00}ms)");
-            Thread.Sleep((int)waitingMS);
+            //Thread.Sleep((int)waitingMS);
+
+            _graphicsService.PresentSwapChain(_graphicsDevice);
         }
     }
 
     // TODO: To be converted to an ECS System
-    private static Camera UpdateCamera(Camera camera, NativeInputStateOld inputState, float deltaTime)
+    private static Camera UpdateCamera(Camera camera, InputState inputState, float deltaTime)
     {
         var forwardInput = inputState.Keyboard.KeyZ.Value - inputState.Keyboard.KeyS.Value;
         var sideInput = inputState.Keyboard.KeyD.Value - inputState.Keyboard.KeyQ.Value;
-        var rotateYInput = inputState.Keyboard.ArrowRight.Value - inputState.Keyboard.ArrowLeft.Value;
-        var rotateXInput = inputState.Keyboard.ArrowDown.Value - inputState.Keyboard.ArrowUp.Value;
-        
+        var rotateYInput = 0;//inputState.Keyboard.ArrowRight.Value - inputState.Keyboard.ArrowLeft.Value;
+        var rotateXInput = 0;//inputState.Keyboard.ArrowDown.Value - inputState.Keyboard.ArrowUp.Value;
+
         // TODO: No acceleration for the moment
         var movementSpeed = 1.0f;
         var rotationSpeed = 1.0f;
@@ -119,7 +149,7 @@ public class PathTracerApplication
         };
     }
 
-    private Camera CreateRenderSizeDependentResources(Camera camera)
+    private Camera CreateRenderSizeDependentResources(Camera camera, CommandList commandList)
     {
         var renderSize = _nativeUIService.GetWindowRenderSize(_nativeWindow);
 
@@ -130,7 +160,17 @@ public class PathTracerApplication
             var imageHeight = (int)(imageWidth / aspectRatio);
 
             // TODO: Call a delete function
-            _platformImage = CreatePlatformImage(_nativeUIService, _nativeWindow, imageWidth, imageHeight);
+            _textureImage = CreatePlatformImage(commandList, imageWidth, imageHeight);
+
+            if (_currentRenderSize.Width == 0)
+            {
+                _textureImageId = _uiService.RegisterTexture(_textureImage.GpuTexture);
+            }
+            else
+            {
+                _uiService.UpdateTexture(_textureImageId, _textureImage.GpuTexture);
+            }
+
             _currentRenderSize = renderSize;
 
             return camera with
@@ -142,18 +182,20 @@ public class PathTracerApplication
         return camera;
     }
 
-    private static PlatformImage CreatePlatformImage(INativeUIService nativeUIService, NativeWindow window, int width, int height)
+    private TextureImage CreatePlatformImage(CommandList commandList, int width, int height)
     {
-        var nativeSurface = nativeUIService.CreateImageSurface(window, width, height);
-        var nativeSurfaceInfo = nativeUIService.GetImageSurfaceInfo(nativeSurface);
+        var cpuTexture = _graphicsService.CreateTexture(_graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Staging, TextureType.Texture2D);
+        var gpuTexture = _graphicsService.CreateTexture(_graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Sampled, TextureType.Texture2D);
+
         var imageData = new uint[width * height];
 
-        return new PlatformImage
+        return new TextureImage
         {
             Width = width,
             Height = height,
-            NativeSurface = nativeSurface,
-            NativeSufaceInfo = nativeSurfaceInfo,
+            CpuTexture = cpuTexture,
+            GpuTexture = gpuTexture,
+            CommandList = commandList,
             ImageData = imageData
         };
     }

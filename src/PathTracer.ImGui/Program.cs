@@ -29,9 +29,9 @@ var graphicsDevice = graphicsService.CreateDevice(nativeWindow);
 var uiService = (IUIService)new PathTracer.UI.ImGuiProvider.ImGuiUIService(nativeUIService, graphicsService, graphicsDevice, nativeWindow);
 
 // TODO: Don't create texture when init do this on resize only
-var textureRenderer = new TextureRenderer(graphicsService, graphicsDevice, renderSize.Width, renderSize.Height);
+CreateTextures(graphicsService, graphicsDevice, renderSize.Width, renderSize.Height, out var cpuTexture, out var gpuTexture);
 var textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
-//var textureId = imGuiRenderer.RegisterTexture(textureRenderer.Texture);
+var textureId = uiService.RegisterTexture(gpuTexture);
 
 Console.WriteLine($"Native Window Size: {renderSize}");
 
@@ -68,15 +68,7 @@ while (appStatus.IsRunning == 1)
 
     uiService.Update(1.0f / 60.0f, inputState);
 
-    stopwatch.Restart();
-    for (var i = 0; i < textureData.Length; i++)
-    {
-        var color = (byte)(frameCount % 255);
-        textureData[i] = (uint)(255 << 24 | color << 16 | color << 8 | color);
-    }
-    stopwatch.Stop();
-
-    var viewportSize = BuildUI(uiService, renderSize, stopwatch);
+    var viewportSize = BuildUI(uiService, renderSize, textureId, stopwatch);
 
     var viewportWidth = (int)viewportSize.X;
     var viewportHeight = (int)viewportSize.Y;
@@ -87,8 +79,9 @@ while (appStatus.IsRunning == 1)
         var textureHeight = (int)(viewportHeight * renderSize.UIScale);
 
         // TODO: Crash if minimized
-        textureRenderer.Resize(textureWidth, textureHeight);
-        //imGuiRenderer.UpdateTexture(textureId, textureRenderer.Texture);
+        // TODO: Dispose Textures
+        CreateTextures(graphicsService, graphicsDevice, textureWidth, textureHeight, out cpuTexture, out gpuTexture);
+        uiService.UpdateTexture(textureId, gpuTexture);
 
         textureData = new uint[textureWidth * textureHeight].AsSpan();
 
@@ -97,11 +90,21 @@ while (appStatus.IsRunning == 1)
         currentViewportWidth = viewportWidth;
         currentViewportHeight = viewportHeight;
     }
+    
+    stopwatch.Restart();
+    for (var i = 0; i < textureData.Length; i++)
+    {
+        var color = (byte)(frameCount % 255);
+        textureData[i] = (uint)(255 << 24 | color << 16 | color << 8 | color);
+    }
+    stopwatch.Stop();
 
     graphicsService.ResetCommandList(commandList);
     graphicsService.ClearColor(commandList, new Vector4(1.0f, 1.0f, 0.0f, 1.0f));
 
-    textureRenderer.UpdateTexture<uint>(commandList, textureData);
+    graphicsService.UpdateTexture<uint>(cpuTexture, textureData);
+    graphicsService.CopyTexture(commandList, cpuTexture, gpuTexture);
+    
     graphicsService.SubmitCommandList(commandList);
 
     uiService.Render();
@@ -110,7 +113,7 @@ while (appStatus.IsRunning == 1)
     frameCount++;
 }
 
-static Vector2 BuildUI(IUIService uiService, NativeWindowSize renderSize, Stopwatch stopwatch)
+static Vector2 BuildUI(IUIService uiService, NativeWindowSize renderSize, nint textureId, Stopwatch stopwatch)
 {
     uiService.BeginPanel("Viewport", PanelStyles.NoTitle | PanelStyles.NoPadding);
 
@@ -118,7 +121,7 @@ static Vector2 BuildUI(IUIService uiService, NativeWindowSize renderSize, Stopwa
     var viewportWidth = (int)size.X;
     var viewportHeight = (int)size.Y;
 
-    //ImGui.Image(textureId, new Vector2(viewportWidth, viewportHeight));
+    uiService.Image(textureId, viewportWidth, viewportHeight);
     uiService.EndPanel();
 
     uiService.BeginPanel("Inspector");
@@ -134,4 +137,10 @@ static Vector2 BuildUI(IUIService uiService, NativeWindowSize renderSize, Stopwa
     uiService.EndPanel();
 
     return size;
+}
+
+static void CreateTextures(IGraphicsService graphicsService, GraphicsDevice graphicsDevice, int width, int height, out Texture cpuTexture, out Texture gpuTexture)
+{
+    cpuTexture = graphicsService.CreateTexture(graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Staging, TextureType.Texture2D);
+    gpuTexture = graphicsService.CreateTexture(graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Sampled, TextureType.Texture2D);
 }
