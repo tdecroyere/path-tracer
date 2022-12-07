@@ -32,6 +32,7 @@ public interface IGraphicsService
 
     void ClearColor(CommandList commandList, Vector4 color);
     void UpdateBuffer<T>(CommandList commandList, GraphicsBuffer buffer, nuint offset, ReadOnlySpan<T> data) where T : unmanaged;
+    void CopyTexture(CommandList commandList, Texture source, Texture destination);
     void SetVertexBuffer(CommandList commandList, GraphicsBuffer buffer);
     void SetIndexBuffer(CommandList commandList, GraphicsBuffer buffer);
     void SetPipelineState(CommandList commandList, PipelineState pipelineState);

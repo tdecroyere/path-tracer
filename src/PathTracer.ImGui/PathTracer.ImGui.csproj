@@ -11,7 +11,6 @@
 
   <ItemGroup>
     <PackageReference Include="ImGui.NET" />
-    <PackageReference Include="Veldrid" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <ProjectReference Include="..\PathTracer.Platform\PathTracer.Platform.csproj" />
   </ItemGroup>

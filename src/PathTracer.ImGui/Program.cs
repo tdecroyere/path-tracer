@@ -6,7 +6,6 @@ using PathTracer;
 using PathTracer.Platform;
 using PathTracer.Platform.GraphicsLegacy;
 using PathTracer.Platform.Inputs;
-using Veldrid;
 
 var serviceCollection = new ServiceCollection();
 serviceCollection.UseNativePlatform();
@@ -20,27 +19,22 @@ var nativeInputService = serviceProvider.GetRequiredService<IInputService>();
 var graphicsService = serviceProvider.GetRequiredService<IGraphicsService>();
 
 var nativeApplication = nativeApplicationService.CreateApplication("PathTracer IMGui");
-var nativeWindowOld = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
 var nativeWindow = nativeUIService.CreateWindow(nativeApplication, "Path Tracer IMGui", 1280, 720, NativeWindowState.Normal);
 var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
 
 var graphicsDevice = graphicsService.CreateDevice(nativeWindow);
 
-var graphicsDeviceOld = CreateGraphicsDevice(nativeUIService, nativeWindowOld);
 var imGuiBackend = new ImGuiBackend(renderSize.Width, renderSize.Height, renderSize.UIScale);
-var imGuiRendererOld = new ImGuiRendererOld(graphicsDeviceOld, graphicsDeviceOld.MainSwapchain.Framebuffer.OutputDescription, "Menlo-Regular");
 var imGuiRenderer = new ImGuiRenderer(graphicsService, graphicsDevice, "Menlo-Regular");
 
 // TODO: Don't create texture when init do this on resize only
-var textureRenderer = new TextureRenderer(graphicsDeviceOld, graphicsDeviceOld.MainSwapchain.Framebuffer.OutputDescription, renderSize.Width, renderSize.Height);
+var textureRenderer = new TextureRenderer(graphicsService, graphicsDevice, renderSize.Width, renderSize.Height);
 var textureData = new uint[renderSize.Width * renderSize.Height].AsSpan();
-var textureId = imGuiRendererOld.RegisterTexture(textureRenderer.TextureView);
+var textureId = imGuiRenderer.RegisterTexture(textureRenderer.Texture);
 
 Console.WriteLine($"Native Window Size: {renderSize}");
-Console.WriteLine($"FrameBuffer Size: {graphicsDeviceOld.MainSwapchain.Framebuffer.Width}x{graphicsDeviceOld.MainSwapchain.Framebuffer.Height}");
 
 var commandList = graphicsService.CreateCommandList(graphicsDevice);
-var commandListOld = graphicsDeviceOld.ResourceFactory.CreateCommandList();
 var frameCount = 0;
 var stopwatch = new Stopwatch();
 
@@ -61,7 +55,6 @@ while (appStatus.IsRunning == 1)
 
     if (currentWidth != renderSize.Width || currentHeight != renderSize.Height)
     {
-        graphicsDeviceOld.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
         graphicsService.ResizeSwapChain(graphicsDevice, renderSize.Width, renderSize.Height);
         
         imGuiBackend.Resize(renderSize.Width, renderSize.Height, renderSize.UIScale);
@@ -132,8 +125,7 @@ while (appStatus.IsRunning == 1)
 
         // TODO: Crash if minimized
         textureRenderer.Resize(textureWidth, textureHeight);
-        imGuiRendererOld.UpdateTexture(textureId, textureRenderer.TextureView);
-        //imGuiRenderer.UpdateTexture(textureId, textureRenderer.TextureView);
+        imGuiRenderer.UpdateTexture(textureId, textureRenderer.Texture);
         
         textureData = new uint[textureWidth * textureHeight].AsSpan();
 
@@ -147,78 +139,14 @@ while (appStatus.IsRunning == 1)
     var imGuiDrawData = ImGui.GetDrawData();
     imGuiDrawData.ScaleClipRects(imGuiDrawData.FramebufferScale);
 
-    commandListOld.Begin();
-    commandListOld.SetFramebuffer(graphicsDeviceOld.MainSwapchain.Framebuffer);
-    commandListOld.ClearColorTarget(0, RgbaFloat.Black);
-
-    textureRenderer.UpdateTexture<uint>(commandListOld, textureData);
-    imGuiRendererOld.RenderImDrawData(commandListOld, ref imGuiDrawData);
-
-    commandListOld.End();
-    graphicsDeviceOld.SubmitCommands(commandListOld);
-    graphicsDeviceOld.SwapBuffers(graphicsDeviceOld.MainSwapchain);
-    
     graphicsService.ResetCommandList(commandList);
     graphicsService.ClearColor(commandList, new Vector4(1.0f, 1.0f, 0.0f, 1.0f));
     
+    textureRenderer.UpdateTexture<uint>(commandList, textureData);
     imGuiRenderer.RenderImDrawData(commandList, ref imGuiDrawData);
 
     graphicsService.SubmitCommandList(commandList);
     graphicsService.PresentSwapChain(graphicsDevice);
 
     frameCount++;
-}
-
-static unsafe Veldrid.GraphicsDevice CreateGraphicsDevice(INativeUIService nativeUIService, NativeWindow nativeWindow)
-{
-    var graphicsDeviceOptions = new GraphicsDeviceOptions(
-            debug: true, 
-            swapchainDepthFormat: null, 
-            syncToVerticalBlank: true, 
-            ResourceBindingModel.Improved, 
-            preferDepthRangeZeroToOne: true, 
-            preferStandardClipSpaceYDirection: true);
-
-    var nativeWindowSystemHandle = nativeUIService.GetWindowSystemHandle(nativeWindow);
-    var renderSize = nativeUIService.GetWindowRenderSize(nativeWindow);
-
-    Veldrid.GraphicsDevice? graphicsDevice = null;
-
-    if (OperatingSystem.IsWindows())
-    {
-        var swapchainSource = SwapchainSource.CreateWin32(nativeWindowSystemHandle, 0);
-
-        var swapchainDescription = new SwapchainDescription(
-                        swapchainSource,
-                        (uint)renderSize.Width,
-                        (uint)renderSize.Height,
-                        graphicsDeviceOptions.SwapchainDepthFormat,
-                        graphicsDeviceOptions.SyncToVerticalBlank,
-                        graphicsDeviceOptions.SwapchainSrgbFormat);
-
-        graphicsDevice = Veldrid.GraphicsDevice.CreateVulkan(graphicsDeviceOptions, swapchainDescription);
-    }
-
-    else if (OperatingSystem.IsMacOS())
-    {
-        var swapchainSource = SwapchainSource.CreateNSWindow(nativeWindowSystemHandle);
-
-        var swapchainDescription = new SwapchainDescription(
-                        swapchainSource,
-                        (uint)renderSize.Width,
-                        (uint)renderSize.Height,
-                        graphicsDeviceOptions.SwapchainDepthFormat,
-                        graphicsDeviceOptions.SyncToVerticalBlank,
-                        graphicsDeviceOptions.SwapchainSrgbFormat);
-
-        graphicsDevice = Veldrid.GraphicsDevice.CreateMetal(graphicsDeviceOptions, swapchainDescription);
-        graphicsDevice.MainSwapchain.Resize((uint)renderSize.Width, (uint)renderSize.Height);
-    }
-
-    if (graphicsDevice == null)
-    {
-        throw new InvalidOperationException("Create Graphics device: Unsupported OS");
-    }
-
-    return graphicsDevice;
 }

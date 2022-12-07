@@ -17,6 +17,7 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
 
     private readonly ResourceSet _mainResourceSet;
     private readonly ResourceSet _fontTextureResourceSet;
+    private readonly IList<ResourceSet> _textureResourceSets;
 
     private readonly nint _fontAtlasID;
     private readonly uint _vertexSizeInBytes;
@@ -30,7 +31,7 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
 
         _fontAtlasID = 1;
         _vertexSizeInBytes = (uint)Unsafe.SizeOf<ImDrawVert>();
-        //_textureResourceSets = new List<ResourceSet>();
+        _textureResourceSets = new List<ResourceSet>();
 
         _vertexBuffer = GraphicsService.CreateBuffer(GraphicsDevice, 10000, GraphicsBufferUsage.VertexBuffer | GraphicsBufferUsage.Dynamic);
         _indexBuffer = GraphicsService.CreateBuffer(GraphicsDevice, 2000, GraphicsBufferUsage.IndexBuffer | GraphicsBufferUsage.Dynamic);
@@ -76,22 +77,21 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
         }
     }
 
-    /*
-   public nint RegisterTexture(TextureView textureView)
-   {
-       var textureResourceSet = GraphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, textureView));
-       _textureResourceSets.Add(textureResourceSet);
-       return _textureResourceSets.Count + 1;
-   }
+    public nint RegisterTexture(Texture texture)
+    {
+        var textureResourceSet = GraphicsService.CreateResourceSet(_textureLayout, texture);
+        _textureResourceSets.Add(textureResourceSet);
+        return _textureResourceSets.Count + 1;
+    }
 
-   public void UpdateTexture(nint id, TextureView textureView)
-   {
-       var oldResourceSet = _textureResourceSets[(int)id - 2];
-       GraphicsDevice.DisposeWhenIdle(oldResourceSet);
+    public void UpdateTexture(nint id, Texture texture)
+    {
+        var oldResourceSet = _textureResourceSets[(int)id - 2];
+        //GraphicsDevice.DisposeWhenIdle(oldResourceSet);
 
-       var textureResourceSet = GraphicsDevice.ResourceFactory.CreateResourceSet(new ResourceSetDescription(_textureLayout, textureView));
-       _textureResourceSets[(int)id - 2] = textureResourceSet;
-   }*/
+        var textureResourceSet = GraphicsService.CreateResourceSet(_textureLayout, texture);
+        _textureResourceSets[(int)id - 2] = textureResourceSet;
+    }
 
     public void RenderImDrawData(CommandList commandList, ref ImDrawDataPtr drawData)
     {
@@ -153,7 +153,7 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
                     }
                     else
                     {
-                        //commandList.SetGraphicsResourceSet(1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
+                        GraphicsService.SetResourceSet(commandList, 1, _textureResourceSets[(int)drawCommand.TextureId - 2]);
                     }
                 }
 
@@ -202,12 +202,12 @@ public unsafe class ImGuiRenderer : BaseRenderer, IDisposable
         var fontData = GetEmbeddedResourceBytes($"{fontName}.ttf");
 
         // create the object on the native side
-        /*var nativeConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+        var nativeConfig = ImGuiNative.ImFontConfig_ImFontConfig();
         (*nativeConfig).OversampleH = 4;
         (*nativeConfig).OversampleV = 4;
 
         var handle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
         io.Fonts.AddFontFromMemoryTTF(handle.AddrOfPinnedObject(), fontData.Length, 13, nativeConfig);
-        handle.Free();*/
+        handle.Free();
     }
 }

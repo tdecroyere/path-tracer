@@ -176,7 +176,7 @@ public class VeldridGraphicsService : IGraphicsService
         var veldridGraphicsDevice = _graphicsDevices[ToIndex(graphicsDevice)];
 
         var texture = veldridGraphicsDevice.ResourceFactory.CreateTexture(new TextureDescription((uint)width, (uint)height, (uint)depth, (uint)mipLevels, (uint)arrayLayers, (PixelFormat)(byte)format, (Veldrid.TextureUsage)(byte)usage, (Veldrid.TextureType)type));
-        var textureView = veldridGraphicsDevice.ResourceFactory.CreateTextureView(texture);
+        var textureView = usage == GraphicsLegacy.TextureUsage.Sampled ? veldridGraphicsDevice.ResourceFactory.CreateTextureView(texture) : null;
         
         _textures.Add(new VeldridTexture
         {
@@ -323,6 +323,15 @@ public class VeldridGraphicsService : IGraphicsService
         var veldridBuffer = _buffers[ToIndex(buffer)];
 
         veldridCommandList.CommandList.UpdateBuffer(veldridBuffer.Buffer, (uint)offset, data);
+    }
+    
+    public void CopyTexture(GraphicsLegacy.CommandList commandList, GraphicsLegacy.Texture source, GraphicsLegacy.Texture destination)
+    {
+        var veldridCommandList = _commandLists[ToIndex(commandList)];
+        var sourceVeldridTexture = _textures[ToIndex(source)];
+        var destinationVeldridTexture = _textures[ToIndex(destination)];
+
+        veldridCommandList.CommandList.CopyTexture(sourceVeldridTexture.Texture, destinationVeldridTexture.Texture);
     }
 
     public void SetVertexBuffer(GraphicsLegacy.CommandList commandList, GraphicsBuffer buffer)
