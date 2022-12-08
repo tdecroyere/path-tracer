@@ -36,7 +36,10 @@ public class Renderer<TImage> : IRenderer<TImage> where TImage : IImage
                 _imageWriter.StorePixel(image, j, i, color);
             }
         });
-    
+    }
+
+    public void CommitImage(TImage image)
+    {
         _imageWriter.CommitImage(image);
     }
 

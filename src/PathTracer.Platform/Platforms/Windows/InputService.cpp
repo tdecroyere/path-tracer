@@ -80,7 +80,11 @@ DllExport void PT_UpdateInputState(void* application, InputState* inputState)
             ProcessKey(inputObjects, InputObjectKey::KeyX, 'X', event);
             ProcessKey(inputObjects, InputObjectKey::KeyY, 'Y', event);
             ProcessKey(inputObjects, InputObjectKey::KeyZ, 'Z', event);
-
+            
+            ProcessKey(inputObjects, InputObjectKey::Up, VK_UP, event);
+            ProcessKey(inputObjects, InputObjectKey::Down, VK_DOWN, event);
+            ProcessKey(inputObjects, InputObjectKey::Left, VK_LEFT, event);
+            ProcessKey(inputObjects, InputObjectKey::Right, VK_RIGHT, event);
         }
         else if (event.Message == WM_LBUTTONDOWN || event.Message == WM_LBUTTONUP)
         {

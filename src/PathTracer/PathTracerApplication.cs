@@ -20,12 +20,15 @@ public class PathTracerApplication
     private readonly GraphicsDevice _graphicsDevice;
 
     private readonly int _targetMS;
+    private readonly float _renderScaleRatio;
 
     private TextureImage _textureImage;
-    private nint _textureImageId;
+    private TextureImage _fullResolutionTextureImage;
     private NativeWindowSize _currentWindowSize;
     private Vector2 _currentRenderSize;
-    private readonly float _renderScaleRatio;
+    private DateTime _lastRenderTime = DateTime.Now;
+    private Task<bool>? _fullResolutionRenderingTask = null;
+    private bool _isFullResolutionRenderComplete = false;
 
     public PathTracerApplication(INativeApplicationService applicationService,
                                  INativeUIService nativeUIService,
@@ -49,8 +52,8 @@ public class PathTracerApplication
         // TODO: Refactor that !
         _uiService = new UI.ImGuiProvider.ImGuiUIService(_nativeUIService, _graphicsService, _graphicsDevice, _nativeWindow);
 
-        _targetMS = (int)(1.0f / 60.0f * 1000.0f);
-        _renderScaleRatio = 0.5f;
+        _targetMS = (int)(1.0f / 144.0f * 1000.0f);
+        _renderScaleRatio = 0.1f;
     }
 
     public void Run()
@@ -66,8 +69,7 @@ public class PathTracerApplication
 
         while (appStatus.IsRunning == 1)
         {
-            // TODO: Compute real delta time
-            var deltaTime = _targetMS * 0.001f;
+            var deltaTime = stopwatch.ElapsedMilliseconds * 0.001f;
 
             stopwatch.Restart();
             systemMessagesStopwatch.Restart();
@@ -84,38 +86,94 @@ public class PathTracerApplication
                 Console.WriteLine($"Resize: {windowSize}");
 
                 _currentWindowSize = windowSize;
+                _isFullResolutionRenderComplete = false;
             }
 
             _inputService.UpdateInputState(_nativeApplication, ref inputState);
+            var previousCamera = camera;
             camera = UpdateCamera(camera, inputState, deltaTime);
 
+            if (camera != previousCamera)
+            {
+                // TODO: Cancel task when possible
+                _isFullResolutionRenderComplete = false;
+            }
+            else if (_fullResolutionRenderingTask == null && _isFullResolutionRenderComplete == false)
+            {
+                _fullResolutionRenderingTask = new Task<bool>(() =>
+                {
+                Console.WriteLine("Rendering high res");
+                    _renderer.Render(_fullResolutionTextureImage, camera);
+                    return true;
+                });
+
+                _fullResolutionRenderingTask.Start();
+            }
+            
+            if (_fullResolutionRenderingTask != null && _fullResolutionRenderingTask.Status == TaskStatus.RanToCompletion)
+            {
+                _isFullResolutionRenderComplete = _fullResolutionRenderingTask.Result;
+                _fullResolutionRenderingTask = null;
+                _lastRenderTime = DateTime.Now;
+
+                _graphicsService.ResetCommandList(commandList);
+                _renderer.CommitImage(_fullResolutionTextureImage);
+                _graphicsService.SubmitCommandList(commandList);
+            }
+            
             // TODO: Compute the correct timing
-            _uiService.Update(1.0f / 60.0f, inputState);
+            _uiService.Update(_targetMS, inputState);
             
             _uiService.BeginPanel("Render", PanelStyles.NoTitle | PanelStyles.NoPadding);
             var renderSize = _uiService.GetPanelAvailableSize();
-            _uiService.Image(_textureImageId, (int)renderSize.X, (int)renderSize.Y);
+
+            if (_isFullResolutionRenderComplete)
+            {
+                _uiService.Image(_fullResolutionTextureImage.TextureId, (int)renderSize.X, (int)renderSize.Y);
+            }
+            else
+            {
+                _uiService.Image(_textureImage.TextureId, (int)renderSize.X, (int)renderSize.Y);
+            }
+
             _uiService.EndPanel();
 
             _uiService.BeginPanel("Inspector");
             _uiService.Text("Hellooooo");
+            _uiService.Text($"Show full resolution image: {_isFullResolutionRenderComplete}");
+            _uiService.Text($"Last render time: {_lastRenderTime}");
             _uiService.EndPanel();
 
+            var previousCameraSize = camera;
             camera = CreateRenderSizeDependentResources(camera, commandList, renderSize);
-            var renderImage = _textureImage;
-
-            renderingStopwatch.Restart();
+            
+            if (camera != previousCameraSize)
+            {
+                // TODO: Cancel task when possible
+                _isFullResolutionRenderComplete = false;
+                _fullResolutionRenderingTask = null;
+            }
 
             _graphicsService.ResetCommandList(commandList);
             _graphicsService.ClearColor(commandList, new Vector4(1, 1, 0, 1));
 
-            _renderer.Render(renderImage, camera);
-            renderingStopwatch.Stop();
-            
-            stopwatch.Stop();
+            var renderImage = _textureImage;
+
+            if (camera != previousCamera || camera != previousCameraSize)
+            {
+                Console.WriteLine("Rendering low res");
+                // TODO: Don't render low res image if not needed
+                renderingStopwatch.Restart();
+                _renderer.Render(renderImage, camera);
+                renderingStopwatch.Stop();
+                _renderer.CommitImage(_textureImage);
+            }
+
             _graphicsService.SubmitCommandList(commandList);
 
             _uiService.Render();
+            _graphicsService.PresentSwapChain(_graphicsDevice);
+            stopwatch.Stop();
 
             // TODO: Do better here
             var waitingMS = Math.Clamp(_targetMS - stopwatch.ElapsedMilliseconds, 0, _targetMS);
@@ -123,7 +181,6 @@ public class PathTracerApplication
             _nativeUIService.SetWindowTitle(_nativeWindow, $"Path Tracer ({renderImage.Width}x{renderImage.Height}) - Frame: {stopwatch.Elapsed.Milliseconds:00}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds:00}ms, Render: {renderingStopwatch.ElapsedMilliseconds:00}ms, Waiting: {waitingMS:00}ms)");
             //Thread.Sleep((int)waitingMS);
 
-            _graphicsService.PresentSwapChain(_graphicsDevice);
         }
     }
 
@@ -166,21 +223,12 @@ public class PathTracerApplication
     {
         if (renderSize != _currentRenderSize)
         {
-            var aspectRatio = (float)renderSize.X / renderSize.Y;
+            var aspectRatio = renderSize.X / renderSize.Y;
             var imageWidth = (int)(renderSize.X * _renderScaleRatio);
             var imageHeight = (int)(imageWidth / aspectRatio);
 
-            // TODO: Call a delete function
-            _textureImage = CreatePlatformImage(commandList, imageWidth, imageHeight);
-
-            if (_currentRenderSize.X == 0)
-            {
-                _textureImageId = _uiService.RegisterTexture(_textureImage.GpuTexture);
-            }
-            else
-            {
-                _uiService.UpdateTexture(_textureImageId, _textureImage.GpuTexture);
-            }
+            CreateOrUpdateTextureImage(commandList, imageWidth, imageHeight, ref _textureImage);
+            CreateOrUpdateTextureImage(commandList, (int)renderSize.X, (int)renderSize.Y, ref _fullResolutionTextureImage);
 
             _currentRenderSize = renderSize;
 
@@ -193,21 +241,34 @@ public class PathTracerApplication
         return camera;
     }
 
-    private TextureImage CreatePlatformImage(CommandList commandList, int width, int height)
+    private void CreateOrUpdateTextureImage(CommandList commandList, int width, int height, ref TextureImage textureImage)
     {
+        // TODO: Call a delete function
+
         var cpuTexture = _graphicsService.CreateTexture(_graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Staging, TextureType.Texture2D);
         var gpuTexture = _graphicsService.CreateTexture(_graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Sampled, TextureType.Texture2D);
 
         var imageData = new uint[width * height];
+        var textureId = textureImage.TextureId;
 
-        return new TextureImage
+        if (_currentRenderSize.X == 0 && _currentRenderSize.Y == 0)
+        {
+            textureId = _uiService.RegisterTexture(gpuTexture);
+        }
+        else
+        {
+            _uiService.UpdateTexture(textureId, gpuTexture);
+        }
+
+        textureImage = textureImage with
         {
             Width = width,
             Height = height,
             CpuTexture = cpuTexture,
             GpuTexture = gpuTexture,
             CommandList = commandList,
-            ImageData = imageData
+            ImageData = imageData,
+            TextureId = textureId
         };
     }
 }
