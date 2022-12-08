@@ -126,20 +126,19 @@ public class PathTracerApplication
             
             _uiService.BeginPanel("Render", PanelStyles.NoTitle | PanelStyles.NoPadding);
             var renderSize = _uiService.GetPanelAvailableSize();
+            
+            var renderImage = _textureImage;
 
             if (_isFullResolutionRenderComplete)
             {
-                _uiService.Image(_fullResolutionTextureImage.TextureId, (int)renderSize.X, (int)renderSize.Y);
-            }
-            else
-            {
-                _uiService.Image(_textureImage.TextureId, (int)renderSize.X, (int)renderSize.Y);
+                renderImage = _fullResolutionTextureImage;
             }
 
+            _uiService.Image(renderImage.TextureId, (int)renderSize.X, (int)renderSize.Y);
             _uiService.EndPanel();
 
             _uiService.BeginPanel("Inspector");
-            _uiService.Text("Hellooooo");
+            _uiService.Text($"Current RenderSize: {renderImage.Width}x{renderImage.Height}");
             _uiService.Text($"Show full resolution image: {_isFullResolutionRenderComplete}");
             _uiService.Text($"Last render time: {_lastRenderTime}");
             _uiService.EndPanel();
@@ -155,14 +154,12 @@ public class PathTracerApplication
             }
 
             _graphicsService.ResetCommandList(commandList);
-            _graphicsService.ClearColor(commandList, new Vector4(1, 1, 0, 1));
+            _graphicsService.ClearColor(commandList, Vector4.Zero);
 
-            var renderImage = _textureImage;
 
             if (camera != previousCamera || camera != previousCameraSize)
             {
                 Console.WriteLine("Rendering low res");
-                // TODO: Don't render low res image if not needed
                 renderingStopwatch.Restart();
                 _renderer.Render(renderImage, camera);
                 renderingStopwatch.Stop();
@@ -175,12 +172,7 @@ public class PathTracerApplication
             _graphicsService.PresentSwapChain(_graphicsDevice);
             stopwatch.Stop();
 
-            // TODO: Do better here
-            var waitingMS = Math.Clamp(_targetMS - stopwatch.ElapsedMilliseconds, 0, _targetMS);
-
-            _nativeUIService.SetWindowTitle(_nativeWindow, $"Path Tracer ({renderImage.Width}x{renderImage.Height}) - Frame: {stopwatch.Elapsed.Milliseconds:00}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds:00}ms, Render: {renderingStopwatch.ElapsedMilliseconds:00}ms, Waiting: {waitingMS:00}ms)");
-            //Thread.Sleep((int)waitingMS);
-
+            _nativeUIService.SetWindowTitle(_nativeWindow, $"Path Tracer - Frame: {stopwatch.Elapsed.Milliseconds:00}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds:00}ms, Render: {renderingStopwatch.ElapsedMilliseconds:00}ms)");
         }
     }
 
