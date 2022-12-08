@@ -53,7 +53,7 @@ public class PathTracerApplication
         _uiService = new UI.ImGuiProvider.ImGuiUIService(_nativeUIService, _graphicsService, _graphicsDevice, _nativeWindow);
 
         _targetMS = (int)(1.0f / 144.0f * 1000.0f);
-        _renderScaleRatio = 0.1f;
+        _renderScaleRatio = 0.5f;
     }
 
     public void Run()
