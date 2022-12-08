@@ -19,8 +19,6 @@ public func updateInputState(application: UnsafeMutablePointer<Int8>, inputState
 
     for event in queue { 
         let inputObjects = inputState.pointee.InputObjectPointer.bindMemory(to: InputObject.self, capacity: Int(inputState.pointee.InputObjectCount))
-        //let inputObjects = [NativeInputObject](Array(UnsafeBufferPointer(start: inputState.pointee.InputObjectPointer, count: Int(inputState.pointee.InputObjectCount))))
-        //let inputObjects = UnsafeMutableBufferPointer<NativeInputObject>(start: UnsafeMutablePointer<NativeInputObject>(inputState.pointee.InputObjectPointer), count: Int(inputState.pointee.InputObjectCount))        
 
         if (event.type == .keyUp || event.type == .keyDown) {
             processKey(inputObjects, KeyA, Int(Character("a").asciiValue!), event)
@@ -50,25 +48,14 @@ public func updateInputState(application: UnsafeMutablePointer<Int8>, inputState
             processKey(inputObjects, KeyY, Int(Character("y").asciiValue!), event)
             processKey(inputObjects, KeyZ, Int(Character("z").asciiValue!), event)
 
-            /*guard let keyChar = event.characters else {
-                return
-            }*/
-
-            /*if (keyCode == 123) { // Left Arrow
-                updateInputObject(&inputState.pointee.Keyboard.ArrowLeft, event)
-            } else if (keyCode == 124) { // Right Arrow
+             // Left Arrow
+                processKey(inputObjects, Left, 123, event)
+            /* else if (keyCode == 124) { // Right Arrow
                 updateInputObject(&inputState.pointee.Keyboard.ArrowRight, event)
             } else if (keyCode == 126) { // Up Arrow
                 updateInputObject(&inputState.pointee.Keyboard.ArrowUp, event)
             } else if (keyCode == 125) { // Down Arrow
                 updateInputObject(&inputState.pointee.Keyboard.ArrowDown, event)
-            }*/
-
-            /*switch (keyChar) {
-            case "a":
-                updateInputObject(&inputState.pointee.Keyboard.KeyA, event)
-            default:
-                continue
             }*/
         } else if (event.type == .leftMouseDown || event.type == .leftMouseUp) {
             inputObjects[Int(MouseLeftButton.rawValue)].Value = (event.type == .leftMouseDown) ? 1.0 : 0.0

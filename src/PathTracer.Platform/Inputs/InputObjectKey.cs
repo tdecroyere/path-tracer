@@ -39,6 +39,7 @@ public enum InputObjectKey
     End = 33,
     Home = 34,
     Left = 35,
+    Right = 79,
     Up = 36,
     Down = 37,
     Select = 38,
@@ -83,5 +84,5 @@ public enum InputObjectKey
     MouseAxisX = 76,
     MouseAxisY = 77,
     MouseLeftButton = 78,
-    MaxValue = 79
+    MaxValue = 80
 }

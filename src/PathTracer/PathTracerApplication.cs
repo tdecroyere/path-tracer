@@ -23,7 +23,8 @@ public class PathTracerApplication
 
     private TextureImage _textureImage;
     private nint _textureImageId;
-    private NativeWindowSize _currentRenderSize;
+    private NativeWindowSize _currentWindowSize;
+    private Vector2 _currentRenderSize;
     private readonly float _renderScaleRatio;
 
     public PathTracerApplication(INativeApplicationService applicationService,
@@ -42,14 +43,14 @@ public class PathTracerApplication
         var windowHeight = 720;
 
         _nativeApplication = applicationService.CreateApplication("Path Tracer");
-        _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Normal);
+        _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Maximized);
         _graphicsDevice = graphicsService.CreateDevice(_nativeWindow);
 
         // TODO: Refactor that !
         _uiService = new UI.ImGuiProvider.ImGuiUIService(_nativeUIService, _graphicsService, _graphicsDevice, _nativeWindow);
 
         _targetMS = (int)(1.0f / 60.0f * 1000.0f);
-        _renderScaleRatio = 0.25f;
+        _renderScaleRatio = 0.5f;
     }
 
     public void Run()
@@ -72,14 +73,35 @@ public class PathTracerApplication
             systemMessagesStopwatch.Restart();
             appStatus = _applicationService.ProcessSystemMessages(_nativeApplication);
             systemMessagesStopwatch.Stop();
+            
+            var windowSize = _nativeUIService.GetWindowRenderSize(_nativeWindow);
+
+            if (_currentWindowSize != windowSize)
+            {
+                _graphicsService.ResizeSwapChain(_graphicsDevice, windowSize.Width, windowSize.Height);
+                _uiService.Resize(windowSize.Width, windowSize.Height, windowSize.UIScale);
+
+                Console.WriteLine($"Resize: {windowSize}");
+
+                _currentWindowSize = windowSize;
+            }
 
             _inputService.UpdateInputState(_nativeApplication, ref inputState);
             camera = UpdateCamera(camera, inputState, deltaTime);
 
             // TODO: Compute the correct timing
             _uiService.Update(1.0f / 60.0f, inputState);
+            
+            _uiService.BeginPanel("Render", PanelStyles.NoTitle | PanelStyles.NoPadding);
+            var renderSize = _uiService.GetPanelAvailableSize();
+            _uiService.Image(_textureImageId, (int)renderSize.X, (int)renderSize.Y);
+            _uiService.EndPanel();
 
-            camera = CreateRenderSizeDependentResources(camera, commandList);
+            _uiService.BeginPanel("Inspector");
+            _uiService.Text("Hellooooo");
+            _uiService.EndPanel();
+
+            camera = CreateRenderSizeDependentResources(camera, commandList, renderSize);
             var renderImage = _textureImage;
 
             renderingStopwatch.Restart();
@@ -89,18 +111,9 @@ public class PathTracerApplication
 
             _renderer.Render(renderImage, camera);
             renderingStopwatch.Stop();
+            
             stopwatch.Stop();
-
             _graphicsService.SubmitCommandList(commandList);
-
-            _uiService.BeginPanel("Render", PanelStyles.NoTitle | PanelStyles.NoPadding);
-            var renderSize = _uiService.GetPanelAvailableSize();
-            _uiService.Image(_textureImageId, (int)renderSize.X, (int)renderSize.Y);
-            _uiService.EndPanel();
-
-            _uiService.BeginPanel("Inspector");
-            _uiService.Text("Hellooooo");
-            _uiService.EndPanel();
 
             _uiService.Render();
 
@@ -119,8 +132,8 @@ public class PathTracerApplication
     {
         var forwardInput = inputState.Keyboard.KeyZ.Value - inputState.Keyboard.KeyS.Value;
         var sideInput = inputState.Keyboard.KeyD.Value - inputState.Keyboard.KeyQ.Value;
-        var rotateYInput = 0;//inputState.Keyboard.ArrowRight.Value - inputState.Keyboard.ArrowLeft.Value;
-        var rotateXInput = 0;//inputState.Keyboard.ArrowDown.Value - inputState.Keyboard.ArrowUp.Value;
+        var rotateYInput = inputState.Keyboard.Right.Value - inputState.Keyboard.Left.Value;
+        var rotateXInput = inputState.Keyboard.Down.Value - inputState.Keyboard.Up.Value;
 
         // TODO: No acceleration for the moment
         var movementSpeed = 1.0f;
@@ -149,20 +162,18 @@ public class PathTracerApplication
         };
     }
 
-    private Camera CreateRenderSizeDependentResources(Camera camera, CommandList commandList)
+    private Camera CreateRenderSizeDependentResources(Camera camera, CommandList commandList, Vector2 renderSize)
     {
-        var renderSize = _nativeUIService.GetWindowRenderSize(_nativeWindow);
-
         if (renderSize != _currentRenderSize)
         {
-            var aspectRatio = (float)renderSize.Width / renderSize.Height;
-            var imageWidth = (int)(renderSize.Width * _renderScaleRatio);
+            var aspectRatio = (float)renderSize.X / renderSize.Y;
+            var imageWidth = (int)(renderSize.X * _renderScaleRatio);
             var imageHeight = (int)(imageWidth / aspectRatio);
 
             // TODO: Call a delete function
             _textureImage = CreatePlatformImage(commandList, imageWidth, imageHeight);
 
-            if (_currentRenderSize.Width == 0)
+            if (_currentRenderSize.X == 0)
             {
                 _textureImageId = _uiService.RegisterTexture(_textureImage.GpuTexture);
             }

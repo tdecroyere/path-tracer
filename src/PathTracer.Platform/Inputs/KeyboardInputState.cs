@@ -46,6 +46,7 @@ public ref struct KeyboardInputState
     public ref InputObject End => ref _inputObjects[(int)InputObjectKey.End];
     public ref InputObject Home => ref _inputObjects[(int)InputObjectKey.Home];
     public ref InputObject Left => ref _inputObjects[(int)InputObjectKey.Left];
+    public ref InputObject Right => ref _inputObjects[(int)InputObjectKey.Right];
     public ref InputObject Up => ref _inputObjects[(int)InputObjectKey.Up];
     public ref InputObject Down => ref _inputObjects[(int)InputObjectKey.Down];
     public ref InputObject Select => ref _inputObjects[(int)InputObjectKey.Select];
