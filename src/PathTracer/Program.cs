@@ -1,7 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using PathTracer;
-using PathTracer.Platform;
-using PathTracer.UI;
 
 var serviceCollection = new ServiceCollection();
 serviceCollection.UseNativePlatform();

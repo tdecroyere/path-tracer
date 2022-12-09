@@ -1,14 +1,23 @@
-using PathTracer.Platform.GraphicsLegacy;
-
 namespace PathTracer;
 
 public record struct TextureImage : IImage
 {
-    public required int Width { get; init; }
-    public required int Height { get; init; }
-    public required Texture CpuTexture { get; init; }
-    public required Texture GpuTexture { get; init; }
-    public required nint TextureId { get; init; }
-    public required CommandList CommandList { get; init; }
-    public required Memory<uint> ImageData { get; init; }
+    public TextureImage()
+    {
+        Width = 0;
+        Height = 0;
+        CpuTexture = new Texture();
+        GpuTexture = new Texture();
+        CommandList = new CommandList();
+        ImageData = Array.Empty<uint>();
+        TextureId = 0;
+    }
+
+    public int Width { get; init; }
+    public int Height { get; init; }
+    public Texture CpuTexture { get; init; }
+    public Texture GpuTexture { get; init; }
+    public nint TextureId { get; init; }
+    public CommandList CommandList { get; init; }
+    public Memory<uint> ImageData { get; init; }
 }
