@@ -21,42 +21,45 @@ public func updateInputState(application: UnsafeMutablePointer<Int8>, inputState
         let inputObjects = inputState.pointee.InputObjectPointer.bindMemory(to: InputObject.self, capacity: Int(inputState.pointee.InputObjectCount))
 
         if (event.type == .keyUp || event.type == .keyDown) {
-            processKey(inputObjects, KeyA, Int(Character("a").asciiValue!), event)
-            processKey(inputObjects, KeyB, Int(Character("b").asciiValue!), event)
-            processKey(inputObjects, KeyC, Int(Character("c").asciiValue!), event)
-            processKey(inputObjects, KeyD, Int(Character("d").asciiValue!), event)
-            processKey(inputObjects, KeyE, Int(Character("e").asciiValue!), event)
-            processKey(inputObjects, KeyF, Int(Character("f").asciiValue!), event)
-            processKey(inputObjects, KeyG, Int(Character("g").asciiValue!), event)
-            processKey(inputObjects, KeyH, Int(Character("h").asciiValue!), event)
-            processKey(inputObjects, KeyI, Int(Character("i").asciiValue!), event)
-            processKey(inputObjects, KeyJ, Int(Character("j").asciiValue!), event)
-            processKey(inputObjects, KeyK, Int(Character("k").asciiValue!), event)
-            processKey(inputObjects, KeyL, Int(Character("l").asciiValue!), event)
-            processKey(inputObjects, KeyM, Int(Character("m").asciiValue!), event)
-            processKey(inputObjects, KeyN, Int(Character("n").asciiValue!), event)
-            processKey(inputObjects, KeyO, Int(Character("o").asciiValue!), event)
-            processKey(inputObjects, KeyP, Int(Character("p").asciiValue!), event)
-            processKey(inputObjects, KeyQ, Int(Character("q").asciiValue!), event)
-            processKey(inputObjects, KeyR, Int(Character("r").asciiValue!), event)
-            processKey(inputObjects, KeyS, Int(Character("s").asciiValue!), event)
-            processKey(inputObjects, KeyT, Int(Character("t").asciiValue!), event)
-            processKey(inputObjects, KeyU, Int(Character("u").asciiValue!), event)
-            processKey(inputObjects, KeyV, Int(Character("v").asciiValue!), event)
-            processKey(inputObjects, KeyW, Int(Character("w").asciiValue!), event)
-            processKey(inputObjects, KeyX, Int(Character("x").asciiValue!), event)
-            processKey(inputObjects, KeyY, Int(Character("y").asciiValue!), event)
-            processKey(inputObjects, KeyZ, Int(Character("z").asciiValue!), event)
+            processKey(inputObjects, KeyA, "a", event)
+            processKey(inputObjects, KeyB, "b", event)
+            processKey(inputObjects, KeyC, "c", event)
+            processKey(inputObjects, KeyD, "d", event)
+            processKey(inputObjects, KeyE, "e", event)
+            processKey(inputObjects, KeyF, "f", event)
+            processKey(inputObjects, KeyG, "g", event)
+            processKey(inputObjects, KeyH, "h", event)
+            processKey(inputObjects, KeyI, "i", event)
+            processKey(inputObjects, KeyJ, "j", event)
+            processKey(inputObjects, KeyK, "k", event)
+            processKey(inputObjects, KeyL, "l", event)
+            processKey(inputObjects, KeyM, "m", event)
+            processKey(inputObjects, KeyN, "n", event)
+            processKey(inputObjects, KeyO, "o", event)
+            processKey(inputObjects, KeyP, "p", event)
+            processKey(inputObjects, KeyQ, "q", event)
+            processKey(inputObjects, KeyR, "r", event)
+            processKey(inputObjects, KeyS, "s", event)
+            processKey(inputObjects, KeyT, "t", event)
+            processKey(inputObjects, KeyU, "u", event)
+            processKey(inputObjects, KeyV, "v", event)
+            processKey(inputObjects, KeyW, "w", event)
+            processKey(inputObjects, KeyX, "x", event)
+            processKey(inputObjects, KeyY, "y", event)
+            processKey(inputObjects, KeyZ, "z", event)
 
-             // Left Arrow
-                processKey(inputObjects, Left, 123, event)
-            /* else if (keyCode == 124) { // Right Arrow
-                updateInputObject(&inputState.pointee.Keyboard.ArrowRight, event)
-            } else if (keyCode == 126) { // Up Arrow
-                updateInputObject(&inputState.pointee.Keyboard.ArrowUp, event)
-            } else if (keyCode == 125) { // Down Arrow
-                updateInputObject(&inputState.pointee.Keyboard.ArrowDown, event)
-            }*/
+            // Left Arrow
+            processKey(inputObjects, Left, 123, event)
+            
+            // Right Arrow
+            processKey(inputObjects, Right, 124, event)
+            
+            // Up Arrow
+            processKey(inputObjects, Up, 126, event)
+            
+            // Down Arrow
+            processKey(inputObjects, Down, 125, event)
+
         } else if (event.type == .leftMouseDown || event.type == .leftMouseUp) {
             inputObjects[Int(MouseLeftButton.rawValue)].Value = (event.type == .leftMouseDown) ? 1.0 : 0.0
         } else if (event.type == .mouseMoved || event.type == .leftMouseDragged) {
@@ -79,15 +82,18 @@ private func processKey(_ inputObjects: UnsafeMutablePointer<InputObject>, _ key
 
 private func processKey(_ inputObjects: UnsafeMutablePointer<InputObject>, _ key: InputObjectKey, _ keyCode: Int, _ event: NSEvent)
 {
-    var isValid = false
-    // TODO: Check keycode first
+    var isValid = event.keyCode == keyCode
 
-    guard let keyChar = event.characters else {
-        return
-    }
+    if (event.characters != nil) {
+        guard let keyChar = event.characters else {
+            return
+        }
 
-    if (Character(keyChar).asciiValue! == keyCode) {
-       isValid = true 
+        let asciiValue = Character(keyChar).asciiValue
+
+        if (asciiValue != nil && asciiValue! == keyCode) {
+            isValid = true 
+        }
     }
 
     if (isValid) {
