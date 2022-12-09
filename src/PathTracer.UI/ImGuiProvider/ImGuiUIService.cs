@@ -8,7 +8,6 @@ namespace PathTracer.UI.ImGuiProvider;
 
 public class ImGuiUIService : IUIService
 {
-    private readonly INativeUIService _nativeUIService;
     private readonly IGraphicsService _graphicsService;
     private readonly ImGuiBackend _imGuiBackend;
     private readonly ImGuiRenderer _imGuiRenderer;
@@ -18,7 +17,6 @@ public class ImGuiUIService : IUIService
     {
         var renderSize = nativeUIService.GetWindowRenderSize(window);
 
-        _nativeUIService = nativeUIService;
         _graphicsService = graphicsService;
         _imGuiBackend = new ImGuiBackend(renderSize.Width, renderSize.Height, renderSize.UIScale);
         _imGuiRenderer = new ImGuiRenderer(graphicsService, graphicsDevice, "Menlo-Regular");
@@ -75,13 +73,12 @@ public class ImGuiUIService : IUIService
         _imGuiRenderer.UpdateTexture(id, texture);
     }
 
-    public void BeginPanel(string title, PanelStyles panelStyles)
+    public bool BeginPanel(string title, PanelStyles panelStyles)
     {
         if ((panelStyles & PanelStyles.NoPadding) != 0)
         {
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
         }
-
         var flags = ImGuiWindowFlags.NoCollapse;
 
         if ((panelStyles & PanelStyles.NoTitle) != 0)
@@ -89,12 +86,14 @@ public class ImGuiUIService : IUIService
             flags |= ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoDecoration;
         }
 
-        ImGui.Begin(title, flags);
+        var result = ImGui.Begin(title, flags);
 
         if ((panelStyles & PanelStyles.NoPadding) != 0)
         {
             ImGui.PopStyleVar();
         }
+
+        return result;
     }
 
     public void EndPanel()
@@ -107,13 +106,57 @@ public class ImGuiUIService : IUIService
         return ImGui.GetContentRegionAvail();
     }
 
+    public bool CollapsingHeader(string text, bool isVisibleByDefault)
+    {
+        var flags = ImGuiTreeNodeFlags.CollapsingHeader;
+
+        if (isVisibleByDefault)
+        {
+            flags |= ImGuiTreeNodeFlags.DefaultOpen;
+        }
+
+        return ImGui.CollapsingHeader(text, flags);
+    }
+
     public void Text(string text)
     {
         ImGui.Text(text);
     }
 
+    public void NewLine()
+    {
+        ImGui.NewLine();
+    }
+
     public void Image(nint textureId, int width, int height)
     {
         ImGui.Image(textureId, new Vector2(width, height));
+    }
+
+    public bool Button(string text)
+    {
+        return ImGui.Button(text);
+    }
+
+    public bool BeginCombo(string label, string previewValue)
+    {
+        return ImGui.BeginCombo(label, previewValue);
+    }
+
+    public void EndCombo()
+    {
+        ImGui.EndCombo();
+    }
+
+    public bool Selectable(string text, bool isSelected)
+    {
+        var result = ImGui.Selectable(text);
+
+        if (isSelected)
+        {
+            ImGui.SetItemDefaultFocus();
+        }
+
+        return result;
     }
 }

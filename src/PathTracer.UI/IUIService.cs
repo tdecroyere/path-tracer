@@ -16,10 +16,17 @@ public interface IUIService
     nint RegisterTexture(Texture texture);
     void UpdateTexture(nint id, Texture texture);
 
-    void BeginPanel(string title, PanelStyles styles = PanelStyles.None);
+    bool BeginPanel(string title, PanelStyles styles = PanelStyles.None);
     void EndPanel();
     Vector2 GetPanelAvailableSize();
 
+    bool CollapsingHeader(string text, bool isVisibleByDefault = true);
     void Text(string text);
+    void NewLine();
     void Image(nint textureId, int width, int height);
+    bool Button(string text);
+
+    bool BeginCombo(string label, string previewValue);
+    void EndCombo();
+    bool Selectable(string text, bool isSelected = false);
 }
