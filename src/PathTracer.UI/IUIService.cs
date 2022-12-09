@@ -25,6 +25,7 @@ public interface IUIService
     void NewLine();
     void Image(nint textureId, int width, int height);
     bool Button(string text);
+    bool InputText(string label, ref string text, int maxLength = 255);
 
     bool BeginCombo(string label, string previewValue);
     void EndCombo();

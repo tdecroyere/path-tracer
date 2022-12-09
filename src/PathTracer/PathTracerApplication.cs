@@ -8,6 +8,7 @@ public class PathTracerApplication
     private readonly IGraphicsService _graphicsService;
     private readonly IUIService _uiService;
     private readonly IRenderer<TextureImage> _renderer;
+    private readonly IRenderer<PpmImage> _fileRenderer;
 
     private readonly NativeApplication _nativeApplication;
     private readonly NativeWindow _nativeWindow;
@@ -21,13 +22,15 @@ public class PathTracerApplication
                                  INativeUIService nativeUIService,
                                  IInputService inputService,
                                  IGraphicsService graphicsService,
-                                 IRenderer<TextureImage> renderer)
+                                 IRenderer<TextureImage> renderer,
+                                 IRenderer<PpmImage> fileRenderer)
     {
         _applicationService = applicationService;
         _nativeUIService = nativeUIService;
         _inputService = inputService;
         _graphicsService = graphicsService;
         _renderer = renderer;
+        _fileRenderer = fileRenderer;
 
         var windowWidth = 1280;
         var windowHeight = 720;
@@ -111,6 +114,28 @@ public class PathTracerApplication
             renderStatistics.FramesPerSeconds = fpsCounter.FramesPerSeconds;
 
             fpsCounter.Udpate();
+
+            // TODO: Change that and bind that to ui
+            if (inputState.Keyboard.KeyP.IsReleased)
+            {
+                Console.WriteLine("Rendering...");
+
+                var outputImage = new PpmImage
+                {
+                    Width = 500,
+                    Height = 500,
+                    OutputPath = "Test.ppm",
+                    ImageData = new Vector4[500 * 500]
+                };
+
+                var fileCamera = camera with
+                {
+                    AspectRatio = 1
+                };
+
+                _fileRenderer.Render(outputImage, fileCamera);
+                _fileRenderer.CommitImage(outputImage);
+            }
         }
     }
 

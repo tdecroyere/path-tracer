@@ -1,7 +1,4 @@
-using System.Runtime.InteropServices;
-using PathTracer.Platform.GraphicsLegacy;
-
-namespace PathTracer;
+namespace PathTracer.ImageWriters;
 
 public class TextureImageWriter : IImageWriter<TextureImage>
 {

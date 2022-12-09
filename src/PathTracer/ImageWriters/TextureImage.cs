@@ -1,4 +1,4 @@
-namespace PathTracer;
+namespace PathTracer.ImageWriters;
 
 public record struct TextureImage : IImage
 {

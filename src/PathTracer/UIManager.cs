@@ -7,11 +7,13 @@ public class UIManager
     private readonly ReadOnlyMemory<RenderResolutionItem> _resolutionItems;
 
     private RenderResolutionItem _currentResolutionItem;
+    private string _outputPath;
 
     public UIManager(IUIService uiService)
     {
         _uiService = uiService;
-        
+        _outputPath = "../../../TestData.ppm";
+
         _resolutionItems = new RenderResolutionItem[]
         {
             new RenderResolutionItem() { Name = "Ultra HD", Width = 3840, Height = 2160 },
@@ -79,6 +81,7 @@ public class UIManager
                 _uiService.EndCombo();
             }
 
+            _uiService.InputText("Output", ref _outputPath);
             _uiService.NewLine();
 
             if (_uiService.Button("Render"))

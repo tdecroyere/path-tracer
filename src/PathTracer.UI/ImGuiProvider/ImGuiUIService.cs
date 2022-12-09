@@ -137,6 +137,11 @@ public class ImGuiUIService : IUIService
     {
         return ImGui.Button(text);
     }
+    
+    public bool InputText(string label, ref string text, int maxLength)
+    {
+        return ImGui.InputText(label, ref text, (uint)maxLength);
+    }
 
     public bool BeginCombo(string label, string previewValue)
     {
