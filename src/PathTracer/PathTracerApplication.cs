@@ -53,7 +53,7 @@ public class PathTracerApplication
         _uiService = new UI.ImGuiProvider.ImGuiUIService(_nativeUIService, _graphicsService, _graphicsDevice, _nativeWindow);
 
         _targetMS = (int)(1.0f / 144.0f * 1000.0f);
-        _renderScaleRatio = 0.5f;
+        _renderScaleRatio = 0.25f;
     }
 
     public void Run()
@@ -61,11 +61,17 @@ public class PathTracerApplication
         var stopwatch = new Stopwatch();
         var systemMessagesStopwatch = new Stopwatch();
         var renderingStopwatch = new Stopwatch();
+        var currentFrameTime = 0L;
+        var framesPerSeconds = 0;
+        var framesPerSecondsCounter = 0;
+        var framesPerSecondsStopWatch = new Stopwatch();
 
         var appStatus = new NativeApplicationStatus();
         var inputState = new InputState();
         var camera = new Camera();
         var commandList = _graphicsService.CreateCommandList(_graphicsDevice);
+
+        framesPerSecondsStopWatch.Start();
 
         while (appStatus.IsRunning == 1)
         {
@@ -102,8 +108,9 @@ public class PathTracerApplication
             {
                 _fullResolutionRenderingTask = new Task<bool>(() =>
                 {
-                Console.WriteLine("Rendering high res");
+                    renderingStopwatch.Restart();
                     _renderer.Render(_fullResolutionTextureImage, camera);
+                    renderingStopwatch.Stop();
                     return true;
                 });
 
@@ -138,13 +145,14 @@ public class PathTracerApplication
             _uiService.EndPanel();
 
             _uiService.BeginPanel("Inspector");
-            _uiService.Text($"Current RenderSize: {renderImage.Width}x{renderImage.Height}");
-            _uiService.Text($"Show full resolution image: {_isFullResolutionRenderComplete}");
+            _uiService.Text($"FrameTime: {currentFrameTime} ms (FPS: {framesPerSeconds})");
+            _uiService.Text($"RenderSize: {renderImage.Width}x{renderImage.Height}");
+            _uiService.Text($"Last render duration: {renderingStopwatch.ElapsedMilliseconds} ms");
             _uiService.Text($"Last render time: {_lastRenderTime}");
             _uiService.EndPanel();
 
             var previousCameraSize = camera;
-            camera = CreateRenderSizeDependentResources(camera, commandList, renderSize);
+            camera = CreateRenderSizeDependentResources(camera, commandList, renderSize, windowSize.UIScale);
             
             if (camera != previousCameraSize)
             {
@@ -159,7 +167,6 @@ public class PathTracerApplication
 
             if (camera != previousCamera || camera != previousCameraSize)
             {
-                Console.WriteLine("Rendering low res");
                 renderingStopwatch.Restart();
                 _renderer.Render(renderImage, camera);
                 renderingStopwatch.Stop();
@@ -171,8 +178,16 @@ public class PathTracerApplication
             _uiService.Render();
             _graphicsService.PresentSwapChain(_graphicsDevice);
             stopwatch.Stop();
+            currentFrameTime = stopwatch.ElapsedMilliseconds;
 
-            _nativeUIService.SetWindowTitle(_nativeWindow, $"Path Tracer - Frame: {stopwatch.Elapsed.Milliseconds:00}ms (System: {systemMessagesStopwatch.ElapsedMilliseconds:00}ms, Render: {renderingStopwatch.ElapsedMilliseconds:00}ms)");
+            framesPerSecondsCounter++;
+
+            if (framesPerSecondsStopWatch.ElapsedMilliseconds >= 1000)
+            {
+                framesPerSeconds = framesPerSecondsCounter;
+                framesPerSecondsCounter = 0;
+                framesPerSecondsStopWatch.Restart();
+            }
         }
     }
 
@@ -211,16 +226,18 @@ public class PathTracerApplication
         };
     }
 
-    private Camera CreateRenderSizeDependentResources(Camera camera, CommandList commandList, Vector2 renderSize)
+    private Camera CreateRenderSizeDependentResources(Camera camera, CommandList commandList, Vector2 renderSize, float uiScale)
     {
         if (renderSize != _currentRenderSize)
         {
-            var aspectRatio = renderSize.X / renderSize.Y;
-            var imageWidth = (int)(renderSize.X * _renderScaleRatio);
+            var scaledRenderSize = renderSize * uiScale;
+
+            var aspectRatio = scaledRenderSize.X / scaledRenderSize.Y;
+            var imageWidth = (int)(scaledRenderSize.X * _renderScaleRatio);
             var imageHeight = (int)(imageWidth / aspectRatio);
 
             CreateOrUpdateTextureImage(commandList, imageWidth, imageHeight, ref _textureImage);
-            CreateOrUpdateTextureImage(commandList, (int)renderSize.X, (int)renderSize.Y, ref _fullResolutionTextureImage);
+            CreateOrUpdateTextureImage(commandList, (int)scaledRenderSize.X, (int)scaledRenderSize.Y, ref _fullResolutionTextureImage);
 
             _currentRenderSize = renderSize;
 
