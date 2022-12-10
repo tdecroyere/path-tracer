@@ -10,8 +10,8 @@
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
 
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">../../Build/Debug/Windows</OutputPath>
-    <OutputPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">../../Build/Debug/MacOS/PathTracer.app/Contents/MacOS</OutputPath>
+    <OutputPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">../../Build/$(Configuration)/Windows</OutputPath>
+    <OutputPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">../../Build/$(Configuration)/MacOS/PathTracer.app/Contents/MacOS</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>

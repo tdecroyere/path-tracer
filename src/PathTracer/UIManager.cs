@@ -3,16 +3,15 @@ namespace PathTracer;
 public class UIManager
 {
     private readonly IUIService _uiService;
+    private readonly ICommandManager _commandManager;
 
     private readonly ReadOnlyMemory<RenderResolutionItem> _resolutionItems;
+    private readonly RenderSettings _renderSettings;
 
-    private RenderResolutionItem _currentResolutionItem;
-    private string _outputPath;
-
-    public UIManager(IUIService uiService)
+    public UIManager(IUIService uiService, ICommandManager commandManager)
     {
         _uiService = uiService;
-        _outputPath = "../../../TestData.ppm";
+        _commandManager = commandManager;
 
         _resolutionItems = new RenderResolutionItem[]
         {
@@ -20,7 +19,11 @@ public class UIManager
             new RenderResolutionItem() { Name = "Full HD", Width = 1920, Height = 1080 }
         };
 
-        _currentResolutionItem = _resolutionItems.Span[0];
+        _renderSettings = new RenderSettings
+        {
+            Resolution = _resolutionItems.Span[0],
+            OutputPath = "TestData/Output.ppm"
+        };
     }
     
     public Vector2 BuildUI(TextureImage? renderImage, RenderStatistics renderStatistics)
@@ -66,27 +69,31 @@ public class UIManager
     {
         if (_uiService.CollapsingHeader("Render To Image", isVisibleByDefault: false))
         {
-            if (_uiService.BeginCombo("Resolution", _currentResolutionItem.Name))
+            if (_uiService.BeginCombo("Resolution", _renderSettings.Resolution.Name))
             {
                 for (var i = 0; i < _resolutionItems.Length; i++)
                 {
                     var resolutionItem = _resolutionItems.Span[i];
 
-                    if (_uiService.Selectable($"{resolutionItem.Name} ({resolutionItem.Width}x{resolutionItem.Height})", resolutionItem == _currentResolutionItem))
+                    if (_uiService.Selectable($"{resolutionItem.Name} ({resolutionItem.Width}x{resolutionItem.Height})", resolutionItem == _renderSettings.Resolution))
                     {
-                        _currentResolutionItem = resolutionItem;
+                        _renderSettings.Resolution = resolutionItem;
                     }
                 }
 
                 _uiService.EndCombo();
             }
 
-            _uiService.InputText("Output", ref _outputPath);
+            // TODO: Can we do something better here?
+            var outputPath = _renderSettings.OutputPath;
+            _uiService.InputText("Output", ref outputPath);
+            _renderSettings.OutputPath = outputPath;
+            
             _uiService.NewLine();
 
             if (_uiService.Button("Render"))
             {
-                Console.WriteLine("RENDER");
+                _commandManager.SendCommand(new RenderCommand() { RenderSettings = _renderSettings });
             }
         }
     }
@@ -105,7 +112,18 @@ public record RenderStatistics
     public DateTime LastRenderTime { get; set; }
 }
 
-internal readonly record struct RenderResolutionItem
+public record RenderCommand : ICommand
+{
+    public required RenderSettings RenderSettings { get; init; }
+}
+
+public record RenderSettings
+{
+    public required RenderResolutionItem Resolution { get; set; }
+    public required string OutputPath { get; set; }
+}
+
+public record RenderResolutionItem
 {
     public required string Name { get; init; }
     public required int Width { get; init; }

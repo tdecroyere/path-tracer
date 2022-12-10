@@ -5,19 +5,19 @@ namespace PathTracer.ImageWriters;
 
 public class SpanWriter
 {
-    private IBufferWriter<byte> buffer;
-    private ArrayBufferWriter<byte>? arrayBufferWriter;
+    private readonly IBufferWriter<byte> _buffer;
+    private readonly ArrayBufferWriter<byte>? _arrayBufferWriter;
 
     public SpanWriter()
     {
-        this.arrayBufferWriter = new ArrayBufferWriter<byte>();
-        this.buffer = arrayBufferWriter;
+        _arrayBufferWriter = new ArrayBufferWriter<byte>();
+        _buffer = _arrayBufferWriter;
     }
 
     public SpanWriter(int capacity)
     {
-        this.arrayBufferWriter = new ArrayBufferWriter<byte>(capacity);
-        this.buffer = arrayBufferWriter;
+        _arrayBufferWriter = new ArrayBufferWriter<byte>(capacity);
+        _buffer = _arrayBufferWriter;
     }
 
     public void WriteLine(ReadOnlySpan<char> value)
@@ -25,35 +25,35 @@ public class SpanWriter
         var encoding = UTF8Encoding.UTF8;
 
         var stringByteCount = encoding.GetByteCount(value) + 2;
-        var span = this.buffer.GetSpan(stringByteCount);
+        var span = this._buffer.GetSpan(stringByteCount);
 
         encoding.GetBytes(value, span);
 
-        var endSlice = span.Slice(stringByteCount - 2);
+        var endSlice = span[(stringByteCount - 2)..];
 
         endSlice[0] = (byte)'\r';
         endSlice[1] = (byte)'\n';
 
-        this.buffer.Advance(stringByteCount);
+        _buffer.Advance(stringByteCount);
     }
 
     public ReadOnlySpan<byte> AsSpan()
     {
-        if (this.arrayBufferWriter is null)
+        if (_arrayBufferWriter is null)
         {
             throw new InvalidOperationException("Cannot retrieve a span when the writer was initialized with an IBufferWriter.");
         }
 
-        return this.arrayBufferWriter.WrittenSpan;
+        return _arrayBufferWriter.WrittenSpan;
     }
 
     public ReadOnlyMemory<byte> AsMemory()
     {
-        if (this.arrayBufferWriter is null)
+        if (_arrayBufferWriter is null)
         {
             throw new InvalidOperationException("Cannot retrieve a span when the writer was initialized with an IBufferWriter.");
         }
 
-        return this.arrayBufferWriter.WrittenMemory;
+        return _arrayBufferWriter.WrittenMemory;
     }
 }
