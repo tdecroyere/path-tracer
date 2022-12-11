@@ -8,28 +8,45 @@ namespace PathTracer.UI.ImGuiProvider;
 
 public class ImGuiUIService : IUIService
 {
+    private readonly INativeUIService _nativeUIService;
     private readonly IGraphicsService _graphicsService;
-    private readonly ImGuiBackend _imGuiBackend;
-    private readonly ImGuiRenderer _imGuiRenderer;
-    private readonly CommandList _commandList;
 
-    public ImGuiUIService(INativeUIService nativeUIService, IGraphicsService graphicsService, GraphicsDevice graphicsDevice, NativeWindow window)
+    private ImGuiBackend? _imGuiBackend;
+    private ImGuiRenderer? _imGuiRenderer;
+    private CommandList? _commandList;
+
+    public ImGuiUIService(INativeUIService nativeUIService, IGraphicsService graphicsService)
     {
-        var renderSize = nativeUIService.GetWindowRenderSize(window);
-
+        _nativeUIService = nativeUIService;
         _graphicsService = graphicsService;
+    }
+
+    public void Init(NativeWindow window, GraphicsDevice graphicsDevice)
+    {
+        var renderSize = _nativeUIService.GetWindowRenderSize(window);
+
         _imGuiBackend = new ImGuiBackend(renderSize.Width, renderSize.Height, renderSize.UIScale);
-        _imGuiRenderer = new ImGuiRenderer(graphicsService, graphicsDevice, "Menlo-Regular");
-        _commandList = graphicsService.CreateCommandList(graphicsDevice);
+        _imGuiRenderer = new ImGuiRenderer(_graphicsService, graphicsDevice, "Menlo-Regular");
+        _commandList = _graphicsService.CreateCommandList(graphicsDevice);
     }
 
     public void Resize(int width, int height, float uiScale)
     {
+        if (_imGuiBackend is null)
+        {
+            throw new InvalidOperationException("You need call the init method first.");
+        }
+
         _imGuiBackend.Resize(width, height, uiScale);
     }
 
     public void Update(float deltaTime, InputState inputState)
     {
+        if (_imGuiBackend is null)
+        {
+            throw new InvalidOperationException("You need call the init method first.");
+        }
+
         _imGuiBackend.Update(deltaTime, inputState);
         
         var dockId = ImGui.GetID("PathTracerDock");
@@ -52,24 +69,39 @@ public class ImGuiUIService : IUIService
 
     public void Render()
     {
+        if (_imGuiBackend is null || _imGuiRenderer is null || _commandList is null)
+        {
+            throw new InvalidOperationException("You need call the init method first.");
+        }
+
         ImGui.End();
         _imGuiBackend.Render();
 
         var imGuiDrawData = ImGui.GetDrawData();
         imGuiDrawData.ScaleClipRects(imGuiDrawData.FramebufferScale);
 
-        _graphicsService.ResetCommandList(_commandList);
-        _imGuiRenderer.RenderImDrawData(_commandList, ref imGuiDrawData);
-        _graphicsService.SubmitCommandList(_commandList);
+        _graphicsService.ResetCommandList(_commandList.Value);
+        _imGuiRenderer.RenderImDrawData(_commandList.Value, ref imGuiDrawData);
+        _graphicsService.SubmitCommandList(_commandList.Value);
     }
     
     public nint RegisterTexture(Texture texture)
     {
+        if (_imGuiRenderer is null)
+        {
+            throw new InvalidOperationException("You need call the init method first.");
+        }
+
         return _imGuiRenderer.RegisterTexture(texture);
     }
 
     public void UpdateTexture(nint id, Texture texture)
     {
+        if (_imGuiRenderer is null)
+        {
+            throw new InvalidOperationException("You need call the init method first.");
+        }
+        
         _imGuiRenderer.UpdateTexture(id, texture);
     }
 

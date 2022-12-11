@@ -4,12 +4,12 @@ public static class MathUtils
 {
     public static float DegreesToRad(float angle)
     {
-        return (angle * MathF.PI) / 180.0f;
+        return angle * MathF.PI / 180.0f;
     }
 
     public static float RadToDegrees(float angle)
     {
-        return (angle * 180.0f) / MathF.PI;
+        return angle * 180.0f / MathF.PI;
     }
 
     public static Matrix4x4 CreateLookAtMatrix(Vector3 cameraPosition, Vector3 cameraTarget, Vector3 cameraUpVector)

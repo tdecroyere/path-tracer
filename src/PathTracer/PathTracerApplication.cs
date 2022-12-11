@@ -8,6 +8,7 @@ public class PathTracerApplication
     private readonly IGraphicsService _graphicsService;
     private readonly IUIService _uiService;
     private readonly ICommandManager _commandManager;
+    private readonly UIManager _uiManager;
     private readonly IRenderer<TextureImage> _renderer;
     private readonly IRenderer<FileImage> _fileRenderer;
 
@@ -15,9 +16,7 @@ public class PathTracerApplication
     private readonly NativeWindow _nativeWindow;
     private readonly GraphicsDevice _graphicsDevice;
 
-    private readonly UIManager _uiManager;
-
-    private readonly float _lowResolutionScaleRatio;
+    private const float _lowResolutionScaleRatio = 0.25f;
 
     private Camera _camera;
     private RenderStatistics _renderStatistics;
@@ -27,7 +26,9 @@ public class PathTracerApplication
                                  INativeUIService nativeUIService,
                                  IInputService inputService,
                                  IGraphicsService graphicsService,
+                                 IUIService uiService,
                                  ICommandManager commandManager,
+                                 UIManager uIManager,
                                  IRenderer<TextureImage> renderer,
                                  IRenderer<FileImage> fileRenderer)
     {
@@ -35,7 +36,9 @@ public class PathTracerApplication
         _nativeUIService = nativeUIService;
         _inputService = inputService;
         _graphicsService = graphicsService;
+        _uiService = uiService;
         _commandManager = commandManager;
+        _uiManager = uIManager;
         _renderer = renderer;
         _fileRenderer = fileRenderer;
 
@@ -46,11 +49,8 @@ public class PathTracerApplication
         _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Maximized);
         _graphicsDevice = graphicsService.CreateDevice(_nativeWindow);
 
-        // TODO: Refactor that !
-        _uiService = new UI.ImGuiProvider.ImGuiUIService(_nativeUIService, _graphicsService, _graphicsDevice, _nativeWindow);
-        _uiManager = new UIManager(_uiService, _commandManager);
+        _uiService.Init(_nativeWindow, _graphicsDevice);
 
-        _lowResolutionScaleRatio = 0.25f;
         _camera = new Camera();
         _renderStatistics = new RenderStatistics();
 
@@ -231,7 +231,7 @@ public class PathTracerApplication
 
         // TODO: No acceleration for the moment
         var movementSpeed = 1.0f;
-        var rotationSpeed = 1.0f;
+        var rotationSpeed = 0.5f;
 
         // TODO: Put right direction vector to the Camera struct
         var forwardDirection = camera.Target - camera.Position;

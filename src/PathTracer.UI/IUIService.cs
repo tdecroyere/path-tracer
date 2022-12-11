@@ -1,4 +1,5 @@
 using System.Numerics;
+using PathTracer.Platform;
 using PathTracer.Platform.GraphicsLegacy;
 using PathTracer.Platform.Inputs;
 
@@ -8,6 +9,7 @@ namespace PathTracer.UI;
 // for native rendering
 public interface IUIService
 {
+    void Init(NativeWindow window, GraphicsDevice graphicsDevice);
     void Resize(int width, int height, float uiScale);
     void Update(float deltaTime, InputState inputState);
     void Render();

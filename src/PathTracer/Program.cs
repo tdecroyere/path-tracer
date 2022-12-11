@@ -3,8 +3,7 @@
 var serviceCollection = new ServiceCollection();
 serviceCollection.UseNativePlatform();
 serviceCollection.UseGraphicsPlatform();
-//serviceCollection.UseImGui();
-serviceCollection.AddScoped<ICommandManager, CommandManager>();
+serviceCollection.UseUI();
 
 // TODO: Use builder pattern
 serviceCollection.AddScoped<IImageWriter<TextureImage>, TextureImageWriter>();
@@ -12,6 +11,7 @@ serviceCollection.AddScoped<IRenderer<TextureImage>, Renderer<TextureImage>>();
 serviceCollection.AddScoped<IImageWriter<FileImage>, FileImageWriter>();
 serviceCollection.AddScoped<IRenderer<FileImage>, Renderer<FileImage>>();
 
+serviceCollection.AddScoped<UIManager>();
 serviceCollection.AddScoped<PathTracerApplication>();
 
 var serviceProvider = serviceCollection.BuildServiceProvider();
