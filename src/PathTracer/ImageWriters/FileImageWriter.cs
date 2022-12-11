@@ -6,6 +6,8 @@ namespace PathTracer.ImageWriters;
 
 public class FileImageWriter : IImageWriter<FileImage>
 {
+    private const float _gammaCorrection = 1.0f / 2.2f;
+
     public FileImageWriter()
     {
     }
@@ -24,18 +26,22 @@ public class FileImageWriter : IImageWriter<FileImage>
         {
             for (var j = 0; j < image.Width; j++)
             {
-                var color = image.ImageData.Span[i * image.Width + j];
+                var pixel = image.ImageData.Span[i * image.Width + j];
 
-                var red = (byte)(color.X * 255);
-                var green = (byte)(color.Y * 255);
-                var blue = (byte)(color.Z * 255);
-              
-                outputImage[j, i] = new Rgb24(red, green, blue);
+                pixel = GammaCorrect(pixel);
+                pixel = Vector4.Clamp(pixel * 255.0f, Vector4.Zero, new Vector4(255.0f));
+            
+                outputImage[j, i] = new Rgb24((byte)pixel.X, (byte)pixel.Y, (byte)pixel.Z);
             }
         }
 
         using var fileStream = new FileStream(image.OutputPath, FileMode.Create);
         var encoder = new PngEncoder();
         encoder.Encode(outputImage, fileStream); 
+    }
+    
+    private static Vector4 GammaCorrect(Vector4 pixel)
+    {
+        return new Vector4(MathF.Pow(pixel.X, _gammaCorrection), MathF.Pow(pixel.Y, _gammaCorrection), MathF.Pow(pixel.Z, _gammaCorrection), pixel.W);
     }
 }
