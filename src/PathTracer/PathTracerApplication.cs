@@ -9,7 +9,7 @@ public class PathTracerApplication
     private readonly IUIService _uiService;
     private readonly ICommandManager _commandManager;
     private readonly IRenderer<TextureImage> _renderer;
-    private readonly IRenderer<PpmImage> _fileRenderer;
+    private readonly IRenderer<FileImage> _fileRenderer;
 
     private readonly NativeApplication _nativeApplication;
     private readonly NativeWindow _nativeWindow;
@@ -20,6 +20,8 @@ public class PathTracerApplication
     private readonly float _lowResolutionScaleRatio;
 
     private Camera _camera;
+    private RenderStatistics _renderStatistics;
+    private Task? _fileRenderingTask;
 
     public PathTracerApplication(INativeApplicationService applicationService,
                                  INativeUIService nativeUIService,
@@ -27,7 +29,7 @@ public class PathTracerApplication
                                  IGraphicsService graphicsService,
                                  ICommandManager commandManager,
                                  IRenderer<TextureImage> renderer,
-                                 IRenderer<PpmImage> fileRenderer)
+                                 IRenderer<FileImage> fileRenderer)
     {
         _applicationService = applicationService;
         _nativeUIService = nativeUIService;
@@ -50,6 +52,7 @@ public class PathTracerApplication
 
         _lowResolutionScaleRatio = 0.25f;
         _camera = new Camera();
+        _renderStatistics = new RenderStatistics();
 
         _commandManager.RegisterCommandHandler(new Action<RenderCommand>(RenderToImage));
     }
@@ -71,8 +74,6 @@ public class PathTracerApplication
 
         var _isFullResolutionRenderComplete = false;
         Task<bool>? _fullResolutionRenderingTask = null;
-
-        var renderStatistics = new RenderStatistics();
 
         while (appStatus.IsRunning == 1)
         {
@@ -103,12 +104,12 @@ public class PathTracerApplication
             _uiService.Update(deltaTime, inputState);
 
             var renderImage = _isFullResolutionRenderComplete ? _fullResolutionTextureImage : _textureImage;
-            var availableViewportSize = _uiManager.BuildUI(renderImage, renderStatistics);
+            var availableViewportSize = _uiManager.BuildUI(renderImage, _renderStatistics);
 
             var previousCameraSize = _camera;
             _camera = CreateRenderTexturesIfNeeded(_camera, commandList, availableViewportSize, windowSize.UIScale, ref _currentRenderSize, ref _textureImage, ref _fullResolutionTextureImage);
             
-            RenderScene(_camera, commandList, previousCamera, previousCameraSize, _fullResolutionTextureImage, _textureImage, ref _isFullResolutionRenderComplete, ref _fullResolutionRenderingTask, ref renderStatistics);
+            RenderScene(_camera, commandList, previousCamera, previousCameraSize, _fullResolutionTextureImage, _textureImage, ref _isFullResolutionRenderComplete, ref _fullResolutionRenderingTask, ref _renderStatistics);
 
             _graphicsService.ResetCommandList(commandList);
             _graphicsService.ClearColor(commandList, Vector4.Zero);
@@ -119,35 +120,50 @@ public class PathTracerApplication
 
             stopwatch.Stop();
 
-            renderStatistics.CurrentFrameTime = stopwatch.ElapsedMilliseconds;
-            renderStatistics.FramesPerSeconds = fpsCounter.FramesPerSeconds;
+            _renderStatistics.CurrentFrameTime = stopwatch.ElapsedMilliseconds;
+            _renderStatistics.FramesPerSeconds = fpsCounter.FramesPerSeconds;
 
             fpsCounter.Udpate();
+
+            if (_fileRenderingTask != null && _fileRenderingTask.Exception != null)
+            {
+                Console.WriteLine(_fileRenderingTask.Exception);
+                _fileRenderingTask = null;
+            }
         }
     }
 
     private void RenderToImage(RenderCommand renderCommand)
     {
-        Console.WriteLine("Rendering...");
-        
-        var width = renderCommand.RenderSettings.Resolution.Width;
-        var height = renderCommand.RenderSettings.Resolution.Height;
-
-        var outputImage = new PpmImage
+        if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
         {
-            Width = width,
-            Height = height,
-            OutputPath = renderCommand.RenderSettings.OutputPath,
-            ImageData = new Vector4[width * height]
-        };
+            _fileRenderingTask = new Task(() => 
+            {
+                _renderStatistics.IsFileRenderingActive = true;
 
-        var fileCamera = _camera with
-        {
-            AspectRatio = (float)width / height
-        };
+                var width = renderCommand.RenderSettings.Resolution.Width;
+                var height = renderCommand.RenderSettings.Resolution.Height;
 
-        _fileRenderer.Render(outputImage, fileCamera);
-        _fileRenderer.CommitImage(outputImage);
+                var outputImage = new FileImage
+                {
+                    Width = width,
+                    Height = height,
+                    OutputPath = renderCommand.RenderSettings.OutputPath,
+                    ImageData = new Vector4[width * height]
+                };
+
+                var fileCamera = _camera with
+                {
+                    AspectRatio = (float)width / height
+                };
+
+                _fileRenderer.Render(outputImage, fileCamera);
+                _fileRenderer.CommitImage(outputImage);
+                _renderStatistics.IsFileRenderingActive = false;
+            });
+
+            _fileRenderingTask.Start();
+        }
     }
 
     private void RenderScene(Camera camera, 

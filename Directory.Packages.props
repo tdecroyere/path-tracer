@@ -8,6 +8,7 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
     <PackageVersion Include="ImGui.NET" Version="1.88.0" />
     <PackageVersion Include="Veldrid" Version="4.9.0-beta2" />
+    <PackageVersion Include="SixLabors.ImageSharp" Version="2.1.3" /> 
   </ItemGroup>
 
   <!-- Analyzers -->

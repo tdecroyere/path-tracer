@@ -9,8 +9,8 @@ serviceCollection.AddScoped<ICommandManager, CommandManager>();
 // TODO: Use builder pattern
 serviceCollection.AddScoped<IImageWriter<TextureImage>, TextureImageWriter>();
 serviceCollection.AddScoped<IRenderer<TextureImage>, Renderer<TextureImage>>();
-serviceCollection.AddScoped<IImageWriter<PpmImage>, PpmImageWriter>();
-serviceCollection.AddScoped<IRenderer<PpmImage>, Renderer<PpmImage>>();
+serviceCollection.AddScoped<IImageWriter<FileImage>, FileImageWriter>();
+serviceCollection.AddScoped<IRenderer<FileImage>, Renderer<FileImage>>();
 
 serviceCollection.AddScoped<PathTracerApplication>();
 

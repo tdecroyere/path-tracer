@@ -133,9 +133,21 @@ public class ImGuiUIService : IUIService
         ImGui.Image(textureId, new Vector2(width, height));
     }
 
-    public bool Button(string text)
+    public bool Button(string text, ControlStyles controlStyles)
     {
-        return ImGui.Button(text);
+        if ((controlStyles & ControlStyles.Disabled) != 0)
+        {
+            ImGui.BeginDisabled();
+        }
+
+        var result = ImGui.Button(text);
+
+        if ((controlStyles & ControlStyles.Disabled) != 0)
+        {
+            ImGui.EndDisabled();
+        }
+
+        return result;
     }
     
     public bool InputText(string label, ref string text, int maxLength)

@@ -1,8 +1,8 @@
 namespace PathTracer.ImageWriters;
 
-public record struct PpmImage : IImage
+public record struct FileImage : IImage
 {
-    public PpmImage()
+    public FileImage()
     {
         Width = 0;
         Height = 0;

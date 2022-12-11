@@ -75,7 +75,7 @@ public class Renderer<TImage> : IRenderer<TImage> where TImage : IImage
         var normal = Vector3.Normalize(intersectPoint);
 
         // Remap the normal to color space
-        //return 0.5f * (normal + new Vector3(1, 1, 1));
+        //return new Vector4(0.5f * (normal + new Vector3(1, 1, 1)), 1.0f);
 
         // Compute light
         var light = MathF.Max(Vector3.Dot(normal, -lightDirection), 0.0f);

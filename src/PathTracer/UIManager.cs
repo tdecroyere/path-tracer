@@ -22,7 +22,7 @@ public class UIManager
         _renderSettings = new RenderSettings
         {
             Resolution = _resolutionItems.Span[0],
-            OutputPath = "TestData/Output.ppm"
+            OutputPath = "TestData/Output.png"
         };
     }
     
@@ -45,7 +45,7 @@ public class UIManager
         if (_uiService.BeginPanel("Inspector"))
         {
             BuildStatistics(renderImage, renderStatistics);
-            BuildRenderToImage();
+            BuildRenderToImage(renderStatistics);
 
             _uiService.EndPanel();
         }
@@ -65,7 +65,7 @@ public class UIManager
         }
     }
 
-    private void BuildRenderToImage()
+    private void BuildRenderToImage(RenderStatistics renderStatistics)
     {
         if (_uiService.CollapsingHeader("Render To Image", isVisibleByDefault: false))
         {
@@ -91,9 +91,14 @@ public class UIManager
             
             _uiService.NewLine();
 
-            if (_uiService.Button("Render"))
+            if (_uiService.Button("Render", renderStatistics.IsFileRenderingActive ? ControlStyles.Disabled : ControlStyles.None))
             {
                 _commandManager.SendCommand(new RenderCommand() { RenderSettings = _renderSettings });
+            }
+
+            if (renderStatistics.IsFileRenderingActive)
+            {
+                _uiService.Text("Rendering...");
             }
         }
     }
@@ -110,6 +115,7 @@ public record RenderStatistics
     public long CurrentFrameTime { get; set; }
     public int FramesPerSeconds { get; set; }
     public DateTime LastRenderTime { get; set; }
+    public bool IsFileRenderingActive { get; set; }
 }
 
 public record RenderCommand : ICommand

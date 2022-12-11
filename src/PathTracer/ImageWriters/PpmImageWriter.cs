@@ -3,19 +3,19 @@ using System.Text;
 
 namespace PathTracer.ImageWriters;
 
-public class PpmImageWriter : IImageWriter<PpmImage>
+public class PpmImageWriter : IImageWriter<FileImage>
 {
     public PpmImageWriter()
     {
     }
 
-    public void StorePixel(PpmImage image, int x, int y, Vector4 pixel)
+    public void StorePixel(FileImage image, int x, int y, Vector4 pixel)
     {
         var pixelRowIndex = (image.Height - 1 - y) * image.Width;
         image.ImageData.Span[pixelRowIndex + x] = pixel;
     }
 
-    public void CommitImage(PpmImage image)
+    public void CommitImage(FileImage image)
     {
         var writer = new SpanWriter(image.Width * image.Height * 7 * sizeof(char));
 

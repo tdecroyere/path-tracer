@@ -24,7 +24,7 @@ public interface IUIService
     void Text(string text);
     void NewLine();
     void Image(nint textureId, int width, int height);
-    bool Button(string text);
+    bool Button(string text, ControlStyles styles = ControlStyles.None);
     bool InputText(string label, ref string text, int maxLength = 255);
 
     bool BeginCombo(string label, string previewValue);
