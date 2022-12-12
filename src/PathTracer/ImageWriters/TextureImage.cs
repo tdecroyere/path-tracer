@@ -8,7 +8,6 @@ public record struct TextureImage : IImage
         Height = 0;
         CpuTexture = new Texture();
         GpuTexture = new Texture();
-        CommandList = new CommandList();
         ImageData = Array.Empty<uint>();
         TextureId = 0;
     }
@@ -18,6 +17,6 @@ public record struct TextureImage : IImage
     public Texture CpuTexture { get; init; }
     public Texture GpuTexture { get; init; }
     public nint TextureId { get; init; }
-    public CommandList CommandList { get; init; }
+    public required CommandList CommandList { get; init; }
     public Memory<uint> ImageData { get; init; }
 }

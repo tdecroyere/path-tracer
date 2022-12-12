@@ -1,148 +1,18 @@
 namespace PathTracer;
 
-public class PathTracerApplication
+public class RenderManager
 {
-    private readonly INativeApplicationService _applicationService;
-    private readonly INativeUIService _nativeUIService;
-    private readonly IInputService _inputService;
+    private const float _lowResolutionScaleRatio = 0.25f;
+    
     private readonly IGraphicsService _graphicsService;
-    private readonly IUIService _uiService;
-    private readonly ICommandManager _commandManager;
-    private readonly UIManager _uiManager;
     private readonly IRenderer<TextureImage> _renderer;
     private readonly IRenderer<FileImage> _fileRenderer;
-
-    private readonly NativeApplication _nativeApplication;
-    private readonly NativeWindow _nativeWindow;
-    private readonly GraphicsDevice _graphicsDevice;
-
-    private const float _lowResolutionScaleRatio = 0.25f;
 
     private Camera _camera;
     private RenderStatistics _renderStatistics;
     private Task? _fileRenderingTask;
 
-    public PathTracerApplication(INativeApplicationService applicationService,
-                                 INativeUIService nativeUIService,
-                                 IInputService inputService,
-                                 IGraphicsService graphicsService,
-                                 IUIService uiService,
-                                 ICommandManager commandManager,
-                                 UIManager uIManager,
-                                 IRenderer<TextureImage> renderer,
-                                 IRenderer<FileImage> fileRenderer)
-    {
-        _applicationService = applicationService;
-        _nativeUIService = nativeUIService;
-        _inputService = inputService;
-        _graphicsService = graphicsService;
-        _uiService = uiService;
-        _commandManager = commandManager;
-        _uiManager = uIManager;
-        _renderer = renderer;
-        _fileRenderer = fileRenderer;
-
-        var windowWidth = 1280;
-        var windowHeight = 720;
-
-        _nativeApplication = applicationService.CreateApplication("Path Tracer");
-        _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Maximized);
-        _graphicsDevice = graphicsService.CreateDevice(_nativeWindow);
-
-        _uiService.Init(_nativeWindow, _graphicsDevice);
-
-        _camera = new Camera();
-        _renderStatistics = new RenderStatistics();
-
-        _commandManager.RegisterCommandHandler(new Action<RenderCommand>(RenderToImage));
-    }
-
-    public void Run()
-    {
-        var stopwatch = new Stopwatch();
-        var fpsCounter = new FpsCounter();
-
-        var appStatus = new NativeApplicationStatus();
-        var inputState = new InputState();
-        var commandList = _graphicsService.CreateCommandList(_graphicsDevice);
-
-        var _textureImage = new TextureImage { CommandList = commandList };
-        var _fullResolutionTextureImage = new TextureImage { CommandList = commandList };
-
-        var _currentWindowSize = new NativeWindowSize();
-        var _currentRenderSize = Vector2.Zero;
-
-        var _isFullResolutionRenderComplete = false;
-        Task<bool>? _fullResolutionRenderingTask = null;
-
-        while (appStatus.IsRunning == 1)
-        {
-            var deltaTime = stopwatch.ElapsedMilliseconds * 0.001f;
-            stopwatch.Restart();
-
-            appStatus = _applicationService.ProcessSystemMessages(_nativeApplication);
-            _inputService.UpdateInputState(_nativeApplication, ref inputState);
-
-            _commandManager.Update();
-
-            var windowSize = _nativeUIService.GetWindowRenderSize(_nativeWindow);
-
-            if (_currentWindowSize != windowSize)
-            {
-                _graphicsService.ResizeSwapChain(_graphicsDevice, windowSize.Width, windowSize.Height);
-                _uiService.Resize(windowSize.Width, windowSize.Height, windowSize.UIScale);
-
-                Console.WriteLine($"Resize: {windowSize}");
-
-                _currentWindowSize = windowSize;
-            }
-
-            _uiService.Update(deltaTime, inputState);
-
-            var renderImage = _isFullResolutionRenderComplete ? _fullResolutionTextureImage : _textureImage;
-            var availableViewportSize = _uiManager.BuildUI(renderImage, _renderStatistics);
-
-            var previousCamera = _camera;
-            _camera = UpdateCamera(_camera, inputState, deltaTime);
-            
-            if (availableViewportSize != _currentRenderSize)
-            {
-                _camera = _camera with
-                {
-                    AspectRatio = availableViewportSize.X / availableViewportSize.Y
-                };
-            
-                var scaledRenderSize = availableViewportSize * windowSize.UIScale;
-                CreateRenderTextures((int)scaledRenderSize.X, (int)scaledRenderSize.Y, ref _textureImage, ref _fullResolutionTextureImage);
-                _currentRenderSize = availableViewportSize;
-            }
-            
-            RenderScene(_camera, commandList, previousCamera, _fullResolutionTextureImage, _textureImage, ref _isFullResolutionRenderComplete, ref _fullResolutionRenderingTask, ref _renderStatistics);
-
-            // TODO: Get rid of the clear color, for that we need to fix the UI 1px border padding
-            _graphicsService.ResetCommandList(commandList);
-            _graphicsService.ClearColor(commandList, Vector4.Zero);
-            _graphicsService.SubmitCommandList(commandList);
-
-            _uiService.Render();
-            _graphicsService.PresentSwapChain(_graphicsDevice);
-
-            stopwatch.Stop();
-
-            _renderStatistics.CurrentFrameTime = stopwatch.ElapsedMilliseconds;
-            _renderStatistics.FramesPerSeconds = fpsCounter.FramesPerSeconds;
-
-            fpsCounter.Update();
-
-            if (_fileRenderingTask != null && _fileRenderingTask.Exception != null)
-            {
-                Console.WriteLine(_fileRenderingTask.Exception);
-                _fileRenderingTask = null;
-            }
-        }
-    }
-
-    private void RenderToImage(RenderCommand renderCommand)
+    public void RenderToImage(RenderCommand renderCommand)
     {
         if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
         {
@@ -175,7 +45,7 @@ public class PathTracerApplication
         }
     }
 
-    private void RenderScene(Camera camera, 
+    public void RenderScene(Camera camera, 
                              CommandList commandList, 
                              Camera previousCamera, 
                              TextureImage _fullResolutionTextureImage, 
