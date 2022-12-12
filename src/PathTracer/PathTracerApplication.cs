@@ -107,10 +107,21 @@ public class PathTracerApplication
             var availableViewportSize = _uiManager.BuildUI(renderImage, _renderStatistics);
 
             var previousCameraSize = _camera;
-            _camera = CreateRenderTexturesIfNeeded(_camera, commandList, availableViewportSize, windowSize.UIScale, ref _currentRenderSize, ref _textureImage, ref _fullResolutionTextureImage);
+            
+            if (availableViewportSize != _currentRenderSize)
+            {
+                _camera = _camera with
+                {
+                    AspectRatio = availableViewportSize.X / availableViewportSize.Y
+                };
+            
+                CreateRenderTexturesIfNeeded(commandList, availableViewportSize, windowSize.UIScale, ref _textureImage, ref _fullResolutionTextureImage);
+                _currentRenderSize = availableViewportSize;
+            }
             
             RenderScene(_camera, commandList, previousCamera, previousCameraSize, _fullResolutionTextureImage, _textureImage, ref _isFullResolutionRenderComplete, ref _fullResolutionRenderingTask, ref _renderStatistics);
 
+            // TODO: Get rid of the clear color, for that we need to fix the UI 1px border padding
             _graphicsService.ResetCommandList(commandList);
             _graphicsService.ClearColor(commandList, Vector4.Zero);
             _graphicsService.SubmitCommandList(commandList);
@@ -123,7 +134,7 @@ public class PathTracerApplication
             _renderStatistics.CurrentFrameTime = stopwatch.ElapsedMilliseconds;
             _renderStatistics.FramesPerSeconds = fpsCounter.FramesPerSeconds;
 
-            fpsCounter.Udpate();
+            fpsCounter.Update();
 
             if (_fileRenderingTask != null && _fileRenderingTask.Exception != null)
             {
@@ -256,31 +267,19 @@ public class PathTracerApplication
         };
     }
 
-    private Camera CreateRenderTexturesIfNeeded(Camera camera, CommandList commandList, Vector2 renderSize, float uiScale, ref Vector2 _currentRenderSize, ref TextureImage _textureImage, ref TextureImage _fullResolutionTextureImage)
+    private void CreateRenderTexturesIfNeeded(CommandList commandList, Vector2 renderSize, float uiScale, ref TextureImage _textureImage, ref TextureImage _fullResolutionTextureImage)
     {
-        if (renderSize != _currentRenderSize)
-        {
-            var scaledRenderSize = renderSize * uiScale;
+        var scaledRenderSize = renderSize * uiScale;
 
-            var aspectRatio = scaledRenderSize.X / scaledRenderSize.Y;
-            var imageWidth = (int)(scaledRenderSize.X * _lowResolutionScaleRatio);
-            var imageHeight = (int)(imageWidth / aspectRatio);
+        var aspectRatio = scaledRenderSize.X / scaledRenderSize.Y;
+        var imageWidth = (int)(scaledRenderSize.X * _lowResolutionScaleRatio);
+        var imageHeight = (int)(imageWidth / aspectRatio);
 
-            CreateOrUpdateTextureImage(commandList, imageWidth, imageHeight, _currentRenderSize, ref _textureImage);
-            CreateOrUpdateTextureImage(commandList, (int)scaledRenderSize.X, (int)scaledRenderSize.Y, _currentRenderSize, ref _fullResolutionTextureImage);
-
-            _currentRenderSize = renderSize;
-
-            return camera with
-            {
-                AspectRatio = aspectRatio
-            };
-        }
-
-        return camera;
+        CreateOrUpdateTextureImage(commandList, imageWidth, imageHeight, ref _textureImage);
+        CreateOrUpdateTextureImage(commandList, (int)scaledRenderSize.X, (int)scaledRenderSize.Y, ref _fullResolutionTextureImage);
     }
 
-    private void CreateOrUpdateTextureImage(CommandList commandList, int width, int height, Vector2 _currentRenderSize, ref TextureImage textureImage)
+    private void CreateOrUpdateTextureImage(CommandList commandList, int width, int height, ref TextureImage textureImage)
     {
         // TODO: Call a delete function
 
@@ -290,7 +289,7 @@ public class PathTracerApplication
         var imageData = new uint[width * height];
         var textureId = textureImage.TextureId;
 
-        if (_currentRenderSize.X == 0 && _currentRenderSize.Y == 0)
+        if (textureImage.Width == 0 && textureImage.Height == 0)
         {
             textureId = _uiService.RegisterTexture(gpuTexture);
         }

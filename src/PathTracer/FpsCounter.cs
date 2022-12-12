@@ -17,7 +17,7 @@ public class FpsCounter
         private set;
     }
 
-    public void Udpate()
+    public void Update()
     {
         _framesPerSecondsCounter++;
 
