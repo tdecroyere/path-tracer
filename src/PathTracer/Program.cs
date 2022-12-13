@@ -6,12 +6,13 @@ serviceCollection.UseGraphicsPlatform();
 serviceCollection.UseUI();
 
 // TODO: Use builder pattern
-serviceCollection.AddScoped<IImageWriter<TextureImage>, TextureImageWriter>();
-serviceCollection.AddScoped<IRenderer<TextureImage>, Renderer<TextureImage>>();
-serviceCollection.AddScoped<IImageWriter<FileImage>, FileImageWriter>();
-serviceCollection.AddScoped<IRenderer<FileImage>, Renderer<FileImage>>();
+serviceCollection.AddScoped<IImageWriter<TextureImage, CommandList>, TextureImageWriter>();
+serviceCollection.AddScoped<IRenderer<TextureImage, CommandList>, Renderer<TextureImage, CommandList>>();
+serviceCollection.AddScoped<IImageWriter<FileImage, string>, FileImageWriter>();
+serviceCollection.AddScoped<IRenderer<FileImage, string>, Renderer<FileImage, string>>();
 
 serviceCollection.AddScoped<UIManager>();
+serviceCollection.AddScoped<RenderManager>();
 serviceCollection.AddScoped<PathTracerApplication>();
 
 var serviceProvider = serviceCollection.BuildServiceProvider();

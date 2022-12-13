@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace PathTracer.ImageWriters;
 
-public class FileImageWriter : IImageWriter<FileImage>
+public class FileImageWriter : IImageWriter<FileImage, string>
 {
     private const float _gammaCorrection = 1.0f / 2.2f;
 
@@ -18,7 +18,7 @@ public class FileImageWriter : IImageWriter<FileImage>
         image.ImageData.Span[pixelRowIndex + x] = pixel;
     }
 
-    public void CommitImage(FileImage image)
+    public void CommitImage(FileImage image, string outputPath)
     {
         var outputImage = new Image<Rgb24>(image.Width, image.Height);
 
@@ -35,7 +35,7 @@ public class FileImageWriter : IImageWriter<FileImage>
             }
         }
 
-        using var fileStream = new FileStream(image.OutputPath, FileMode.Create);
+        using var fileStream = new FileStream(outputPath, FileMode.Create);
         var encoder = new PngEncoder();
         encoder.Encode(outputImage, fileStream); 
     }

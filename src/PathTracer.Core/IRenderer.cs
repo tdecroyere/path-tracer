@@ -1,7 +1,7 @@
 namespace PathTracer.Core;
 
-public interface IRenderer<TImage> where TImage : IImage
+public interface IRenderer<TImage, TParameter> where TImage : IImage
 {
     void Render(TImage image, Camera camera);
-    void CommitImage(TImage image);
+    void CommitImage(TImage image, TParameter parameter);
 }

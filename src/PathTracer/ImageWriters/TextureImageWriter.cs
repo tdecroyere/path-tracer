@@ -1,6 +1,6 @@
 namespace PathTracer.ImageWriters;
 
-public class TextureImageWriter : IImageWriter<TextureImage>
+public class TextureImageWriter : IImageWriter<TextureImage, CommandList>
 {
     private readonly IGraphicsService _graphicsService;
     private const float _gammaCorrection = 1.0f / 2.2f;
@@ -20,14 +20,17 @@ public class TextureImageWriter : IImageWriter<TextureImage>
         image.ImageData.Span[pixelRowIndex + x] = (uint)pixel.W << 24 | (uint)pixel.Z << 16 | (uint)pixel.Y << 8 | (uint)pixel.X;
     }
 
-    private static Vector4 GammaCorrect(Vector4 pixel)
-    {
-        return new Vector4(MathF.Pow(pixel.X, _gammaCorrection), MathF.Pow(pixel.Y, _gammaCorrection), MathF.Pow(pixel.Z, _gammaCorrection), pixel.W);
-    }
-
-    public void CommitImage(TextureImage image)
+    public void CommitImage(TextureImage image, CommandList commandList)
     {
         _graphicsService.UpdateTexture<uint>(image.CpuTexture, image.ImageData.Span);
-        _graphicsService.CopyTexture(image.CommandList, image.CpuTexture, image.GpuTexture);
+        _graphicsService.CopyTexture(commandList, image.CpuTexture, image.GpuTexture);
+    }
+
+    private static Vector4 GammaCorrect(Vector4 pixel)
+    {
+        // TODO: Performance issue here
+        // We need to to the pow with SIMD
+        // TODO: Move that to MathUtils
+        return new Vector4(MathF.Pow(pixel.X, _gammaCorrection), MathF.Pow(pixel.Y, _gammaCorrection), MathF.Pow(pixel.Z, _gammaCorrection), pixel.W);
     }
 }

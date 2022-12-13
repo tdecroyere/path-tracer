@@ -1,10 +1,10 @@
 namespace PathTracer.Core;
 
-public class Renderer<TImage> : IRenderer<TImage> where TImage : IImage
+public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where TImage : IImage
 {
-    private readonly IImageWriter<TImage> _imageWriter;
+    private readonly IImageWriter<TImage, TParameter> _imageWriter;
 
-    public Renderer(IImageWriter<TImage> imageWriter)
+    public Renderer(IImageWriter<TImage, TParameter> imageWriter)
     {
         _imageWriter = imageWriter;
     }
@@ -38,9 +38,9 @@ public class Renderer<TImage> : IRenderer<TImage> where TImage : IImage
         });
     }
 
-    public void CommitImage(TImage image)
+    public void CommitImage(TImage image, TParameter parameter)
     {
-        _imageWriter.CommitImage(image);
+        _imageWriter.CommitImage(image, parameter);
     }
 
     private static Vector4 PixelShader(Vector2 pixelCoordinates, RayGenerator rayGenerator)

@@ -1,6 +1,6 @@
 namespace PathTracer.ImageWriters;
 
-public record struct TextureImage : IImage
+public readonly record struct TextureImage : IImage
 {
     public TextureImage()
     {
@@ -17,6 +17,5 @@ public record struct TextureImage : IImage
     public Texture CpuTexture { get; init; }
     public Texture GpuTexture { get; init; }
     public nint TextureId { get; init; }
-    public required CommandList CommandList { get; init; }
     public Memory<uint> ImageData { get; init; }
 }

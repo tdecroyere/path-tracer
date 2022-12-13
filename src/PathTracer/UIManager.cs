@@ -1,5 +1,6 @@
 namespace PathTracer;
 
+// TODO: Create an interface
 public class UIManager
 {
     private readonly IUIService _uiService;
