@@ -1,80 +1,63 @@
 namespace PathTracer;
 
-public class RenderManager
+public class RenderManager : IRenderManager
 {
     private const float _lowResolutionScaleRatio = 0.25f;
-    
+
     private readonly IGraphicsService _graphicsService;
     private readonly IUIService _uiService;
     private readonly IRenderer<TextureImage, CommandList> _renderer;
     private readonly IRenderer<FileImage, string> _fileRenderer;
 
-    private Task? _fileRenderingTask;
-    private bool _isFullResolutionRenderComplete = false;
-    
-    TextureImage _textureImage;
-    TextureImage _fullResolutionTextureImage;
-    Task<bool>? _fullResolutionRenderingTask = null;
+    private readonly Stopwatch _renderStopwatch;
 
-    public RenderManager(IGraphicsService graphicsService, 
-                         IUIService uiService, 
-                         IRenderer<TextureImage, CommandList> renderer, 
+    private Task? _fileRenderingTask;
+    private Task? _fullResolutionRenderingTask = null;
+    private bool _isFullResolutionRenderComplete = false;
+
+    private TextureImage _textureImage;
+    private TextureImage _fullResolutionTextureImage;
+    private Camera _camera;
+
+    public RenderManager(IGraphicsService graphicsService,
+                         IUIService uiService,
+                         IRenderer<TextureImage, CommandList> renderer,
                          IRenderer<FileImage, string> fileRenderer)
     {
         _graphicsService = graphicsService;
         _uiService = uiService;
         _renderer = renderer;
         _fileRenderer = fileRenderer;
+
+        _renderStopwatch = new Stopwatch();
+        _camera = new Camera();
     }
 
     public TextureImage CurrentTextureImage => _isFullResolutionRenderComplete ? _fullResolutionTextureImage : _textureImage;
-    
-    public ValueTask<bool> RenderToImage(Camera camera, RenderCommand renderCommand)
+    public bool IsFileRenderingActive => !_fileRenderingTask?.IsCompleted ?? false;
+    public DateTime LastRenderTime { get; private set; }
+    public long RenderDuration { get; private set; }
+
+    public void CreateRenderTextures(GraphicsDevice graphicsDevice, int width, int height)
     {
-        if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
-        {
-            _fileRenderingTask = new Task<bool>(() => 
-            {
-                var width = renderCommand.RenderSettings.Resolution.Width;
-                var height = renderCommand.RenderSettings.Resolution.Height;
+        var aspectRatio = (float)width / height;
+        var lowResWidth = (int)(width * _lowResolutionScaleRatio);
+        var lowResHeight = (int)(lowResWidth / aspectRatio);
 
-                var outputImage = new FileImage
-                {
-                    Width = width,
-                    Height = height,
-                    ImageData = new Vector4[width * height]
-                };
-
-                var fileCamera = camera with
-                {
-                    AspectRatio = (float)width / height
-                };
-
-                _fileRenderer.Render(outputImage, fileCamera);
-                _fileRenderer.CommitImage(outputImage, renderCommand.RenderSettings.OutputPath);
-                return true;
-            });
-
-            _fileRenderingTask.Start();
-        }
-
-        return ValueTask.FromResult(true);
+        _textureImage = CreateOrUpdateTextureImage(graphicsDevice, in _textureImage, lowResWidth, lowResHeight);
+        _fullResolutionTextureImage = CreateOrUpdateTextureImage(graphicsDevice, in _fullResolutionTextureImage, width, height);
     }
 
-    public void RenderScene(Camera camera, 
-                             CommandList commandList, 
-                             Camera previousCamera, 
-                             ref RenderStatistics renderStatistics)
+    // TODO: Maybe we could store the previous camera in a field?
+    public void RenderScene(CommandList commandList, Camera camera)
     {
-        var renderStopwatch = renderStatistics.RenderStopwatch;
-        
         // TODO: Do we need a global task, can we reuse task with a pool?
-        if (camera != previousCamera)
+        if (camera != _camera)
         {
             Console.WriteLine("Render Low Resolution");
-            renderStopwatch.Restart();
+            _renderStopwatch.Restart();
             _renderer.Render(_textureImage, camera);
-            renderStopwatch.Stop();
+            _renderStopwatch.Stop();
             _graphicsService.ResetCommandList(commandList);
             _renderer.CommitImage(_textureImage, commandList);
             _graphicsService.SubmitCommandList(commandList);
@@ -85,13 +68,13 @@ public class RenderManager
         }
         else if (_fullResolutionRenderingTask == null && _isFullResolutionRenderComplete == false)
         {
-            _fullResolutionRenderingTask = new Task<bool>(() =>
+            _fullResolutionRenderingTask = new Task(() =>
             {
                 Console.WriteLine("Render Full Resolution");
-                renderStopwatch.Restart();
+                _renderStopwatch.Restart();
                 _renderer.Render(_fullResolutionTextureImage, camera);
-                renderStopwatch.Stop();
-                return true;
+                _renderStopwatch.Stop();
+                RenderDuration = _renderStopwatch.ElapsedMilliseconds;
             });
 
             _fullResolutionRenderingTask.Start();
@@ -99,24 +82,54 @@ public class RenderManager
 
         if (_fullResolutionRenderingTask != null && _fullResolutionRenderingTask.Status == TaskStatus.RanToCompletion)
         {
-            _isFullResolutionRenderComplete = _fullResolutionRenderingTask.Result;
+            _isFullResolutionRenderComplete = true;
             _fullResolutionRenderingTask = null;
-            renderStatistics.LastRenderTime = DateTime.Now;
+            LastRenderTime = DateTime.Now;
 
             _graphicsService.ResetCommandList(commandList);
             _renderer.CommitImage(_fullResolutionTextureImage, commandList);
             _graphicsService.SubmitCommandList(commandList);
         }
-    }
-   
-    public void CreateRenderTextures(GraphicsDevice graphicsDevice, int width, int height)
-    {
-        var aspectRatio = (float)width / height;
-        var lowResWidth = (int)(width * _lowResolutionScaleRatio);
-        var lowResHeight = (int)(lowResWidth / aspectRatio);
 
-        _textureImage = CreateOrUpdateTextureImage(graphicsDevice, in _textureImage, lowResWidth, lowResHeight);
-        _fullResolutionTextureImage = CreateOrUpdateTextureImage(graphicsDevice, in _fullResolutionTextureImage, width, height);
+        _camera = camera;
+    }
+
+    public void RenderToImage(RenderSettings renderSettings)
+    {
+        if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
+        {
+            _fileRenderingTask = new Task(() =>
+            {
+                var width = renderSettings.Resolution.Width;
+                var height = renderSettings.Resolution.Height;
+
+                var outputImage = new FileImage
+                {
+                    Width = width,
+                    Height = height,
+                    ImageData = new Vector4[width * height]
+                };
+
+                var fileCamera = _camera with
+                {
+                    AspectRatio = (float)width / height
+                };
+
+                _fileRenderer.Render(outputImage, fileCamera);
+                _fileRenderer.CommitImage(outputImage, renderSettings.OutputPath);
+            });
+
+            _fileRenderingTask.Start();
+        }
+    }
+
+    public void CheckRenderToImageErrors()
+    {
+        if (_fileRenderingTask != null && _fileRenderingTask.Exception != null)
+        {
+            Console.WriteLine(_fileRenderingTask.Exception);
+            _fileRenderingTask = null;
+        }
     }
 
     private TextureImage CreateOrUpdateTextureImage(GraphicsDevice graphicsDevice, in TextureImage textureImage, int width, int height)

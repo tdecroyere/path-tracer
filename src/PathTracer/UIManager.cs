@@ -1,7 +1,6 @@
 namespace PathTracer;
 
-// TODO: Create an interface
-public class UIManager
+public class UIManager : IUIManager
 {
     private readonly IUIService _uiService;
     private readonly ICommandManager _commandManager;
@@ -26,9 +25,21 @@ public class UIManager
             OutputPath = "TestData/Output.png"
         };
     }
-    
-    public Vector2 BuildUI(TextureImage? renderImage, RenderStatistics renderStatistics)
+
+    public void Init(NativeWindow window, GraphicsDevice graphicsDevice)
     {
+        _uiService.Init(window, graphicsDevice);
+    }
+
+    public void Resize(NativeWindowSize windowSize)
+    {
+        _uiService.Resize(windowSize);
+    }
+
+    public Vector2 Update(float deltaTime, InputState inputState, TextureImage? renderImage, RenderStatistics renderStatistics)
+    {
+        _uiService.Update(deltaTime, inputState);
+
         var availableViewportSize = Vector2.Zero;
 
         if (_uiService.BeginPanel("Render", PanelStyles.NoTitle | PanelStyles.NoPadding))
@@ -54,13 +65,18 @@ public class UIManager
         return availableViewportSize;
     }
 
+    public void Render()
+    {
+        _uiService.Render();
+    }
+
     private void BuildStatistics(TextureImage? renderImage, RenderStatistics renderStatistics)
     {
         if (_uiService.CollapsingHeader("Statistics"))
         {
             _uiService.Text($"FrameTime: {renderStatistics.CurrentFrameTime} ms (FPS: {renderStatistics.FramesPerSeconds})");
             _uiService.Text($"RenderSize: {renderImage?.Width}x{renderImage?.Height}");
-            _uiService.Text($"Last render duration: {renderStatistics.RenderStopwatch.ElapsedMilliseconds} ms");
+            _uiService.Text($"Last render duration: {renderStatistics.RenderDuration} ms");
             _uiService.Text($"Last render time: {renderStatistics.LastRenderTime}");
             _uiService.NewLine();
         }
@@ -89,7 +105,7 @@ public class UIManager
             var outputPath = _renderSettings.OutputPath;
             _uiService.InputText("Output", ref outputPath);
             _renderSettings.OutputPath = outputPath;
-            
+
             _uiService.NewLine();
 
             if (_uiService.Button("Render", renderStatistics.IsFileRenderingActive ? ControlStyles.Disabled : ControlStyles.None))
@@ -103,36 +119,4 @@ public class UIManager
             }
         }
     }
-}
-
-public record RenderStatistics
-{
-    public RenderStatistics()
-    {
-        RenderStopwatch = new Stopwatch();
-    }
-
-    public Stopwatch RenderStopwatch { get; set; }
-    public long CurrentFrameTime { get; set; }
-    public int FramesPerSeconds { get; set; }
-    public DateTime LastRenderTime { get; set; }
-    public bool IsFileRenderingActive { get; set; }
-}
-
-public record RenderCommand : ICommand
-{
-    public required RenderSettings RenderSettings { get; init; }
-}
-
-public record RenderSettings
-{
-    public required RenderResolutionItem Resolution { get; set; }
-    public required string OutputPath { get; set; }
-}
-
-public record RenderResolutionItem
-{
-    public required string Name { get; init; }
-    public required int Width { get; init; }
-    public required int Height { get; init; }
 }

@@ -6,40 +6,34 @@ public class PathTracerApplication
     private readonly INativeUIService _nativeUIService;
     private readonly IInputService _inputService;
     private readonly IGraphicsService _graphicsService;
-    private readonly IUIService _uiService;
     private readonly ICommandManager _commandManager;
-    private readonly UIManager _uiManager;
-    private readonly RenderManager _renderManager;
-    private readonly IRenderer<FileImage, string> _fileRenderer;
+    private readonly IUIManager _uiManager;
+    private readonly IRenderManager _renderManager;
 
     private readonly NativeApplication _nativeApplication;
     private readonly NativeWindow _nativeWindow;
     private readonly GraphicsDevice _graphicsDevice;
+    private readonly RenderStatistics _renderStatistics;
 
     private Camera _camera;
-    private RenderStatistics _renderStatistics;
-    private Task? _fileRenderingTask;
 
     public PathTracerApplication(INativeApplicationService applicationService,
                                  INativeUIService nativeUIService,
                                  IInputService inputService,
                                  IGraphicsService graphicsService,
-                                 IUIService uiService,
                                  ICommandManager commandManager,
-                                 UIManager uiManager,
-                                 RenderManager renderManager,
-                                 IRenderer<FileImage, string> fileRenderer)
+                                 IUIManager uiManager,
+                                 IRenderManager renderManager)
     {
         _applicationService = applicationService;
         _nativeUIService = nativeUIService;
         _inputService = inputService;
         _graphicsService = graphicsService;
-        _uiService = uiService;
         _commandManager = commandManager;
         _uiManager = uiManager;
         _renderManager = renderManager;
-        _fileRenderer = fileRenderer;
 
+        // TODO: Pass settings with builders
         var windowWidth = 1280;
         var windowHeight = 720;
 
@@ -47,12 +41,12 @@ public class PathTracerApplication
         _nativeWindow = nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", windowWidth, windowHeight, NativeWindowState.Maximized);
         _graphicsDevice = graphicsService.CreateDevice(_nativeWindow);
 
-        _uiService.Init(_nativeWindow, _graphicsDevice);
+        _uiManager.Init(_nativeWindow, _graphicsDevice);
 
         _camera = new Camera();
         _renderStatistics = new RenderStatistics();
 
-        _commandManager.RegisterCommandHandler(new Action<RenderCommand>(RenderToImage));
+        _commandManager.RegisterCommandHandler<RenderCommand>((renderCommand) => _renderManager.RenderToImage(renderCommand.RenderSettings));
     }
 
     public void Run()
@@ -74,27 +68,22 @@ public class PathTracerApplication
 
             appStatus = _applicationService.ProcessSystemMessages(_nativeApplication);
             _inputService.UpdateInputState(_nativeApplication, ref inputState);
-
             _commandManager.Update();
-
+            
             var windowSize = _nativeUIService.GetWindowRenderSize(_nativeWindow);
 
             if (_currentWindowSize != windowSize)
             {
                 _graphicsService.ResizeSwapChain(_graphicsDevice, windowSize.Width, windowSize.Height);
-                _uiService.Resize(windowSize.Width, windowSize.Height, windowSize.UIScale);
+                _uiManager.Resize(windowSize);
 
                 Console.WriteLine($"Resize: {windowSize}");
 
                 _currentWindowSize = windowSize;
             }
 
-            _uiService.Update(deltaTime, inputState);
+            var availableViewportSize = _uiManager.Update(deltaTime, inputState, _renderManager.CurrentTextureImage, _renderStatistics);
 
-            var renderImage = _renderManager.CurrentTextureImage;
-            var availableViewportSize = _uiManager.BuildUI(renderImage, _renderStatistics);
-
-            var previousCamera = _camera;
             _camera = UpdateCamera(_camera, inputState, deltaTime);
             
             if (availableViewportSize != _currentRenderSize)
@@ -109,65 +98,33 @@ public class PathTracerApplication
                 _currentRenderSize = availableViewportSize;
             }
             
-            _renderManager.RenderScene(_camera, commandList, previousCamera, ref _renderStatistics);
+            _renderManager.RenderScene(commandList, _camera);
 
             // TODO: Get rid of the clear color, for that we need to fix the UI 1px border padding
             _graphicsService.ResetCommandList(commandList);
             _graphicsService.ClearColor(commandList, Vector4.Zero);
             _graphicsService.SubmitCommandList(commandList);
+            _uiManager.Render();
 
-            _uiService.Render();
             _graphicsService.PresentSwapChain(_graphicsDevice);
 
             stopwatch.Stop();
-
-            _renderStatistics.CurrentFrameTime = stopwatch.ElapsedMilliseconds;
-            _renderStatistics.FramesPerSeconds = fpsCounter.FramesPerSeconds;
-
             fpsCounter.Update();
 
-            if (_fileRenderingTask != null && _fileRenderingTask.Exception != null)
+            _renderStatistics.RenderDuration = _renderManager.RenderDuration;
+            _renderStatistics.LastRenderTime = _renderManager.LastRenderTime;
+            _renderStatistics.CurrentFrameTime = stopwatch.ElapsedMilliseconds;
+            _renderStatistics.FramesPerSeconds = fpsCounter.FramesPerSeconds;
+            _renderStatistics.IsFileRenderingActive = _renderManager.IsFileRenderingActive;
+
+            // TODO: Change that: if we have an exception the Completed flag will be true anyway
+            if (_renderManager.IsFileRenderingActive)
             {
-                Console.WriteLine(_fileRenderingTask.Exception);
-                _fileRenderingTask = null;
+                _renderManager.CheckRenderToImageErrors();
             }
         }
     }
 
-    private void RenderToImage(RenderCommand renderCommand)
-    {
-        if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
-        {
-            _renderStatistics.IsFileRenderingActive = true;
-            
-            _fileRenderingTask = new Task(() => 
-            {
-                _renderStatistics.IsFileRenderingActive = true;
-
-                var width = renderCommand.RenderSettings.Resolution.Width;
-                var height = renderCommand.RenderSettings.Resolution.Height;
-
-                var outputImage = new FileImage
-                {
-                    Width = width,
-                    Height = height,
-                    ImageData = new Vector4[width * height]
-                };
-
-                var fileCamera = _camera with
-                {
-                    AspectRatio = (float)width / height
-                };
-
-                _fileRenderer.Render(outputImage, fileCamera);
-                _fileRenderer.CommitImage(outputImage, renderCommand.RenderSettings.OutputPath);
-                _renderStatistics.IsFileRenderingActive = false;
-            });
-
-            _fileRenderingTask.Start();
-        }
-    }
-    
     // TODO: To be converted to an ECS System
     private static Camera UpdateCamera(Camera camera, InputState inputState, float deltaTime)
     {

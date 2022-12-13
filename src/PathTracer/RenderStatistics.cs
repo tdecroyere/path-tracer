@@ -1,0 +1,10 @@
+namespace PathTracer;
+
+public record RenderStatistics
+{
+    public long RenderDuration { get; set; }
+    public long CurrentFrameTime { get; set; }
+    public int FramesPerSeconds { get; set; }
+    public DateTime LastRenderTime { get; set; }
+    public bool IsFileRenderingActive { get; set; }
+}

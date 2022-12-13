@@ -10,7 +10,7 @@ namespace PathTracer.UI;
 public interface IUIService
 {
     void Init(NativeWindow window, GraphicsDevice graphicsDevice);
-    void Resize(int width, int height, float uiScale);
+    void Resize(NativeWindowSize windowSize);
     void Update(float deltaTime, InputState inputState);
     void Render();
 

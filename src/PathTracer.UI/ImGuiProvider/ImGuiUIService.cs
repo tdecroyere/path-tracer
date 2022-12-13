@@ -30,14 +30,14 @@ public class ImGuiUIService : IUIService
         _commandList = _graphicsService.CreateCommandList(graphicsDevice);
     }
 
-    public void Resize(int width, int height, float uiScale)
+    public void Resize(NativeWindowSize windowSize)
     {
         if (_imGuiBackend is null)
         {
             throw new InvalidOperationException("You need call the init method first.");
         }
 
-        _imGuiBackend.Resize(width, height, uiScale);
+        _imGuiBackend.Resize(windowSize.Width, windowSize.Height, windowSize.UIScale);
     }
 
     public void Update(float deltaTime, InputState inputState)
