@@ -48,7 +48,6 @@ public class RenderManager : IRenderManager
         _fullResolutionTextureImage = CreateOrUpdateTextureImage(graphicsDevice, in _fullResolutionTextureImage, width, height);
     }
 
-    // TODO: Maybe we could store the previous camera in a field?
     public void RenderScene(CommandList commandList, Camera camera)
     {
         // TODO: Do we need a global task, can we reuse task with a pool?
@@ -61,6 +60,8 @@ public class RenderManager : IRenderManager
             _graphicsService.ResetCommandList(commandList);
             _renderer.CommitImage(_textureImage, commandList);
             _graphicsService.SubmitCommandList(commandList);
+
+            RenderDuration = _renderStopwatch.ElapsedMilliseconds;
 
             // TODO: Cancel task when possible
             _isFullResolutionRenderComplete = false;
@@ -142,6 +143,7 @@ public class RenderManager : IRenderManager
         var imageData = new uint[width * height];
         var textureId = textureImage.TextureId;
 
+        // TODO: Move that
         if (textureId == 0)
         {
             textureId = _uiService.RegisterTexture(gpuTexture);

@@ -15,8 +15,8 @@ public class UIManager : IUIManager
 
         _resolutionItems = new RenderResolutionItem[]
         {
-            new RenderResolutionItem() { Name = "Ultra HD", Width = 3840, Height = 2160 },
-            new RenderResolutionItem() { Name = "Full HD", Width = 1920, Height = 1080 }
+            new RenderResolutionItem { Name = "Ultra HD", Width = 3840, Height = 2160 },
+            new RenderResolutionItem { Name = "Full HD", Width = 1920, Height = 1080 }
         };
 
         _renderSettings = new RenderSettings

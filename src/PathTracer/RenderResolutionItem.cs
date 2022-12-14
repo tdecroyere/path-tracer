@@ -1,6 +1,6 @@
 namespace PathTracer;
 
-public record RenderResolutionItem
+public readonly record struct RenderResolutionItem
 {
     public required string Name { get; init; }
     public required int Width { get; init; }
