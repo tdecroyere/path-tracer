@@ -9,13 +9,11 @@ public readonly record struct TextureImage : IImage
         CpuTexture = new Texture();
         GpuTexture = new Texture();
         ImageData = Array.Empty<uint>();
-        TextureId = 0;
     }
 
     public int Width { get; init; }
     public int Height { get; init; }
     public Texture CpuTexture { get; init; }
     public Texture GpuTexture { get; init; }
-    public nint TextureId { get; init; }
     public Memory<uint> ImageData { get; init; }
 }

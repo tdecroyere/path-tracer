@@ -7,4 +7,6 @@ public record RenderStatistics
     public int FramesPerSeconds { get; set; }
     public DateTime LastRenderTime { get; set; }
     public bool IsFileRenderingActive { get; set; }
+    public int RenderWidth { get; set; }
+    public int RenderHeight { get; set; }
 }

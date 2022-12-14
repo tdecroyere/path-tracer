@@ -36,7 +36,7 @@ public class UIManager : IUIManager
         _uiService.Resize(windowSize);
     }
 
-    public Vector2 Update(float deltaTime, InputState inputState, TextureImage? renderImage, RenderStatistics renderStatistics)
+    public Vector2 Update(float deltaTime, InputState inputState, TextureImage renderImage, RenderStatistics renderStatistics)
     {
         _uiService.Update(deltaTime, inputState);
 
@@ -46,9 +46,9 @@ public class UIManager : IUIManager
         {
             availableViewportSize = _uiService.GetPanelAvailableSize();
 
-            if (renderImage is not null)
+            if (renderImage.Width != 0 && renderImage.Height != 0)
             {
-                _uiService.Image(renderImage.Value.TextureId, (int)availableViewportSize.X, (int)availableViewportSize.Y);
+                _uiService.Image(renderImage.GpuTexture, (int)availableViewportSize.X, (int)availableViewportSize.Y);
             }
 
             _uiService.EndPanel();
@@ -56,7 +56,7 @@ public class UIManager : IUIManager
 
         if (_uiService.BeginPanel("Inspector"))
         {
-            BuildStatistics(renderImage, renderStatistics);
+            BuildStatistics(renderStatistics);
             BuildRenderToImage(renderStatistics);
 
             _uiService.EndPanel();
@@ -70,12 +70,12 @@ public class UIManager : IUIManager
         _uiService.Render();
     }
 
-    private void BuildStatistics(TextureImage? renderImage, RenderStatistics renderStatistics)
+    private void BuildStatistics(RenderStatistics renderStatistics)
     {
         if (_uiService.CollapsingHeader("Statistics"))
         {
             _uiService.Text($"FrameTime: {renderStatistics.CurrentFrameTime} ms (FPS: {renderStatistics.FramesPerSeconds})");
-            _uiService.Text($"RenderSize: {renderImage?.Width}x{renderImage?.Height}");
+            _uiService.Text($"RenderSize: {renderStatistics.RenderWidth}x{renderStatistics.RenderHeight}");
             _uiService.Text($"Last render duration: {renderStatistics.RenderDuration} ms");
             _uiService.Text($"Last render time: {renderStatistics.LastRenderTime}");
             _uiService.NewLine();

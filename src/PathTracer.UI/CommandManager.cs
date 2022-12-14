@@ -36,10 +36,8 @@ public class CommandManager : ICommandManager
             // TODO: Avoid reflection!
             var commandType = command.GetType();
 
-            if (_handlers.ContainsKey(commandType))
+            if (_handlers.TryGetValue(commandType, out var handlerList))
             {
-                var handlerList = _handlers[commandType];
-
                 for (var i = 0; i < handlerList.Count; i++)
                 {
                     var delegateObject = handlerList[i];

@@ -5,7 +5,6 @@ public class RenderManager : IRenderManager
     private const float _lowResolutionScaleRatio = 0.25f;
 
     private readonly IGraphicsService _graphicsService;
-    private readonly IUIService _uiService;
     private readonly IRenderer<TextureImage, CommandList> _renderer;
     private readonly IRenderer<FileImage, string> _fileRenderer;
 
@@ -20,12 +19,10 @@ public class RenderManager : IRenderManager
     private Camera _camera;
 
     public RenderManager(IGraphicsService graphicsService,
-                         IUIService uiService,
                          IRenderer<TextureImage, CommandList> renderer,
                          IRenderer<FileImage, string> fileRenderer)
     {
         _graphicsService = graphicsService;
-        _uiService = uiService;
         _renderer = renderer;
         _fileRenderer = fileRenderer;
 
@@ -103,6 +100,7 @@ public class RenderManager : IRenderManager
             {
                 var width = renderSettings.Resolution.Width;
                 var height = renderSettings.Resolution.Height;
+                var outputPath = renderSettings.OutputPath;
 
                 var outputImage = new FileImage
                 {
@@ -117,7 +115,7 @@ public class RenderManager : IRenderManager
                 };
 
                 _fileRenderer.Render(outputImage, fileCamera);
-                _fileRenderer.CommitImage(outputImage, renderSettings.OutputPath);
+                _fileRenderer.CommitImage(outputImage, outputPath);
             });
 
             _fileRenderingTask.Start();
@@ -136,22 +134,10 @@ public class RenderManager : IRenderManager
     private TextureImage CreateOrUpdateTextureImage(GraphicsDevice graphicsDevice, in TextureImage textureImage, int width, int height)
     {
         // TODO: Call a delete function
-
         var cpuTexture = _graphicsService.CreateTexture(graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Staging, TextureType.Texture2D);
         var gpuTexture = _graphicsService.CreateTexture(graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Sampled, TextureType.Texture2D);
 
         var imageData = new uint[width * height];
-        var textureId = textureImage.TextureId;
-
-        // TODO: Move that
-        if (textureId == 0)
-        {
-            textureId = _uiService.RegisterTexture(gpuTexture);
-        }
-        else
-        {
-            _uiService.UpdateTexture(textureId, gpuTexture);
-        }
 
         return textureImage with
         {
@@ -159,8 +145,7 @@ public class RenderManager : IRenderManager
             Height = height,
             CpuTexture = cpuTexture,
             GpuTexture = gpuTexture,
-            ImageData = imageData,
-            TextureId = textureId
+            ImageData = imageData
         };
     }
 }

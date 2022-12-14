@@ -116,6 +116,8 @@ public class PathTracerApplication
             _renderStatistics.CurrentFrameTime = stopwatch.ElapsedMilliseconds;
             _renderStatistics.FramesPerSeconds = fpsCounter.FramesPerSeconds;
             _renderStatistics.IsFileRenderingActive = _renderManager.IsFileRenderingActive;
+            _renderStatistics.RenderWidth = _renderManager.CurrentTextureImage.Width;
+            _renderStatistics.RenderHeight = _renderManager.CurrentTextureImage.Height;
 
             // TODO: Change that: if we have an exception the Completed flag will be true anyway
             if (_renderManager.IsFileRenderingActive)

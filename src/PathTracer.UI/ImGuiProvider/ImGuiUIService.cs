@@ -11,6 +11,8 @@ public class ImGuiUIService : IUIService
     private readonly INativeUIService _nativeUIService;
     private readonly IGraphicsService _graphicsService;
 
+    private readonly IDictionary<Texture, nint> _textureIdList;
+
     private ImGuiBackend? _imGuiBackend;
     private ImGuiRenderer? _imGuiRenderer;
     private CommandList? _commandList;
@@ -19,6 +21,8 @@ public class ImGuiUIService : IUIService
     {
         _nativeUIService = nativeUIService;
         _graphicsService = graphicsService;
+
+        _textureIdList = new Dictionary<Texture, nint>();
     }
 
     public void Init(NativeWindow window, GraphicsDevice graphicsDevice)
@@ -84,26 +88,6 @@ public class ImGuiUIService : IUIService
         _imGuiRenderer.RenderImDrawData(_commandList.Value, ref imGuiDrawData);
         _graphicsService.SubmitCommandList(_commandList.Value);
     }
-    
-    public nint RegisterTexture(Texture texture)
-    {
-        if (_imGuiRenderer is null)
-        {
-            throw new InvalidOperationException("You need call the init method first.");
-        }
-
-        return _imGuiRenderer.RegisterTexture(texture);
-    }
-
-    public void UpdateTexture(nint id, Texture texture)
-    {
-        if (_imGuiRenderer is null)
-        {
-            throw new InvalidOperationException("You need call the init method first.");
-        }
-        
-        _imGuiRenderer.UpdateTexture(id, texture);
-    }
 
     public bool BeginPanel(string title, PanelStyles panelStyles)
     {
@@ -160,8 +144,21 @@ public class ImGuiUIService : IUIService
         ImGui.NewLine();
     }
 
-    public void Image(nint textureId, int width, int height)
+    public void Image(Texture texture, int width, int height)
     {
+        if (_imGuiRenderer is null)
+        {
+            throw new InvalidOperationException("You need call the init method first.");
+        }
+
+        // TODO: We need a way to clean the unused ids
+        if (!_textureIdList.ContainsKey(texture))
+        {
+            var id = _imGuiRenderer.RegisterTexture(texture);
+            _textureIdList.Add(texture, id);
+        }
+
+        var textureId = _textureIdList[texture];
         ImGui.Image(textureId, new Vector2(width, height));
     }
 

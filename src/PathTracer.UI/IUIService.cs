@@ -9,14 +9,11 @@ namespace PathTracer.UI;
 // for native rendering
 public interface IUIService
 {
+    // TODO: Can we get rid ot the init method?
     void Init(NativeWindow window, GraphicsDevice graphicsDevice);
     void Resize(NativeWindowSize windowSize);
     void Update(float deltaTime, InputState inputState);
     void Render();
-
-    // TODO: Do we need that?
-    nint RegisterTexture(Texture texture);
-    void UpdateTexture(nint id, Texture texture);
 
     bool BeginPanel(string title, PanelStyles styles = PanelStyles.None);
     void EndPanel();
@@ -25,7 +22,7 @@ public interface IUIService
     bool CollapsingHeader(string text, bool isVisibleByDefault = true);
     void Text(string text);
     void NewLine();
-    void Image(nint textureId, int width, int height);
+    void Image(Texture texture, int width, int height);
     bool Button(string text, ControlStyles styles = ControlStyles.None);
     bool InputText(string label, ref string text, int maxLength = 255);
 
