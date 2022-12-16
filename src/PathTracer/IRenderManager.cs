@@ -9,6 +9,6 @@ public interface IRenderManager
 
     void CreateRenderTextures(GraphicsDevice graphicsDevice, int width, int height);
     void RenderScene(CommandList commandList, Camera camera);
-    void RenderToImage(RenderSettings renderSettings);
+    void RenderToImage(RenderSettings renderSettings, Camera camera);
     void CheckRenderToImageErrors();
 }

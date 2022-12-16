@@ -47,7 +47,6 @@ public class RenderManager : IRenderManager
 
     public void RenderScene(CommandList commandList, Camera camera)
     {
-        // TODO: Do we need a global task, can we reuse task with a pool?
         if (camera != _camera)
         {
             Console.WriteLine("Render Low Resolution");
@@ -92,7 +91,7 @@ public class RenderManager : IRenderManager
         _camera = camera;
     }
 
-    public void RenderToImage(RenderSettings renderSettings)
+    public void RenderToImage(RenderSettings renderSettings, Camera camera)
     {
         if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
         {
@@ -109,7 +108,7 @@ public class RenderManager : IRenderManager
                     ImageData = new Vector4[width * height]
                 };
 
-                var fileCamera = _camera with
+                var fileCamera = camera with
                 {
                     AspectRatio = (float)width / height
                 };

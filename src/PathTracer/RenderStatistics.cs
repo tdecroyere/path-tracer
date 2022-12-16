@@ -1,6 +1,6 @@
 namespace PathTracer;
 
-public record RenderStatistics
+public record struct RenderStatistics
 {
     public long RenderDuration { get; set; }
     public long CurrentFrameTime { get; set; }

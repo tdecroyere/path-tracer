@@ -4,9 +4,9 @@ public class UIManager : IUIManager
 {
     private readonly IUIService _uiService;
     private readonly ICommandManager _commandManager;
-
     private readonly ReadOnlyMemory<RenderResolutionItem> _resolutionItems;
-    private readonly RenderSettings _renderSettings;
+
+    private RenderSettings _renderSettings;
 
     public UIManager(IUIService uiService, ICommandManager commandManager)
     {
