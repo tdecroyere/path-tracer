@@ -9,4 +9,8 @@ public record struct RenderStatistics
     public bool IsFileRenderingActive { get; set; }
     public int RenderWidth { get; set; }
     public int RenderHeight { get; set; }
+    public long AllocatedManagedMemory { get; set; }
+    public int GCGen0Count { get; set; }
+    public int GCGen1Count { get; set; }
+    public int GCGen2Count { get; set; }
 }

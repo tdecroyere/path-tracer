@@ -131,6 +131,10 @@ public class PathTracerApplication
         _renderStatistics.IsFileRenderingActive = _renderManager.IsFileRenderingActive;
         _renderStatistics.RenderWidth = _renderManager.CurrentTextureImage.Width;
         _renderStatistics.RenderHeight = _renderManager.CurrentTextureImage.Height;
+        _renderStatistics.AllocatedManagedMemory = GC.GetTotalMemory(false);
+        _renderStatistics.GCGen0Count = GC.CollectionCount(0);
+        _renderStatistics.GCGen1Count = GC.CollectionCount(1);
+        _renderStatistics.GCGen0Count = GC.CollectionCount(2);
     }
 
     // TODO: To be converted to an ECS System

@@ -78,6 +78,8 @@ public class UIManager : IUIManager
             _uiService.Text($"RenderSize: {renderStatistics.RenderWidth}x{renderStatistics.RenderHeight}");
             _uiService.Text($"Last render duration: {renderStatistics.RenderDuration} ms");
             _uiService.Text($"Last render time: {renderStatistics.LastRenderTime}");
+            _uiService.Text($"Allocated manager memory: {Utils.ConvertBytesToMegaBytes(renderStatistics.AllocatedManagedMemory)} MB");
+            _uiService.Text($"GC count: Gen0={renderStatistics.GCGen0Count}, Gen1={renderStatistics.GCGen1Count}, Gen2={renderStatistics.GCGen2Count}");
             _uiService.NewLine();
         }
     }
