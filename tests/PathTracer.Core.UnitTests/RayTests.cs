@@ -3,7 +3,7 @@ namespace PathTracer.Core.UnitTests;
 public class RayTests
 {
     [Fact]
-    public void Constructor_WithZeroDirection_ThrowsArgumentException()
+    public void Constructor_ShouldThrowArgumentException_WhenDirectionIsZero()
     {
         // Arrange / Act
         var action = () => { new Ray { Origin = Vector3.Zero, Direction = Vector3.Zero }; };
@@ -14,14 +14,10 @@ public class RayTests
     
     [Theory]
     [MemberData(nameof(GetPoint_TestData))]
-    public void GetPoint_WithValue_ReturnCorrectResult(Vector3 expected, Vector3 origin, Vector3 direction, float t)
+    public void GetPoint_ShouldReturnCorrectResult_WhenParametersAreValid(Vector3 expected, Vector3 origin, Vector3 direction, float t)
     {
         // Arrange
-        var ray = new Ray
-        {
-            Origin = origin, 
-            Direction = direction
-        };
+        var ray = new Ray { Origin = origin, Direction = direction };
 
         // Act
         var result = ray.GetPoint(t);

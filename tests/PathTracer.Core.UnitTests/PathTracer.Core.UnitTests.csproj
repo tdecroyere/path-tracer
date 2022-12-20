@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <NoWarn>CA1806</NoWarn>
   </PropertyGroup>
 

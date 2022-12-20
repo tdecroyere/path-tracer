@@ -11,6 +11,11 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
 
     public void Render(TImage image, Camera camera)
     {
+        if (image.Width == 0 || image.Height == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(image), "Image cannot have a width or height of 0.");
+        }
+
         var imageWidth = image.Width;
         var imageHeight = image.Height;
         var rayGenerator = new RayGenerator(camera);

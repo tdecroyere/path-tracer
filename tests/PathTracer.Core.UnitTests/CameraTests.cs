@@ -2,11 +2,8 @@ namespace PathTracer.Core.UnitTests;
 
 public class CameraTests
 {
-    // private readonly Camera _sut;
-
     [Fact]
-    // Constructor_ShouldAssignDefaultValues_WhenEmptyParameters
-    public void Constructor_WithDefault_SetDefaultValues()
+    public void Constructor_ShouldAssignDefaultValues_WhenEmptyParameters()
     {
         // Arrange / Act
         var camera = new Camera();

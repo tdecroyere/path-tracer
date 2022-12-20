@@ -111,6 +111,8 @@ public class PathTracerApplication
     {
         if (availableViewportSize != _currentRenderSize)
         {
+            // TODO: Should we use a more functional approach and don't mutate private fields and try to have
+            // more "pure" functions?
             _camera = _camera with
             {
                 AspectRatio = availableViewportSize.X / availableViewportSize.Y

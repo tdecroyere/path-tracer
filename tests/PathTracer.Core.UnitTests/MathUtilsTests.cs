@@ -4,11 +4,10 @@ public class MathUtilsTests
 {
     [Theory]
     [InlineData(0.0f, 0.0f)]
-    [InlineData(1.0f, 0.0175f)]
-    [InlineData(45.0f, 0.7854f)]
-    [InlineData(180.0f, 3.1416f)]
-    // DegreeToRad_ShouldReturnCorrectResult_WhenInputValueIsValid
-    public void DegreesToRad_Values_HasCorrectResult(float inputValue, float expectedValue)
+    [InlineData(0.0175f, 1.0f)]
+    [InlineData(0.7854f, 45.0f)]
+    [InlineData(3.1416f, 180.0f)]
+    public void DegreesToRad_ShouldReturnCorrectResult_WhenAngleIsValid(float expectedValue, float inputValue)
     {
         // Act
         var output = MathUtils.DegreesToRad(inputValue);
@@ -19,9 +18,9 @@ public class MathUtilsTests
 
     [Theory]
     [InlineData(0.0f, 0.0f)]
-    [InlineData(1.0f, 57.2958f)]
-    [InlineData(3.1416f, 180.0004f)]
-    public void RadToDegrees_Values_HasCorrectResult(float inputValue, float expectedValue)
+    [InlineData(57.2958f, 1.0f)]
+    [InlineData(180.0004f, 3.1416f)]
+    public void RadToDegrees_ShouldReturnCorrectResult_WhenAngleIsValid(float expectedValue, float inputValue)
     {
         // Act
         var output = MathUtils.RadToDegrees(inputValue);
@@ -31,8 +30,7 @@ public class MathUtilsTests
     }
     
     [Fact]
-    // CreateLookAtMatrix_ShouldReturnCorrectResult_WhenParametersAreValid
-    public void CreateLookAtMatrix_WithValidParameters_ShouldCreateCorrectMatrix()
+    public void CreateLookAtMatrix_ShouldReturnCorrectResult_WhenParametersAreValid()
     {
         // Arrange
         var cameraPosition = new Vector3(3.0f, 15.0f, -6.5f);
@@ -69,7 +67,7 @@ public class MathUtilsTests
     }
 
     [Fact]
-    public void CreatePerspectiveFieldOfViewMatrix_WithValidParameters_ShouldCreateCorrectMatrix()
+    public void CreatePerspectiveFieldOfViewMatrix_ShouldReturnCorrectResult_WhenParametersAreValid()
     {
         // Arrange
         var fieldOfViewY = 0.78f;
