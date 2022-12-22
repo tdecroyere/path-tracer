@@ -26,7 +26,7 @@ public class RayTests
         Assert.Equal(expected, result);
     }
 
-    private static IEnumerable<object[]> GetPoint_TestData()
+    public static IEnumerable<object[]> GetPoint_TestData()
     {
         yield return new object[] { new Vector3(1.0f, 1.0f, 1.0f), new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f, 1.0f, 1.0f), 1.0f };
         yield return new object[] { new Vector3(0.5f, 0.5f, 0.5f), new Vector3(0.0f, 0.0f, 0.0f), new Vector3(1.0f, 1.0f, 1.0f), 0.5f };

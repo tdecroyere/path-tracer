@@ -46,7 +46,7 @@ public class RayGeneratorTests
         Assert.Equal(expected, ray);
     }
 
-    private static IEnumerable<object[]> GenerateRay_ShouldThrowArgumentOutOfRangeException_WhenPixelCoordinatesAreInvalid_TestData()
+    public static IEnumerable<object[]> GenerateRay_ShouldThrowArgumentOutOfRangeException_WhenPixelCoordinatesAreInvalid_TestData()
     {
         yield return new object[] { new Vector2(-2.0f, 0.0f) };
         yield return new object[] { new Vector2(0.0f, -2.0f) };
@@ -54,7 +54,7 @@ public class RayGeneratorTests
         yield return new object[] { new Vector2(0.0f, 2.0f) };
     }
     
-    private static IEnumerable<object[]> GenerateRay_ShouldGenerateCorrectRay_WhenPixelCoordinatesAreValid_TestData()
+    public static IEnumerable<object[]> GenerateRay_ShouldGenerateCorrectRay_WhenPixelCoordinatesAreValid_TestData()
     {
         yield return new object[] { new Vector2(0.0f, 0.0f) };
         yield return new object[] { new Vector2(1.0f, 1.0f) };

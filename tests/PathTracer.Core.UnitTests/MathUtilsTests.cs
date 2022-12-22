@@ -13,7 +13,7 @@ public class MathUtilsTests
         var output = MathUtils.DegreesToRad(inputValue);
 
         // Assert
-        Assert.Equal(expectedValue, output, 4);
+        Assert.Equal(expectedValue, output, 4.0f);
     }
 
     [Theory]
@@ -26,7 +26,7 @@ public class MathUtilsTests
         var output = MathUtils.RadToDegrees(inputValue);
 
         // Assert
-        Assert.Equal(expectedValue, output, 4);
+        Assert.Equal(expectedValue, output, 4.0f);
     }
     
     [Fact]
