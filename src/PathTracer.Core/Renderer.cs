@@ -51,17 +51,27 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
     private static Vector4 PixelShader(Vector2 pixelCoordinates, RayGenerator rayGenerator, Scene scene)
     {
         var ray = rayGenerator.GenerateRay(pixelCoordinates);
-        return TraceRay(ray, scene);
-    }
+        var payload = TraceRay(scene, ray);
 
-    private static Vector4 TraceRay(Ray ray, Scene scene)
-    {
-        if (scene.Spheres.Count == 0)
+        if (payload.HitDistance < 0.0f)
         {
             return new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
         }
 
-        Sphere? intersectSphere = null;
+        // Remap the normal to color space
+        //return new Vector4(0.5f * (normal + new Vector3(1, 1, 1)), 1.0f);
+
+        // Compute light
+        var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
+        var light = MathF.Max(Vector3.Dot(payload.WorldNormal, -lightDirection), 0.0f);
+        var sphere = scene.Spheres[payload.ObjectIndex];
+
+        return new Vector4(light * sphere.Albedo, 1.0f);
+    }
+
+    private static RayHitPayload TraceRay(Scene scene, Ray ray)
+    {
+        int intersectObjectIndex = -1;
         var minimumHitDistance = float.MaxValue;
 
         for (var i = 0; i < scene.Spheres.Count; i++)
@@ -85,30 +95,43 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
 
             var t = (-b + -MathF.Sqrt(discriminant)) / (2.0f * a);
 
-            if (t < minimumHitDistance)
+            if (t > 0 && t < minimumHitDistance)
             {
-                intersectSphere = sphere;
+                intersectObjectIndex = i;
                 minimumHitDistance = t;
             }
         }
 
-        if (intersectSphere is null)
+        if (intersectObjectIndex == -1)
         {
-            return new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+            return MissShader(ray);
         }
-            
-        var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
 
-        // Compute normal
-        ray = ray with { Origin = ray.Origin - intersectSphere.Value.Position };
-        var intersectPoint = ray.GetPoint(minimumHitDistance);
+        return ClosestHitShader(scene, ray, minimumHitDistance, intersectObjectIndex);
+    }
+
+    private static RayHitPayload ClosestHitShader(Scene scene, Ray ray, float hitDistance, int objectIndex)
+    {
+        var sphere = scene.Spheres[objectIndex];
+
+        ray = ray with { Origin = ray.Origin - sphere.Position };
+        var intersectPoint = ray.GetPoint(hitDistance);
         var normal = Vector3.Normalize(intersectPoint);
 
-        // Remap the normal to color space
-        //return new Vector4(0.5f * (normal + new Vector3(1, 1, 1)), 1.0f);
+        return new RayHitPayload
+        {
+            HitDistance = hitDistance,
+            ObjectIndex = objectIndex,
+            WorldPosition = intersectPoint + sphere.Position,
+            WorldNormal = normal
+        };
+    }
 
-        // Compute light
-        var light = MathF.Max(Vector3.Dot(normal, -lightDirection), 0.0f);
-        return new Vector4(light * intersectSphere.Value.Albedo, 1.0f);
+    private static RayHitPayload MissShader(Ray ray)
+    {
+        return new RayHitPayload
+        {
+            HitDistance = -1.0f
+        };
     }
 }
