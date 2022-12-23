@@ -11,6 +11,12 @@ Based on the awesome [The Cherno YouTube Ray Tracing serie](https://www.youtube.
 - Use ImGui for UI.
 - Use Veldrid for graphics for now. (Will have native Vulkan, Direct3D and Metal in a later phase)
 
+## Usage:
+
+From the project root directory run the following command:
+
+    dotnet run --project src/PathTracer -c Release
+
 ## Renders:
 20/10/2022:
 ![Output from 20/10/2022](TestData/Archive/20221020.png)
