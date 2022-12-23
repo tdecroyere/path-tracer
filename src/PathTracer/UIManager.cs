@@ -36,7 +36,7 @@ public class UIManager : IUIManager
         _uiService.Resize(windowSize);
     }
 
-    public Vector2 Update(float deltaTime, InputState inputState, TextureImage renderImage, RenderStatistics renderStatistics)
+    public Vector2 Update(float deltaTime, InputState inputState, TextureImage renderImage, RenderStatistics renderStatistics, Scene scene)
     {
         _uiService.Update(deltaTime, inputState);
 
@@ -57,6 +57,7 @@ public class UIManager : IUIManager
         if (_uiService.BeginPanel("Inspector"))
         {
             BuildStatistics(renderStatistics);
+            BuildSceneProperties(scene);
             BuildRenderToImage(renderStatistics);
 
             _uiService.EndPanel();
@@ -80,6 +81,50 @@ public class UIManager : IUIManager
             _uiService.Text($"Last render time: {renderStatistics.LastRenderTime}");
             _uiService.Text($"Allocated manager memory: {Utils.ConvertBytesToMegaBytes(renderStatistics.AllocatedManagedMemory)} MB");
             _uiService.Text($"GC count: Gen0={renderStatistics.GCGen0Count}, Gen1={renderStatistics.GCGen1Count}, Gen2={renderStatistics.GCGen2Count}");
+            _uiService.NewLine();
+        }
+    }
+
+    private void BuildSceneProperties(Scene scene)
+    {
+        if (_uiService.CollapsingHeader("Scene"))
+        {
+            for (var i = 0; i < scene.Spheres.Count; i++)
+            {
+                _uiService.PushId(i.ToString());
+
+                // TODO: Can we do something better here?
+                var sphere = scene.Spheres[i];
+
+                var position = sphere.Position;
+                var radius = sphere.Radius;
+                var albedo = sphere.Albedo;
+
+                if (_uiService.DragFloat3("Position", ref position))
+                {
+                    sphere.Position = position;
+                    scene.Spheres[i] = sphere;
+                    scene.HasChanged = true;
+                }
+
+                if (_uiService.DragFloat("Radius", ref radius))
+                {
+                    sphere.Radius = radius;
+                    scene.Spheres[i] = sphere;
+                    scene.HasChanged = true;
+                }
+
+                if (_uiService.ColorEdit3("Albedo", ref albedo))
+                {
+                    sphere.Albedo = albedo;
+                    scene.Spheres[i] = sphere;
+                    scene.HasChanged = true;
+                }
+
+                _uiService.Separator();
+                _uiService.PopId();
+            }
+
             _uiService.NewLine();
         }
     }

@@ -45,13 +45,13 @@ public class RenderManager : IRenderManager
         _fullResolutionTextureImage = CreateOrUpdateTextureImage(graphicsDevice, in _fullResolutionTextureImage, width, height);
     }
 
-    public void RenderScene(CommandList commandList, Camera camera)
+    public void RenderScene(CommandList commandList, Scene scene, Camera camera)
     {
-        if (camera != _camera)
+        // TODO: Handle scene changes
+        if (camera != _camera || scene.HasChanged)
         {
-            Console.WriteLine("Render Low Resolution");
             _renderStopwatch.Restart();
-            _renderer.Render(_textureImage, camera);
+            _renderer.Render(_textureImage, scene, camera);
             _renderStopwatch.Stop();
             _graphicsService.ResetCommandList(commandList);
             _renderer.CommitImage(_textureImage, commandList);
@@ -67,9 +67,8 @@ public class RenderManager : IRenderManager
         {
             _fullResolutionRenderingTask = new Task(() =>
             {
-                Console.WriteLine("Render Full Resolution");
                 _renderStopwatch.Restart();
-                _renderer.Render(_fullResolutionTextureImage, camera);
+                _renderer.Render(_fullResolutionTextureImage, scene, camera);
                 _renderStopwatch.Stop();
                 RenderDuration = _renderStopwatch.ElapsedMilliseconds;
             });
@@ -91,7 +90,7 @@ public class RenderManager : IRenderManager
         _camera = camera;
     }
 
-    public void RenderToImage(RenderSettings renderSettings, Camera camera)
+    public void RenderToImage(RenderSettings renderSettings, Scene scene, Camera camera)
     {
         if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
         {
@@ -113,7 +112,7 @@ public class RenderManager : IRenderManager
                     AspectRatio = (float)width / height
                 };
 
-                _fileRenderer.Render(outputImage, fileCamera);
+                _fileRenderer.Render(outputImage, scene, fileCamera);
                 _fileRenderer.CommitImage(outputImage, outputPath);
             });
 

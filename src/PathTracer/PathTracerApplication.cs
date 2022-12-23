@@ -22,9 +22,11 @@ public class PathTracerApplication
     private RenderStatistics _renderStatistics;
     private NativeApplicationStatus _appStatus;
     private InputState _inputState;
-    private Camera _camera;
     private NativeWindowSize _currentWindowSize;
     private Vector2 _currentRenderSize;
+
+    private readonly Scene _scene;
+    private Camera _camera;
 
     public PathTracerApplication(INativeApplicationService applicationService,
                                  INativeUIService nativeUIService,
@@ -52,16 +54,33 @@ public class PathTracerApplication
         _inputState = new InputState();
 
         _currentWindowSize = new NativeWindowSize();
-        _camera = new Camera();
         
         _nativeApplication = _applicationService.CreateApplication("Path Tracer");
         _nativeWindow = _nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", _windowWidth, _windowHeight, NativeWindowState.Maximized);
         _graphicsDevice = _graphicsService.CreateDevice(_nativeWindow);
 
         _uiManager.Init(_nativeWindow, _graphicsDevice);
-        _commandManager.RegisterCommandHandler<RenderCommand>((renderCommand) => _renderManager.RenderToImage(renderCommand.RenderSettings, _camera));
         
         _commandList = _graphicsService.CreateCommandList(_graphicsDevice);
+
+        _scene = new Scene();
+        _camera = new Camera();
+
+        _scene.Spheres.Add(new Sphere()
+        {
+            Position = new Vector3(0.0f, 0.0f, 0.0f),
+            Radius = 0.5f,
+            Albedo = new Vector3(1.0f, 1.0f, 0.0f)
+        });
+        
+        _scene.Spheres.Add(new Sphere()
+        {
+            Position = new Vector3(1.0f, 0.0f, 5.0f),
+            Radius = 1.5f,
+            Albedo = new Vector3(0.0f, 0.2f, 1.0f)
+        });
+
+        _commandManager.RegisterCommandHandler<RenderCommand>((renderCommand) => _renderManager.RenderToImage(renderCommand.RenderSettings, _scene, _camera));
     }
 
     public void Run()
@@ -76,12 +95,15 @@ public class PathTracerApplication
             _inputService.UpdateInputState(_nativeApplication, ref _inputState);
             _camera = UpdateCamera(_camera, _inputState, _frameTimer.DeltaTime);
 
-            var availableViewportSize = _uiManager.Update(_frameTimer.DeltaTime, _inputState, _renderManager.CurrentTextureImage, _renderStatistics);
+            // TODO: Temporary
+            _scene.HasChanged = false;
+
+            var availableViewportSize = _uiManager.Update(_frameTimer.DeltaTime, _inputState, _renderManager.CurrentTextureImage, _renderStatistics, _scene);
             _commandManager.Update();
 
             CreateRenderTexturesIfNeeded(windowSize, availableViewportSize);
 
-            _renderManager.RenderScene(_commandList, _camera);
+            _renderManager.RenderScene(_commandList, _scene, _camera);
             _uiManager.Render();
             _graphicsService.PresentSwapChain(_graphicsDevice);
 

@@ -9,7 +9,7 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
         _imageWriter = imageWriter;
     }
 
-    public void Render(TImage image, Camera camera)
+    public void Render(TImage image, Scene scene, Camera camera)
     {
         if (image.Width == 0 || image.Height == 0)
         {
@@ -35,7 +35,7 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
                 // Remap pixel coordinates to [-1, 1] range
                 pixelCoordinates = pixelCoordinates * 2.0f - new Vector2(1.0f, 1.0f);
 
-                var color = PixelShader(pixelCoordinates, rayGenerator);
+                var color = PixelShader(pixelCoordinates, rayGenerator, scene);
                 color = Vector4.Clamp(color, Vector4.Zero, new Vector4(1.0f));
 
                 _imageWriter.StorePixel(image, j, i, color);
@@ -48,35 +48,60 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
         _imageWriter.CommitImage(image, parameter);
     }
 
-    private static Vector4 PixelShader(Vector2 pixelCoordinates, RayGenerator rayGenerator)
+    private static Vector4 PixelShader(Vector2 pixelCoordinates, RayGenerator rayGenerator, Scene scene)
     {
-        var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
-        var radius = 0.5f;
-
         var ray = rayGenerator.GenerateRay(pixelCoordinates);
+        return TraceRay(ray, scene);
+    }
 
-        // Construct quadratic function components
-        var a = Vector3.Dot(ray.Direction, ray.Direction);
-        var b = 2.0f * Vector3.Dot(ray.Origin, ray.Direction);
-        var c = Vector3.Dot(ray.Origin, ray.Origin) - radius * radius;
-
-        // Solve quadratic function
-        var discriminant = b * b - 4.0f * a * c;
-
-        if (discriminant < 0.0f)
+    private static Vector4 TraceRay(Ray ray, Scene scene)
+    {
+        if (scene.Spheres.Count == 0)
         {
             return new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
         }
 
-        var t = (-b + -MathF.Sqrt(discriminant)) / (2.0f * a);
+        Sphere? intersectSphere = null;
+        var minimumHitDistance = float.MaxValue;
 
-        if (t < 0.0f)
+        for (var i = 0; i < scene.Spheres.Count; i++)
+        {
+            var sphere = scene.Spheres[i];
+
+            var currentRay = ray with { Origin = ray.Origin - sphere.Position };
+
+            // Construct quadratic function components
+            var a = Vector3.Dot(currentRay.Direction, currentRay.Direction);
+            var b = 2.0f * Vector3.Dot(currentRay.Origin, currentRay.Direction);
+            var c = Vector3.Dot(currentRay.Origin, currentRay.Origin) - sphere.Radius * sphere.Radius;
+
+            // Solve quadratic function
+            var discriminant = b * b - 4.0f * a * c;
+
+            if (discriminant < 0.0f)
+            {
+                continue;
+            }
+
+            var t = (-b + -MathF.Sqrt(discriminant)) / (2.0f * a);
+
+            if (t < minimumHitDistance)
+            {
+                intersectSphere = sphere;
+                minimumHitDistance = t;
+            }
+        }
+
+        if (intersectSphere is null)
         {
             return new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
         }
+            
+        var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
 
         // Compute normal
-        var intersectPoint = ray.GetPoint(t);
+        ray = ray with { Origin = ray.Origin - intersectSphere.Value.Position };
+        var intersectPoint = ray.GetPoint(minimumHitDistance);
         var normal = Vector3.Normalize(intersectPoint);
 
         // Remap the normal to color space
@@ -84,6 +109,6 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
 
         // Compute light
         var light = MathF.Max(Vector3.Dot(normal, -lightDirection), 0.0f);
-        return new Vector4(light * new Vector3(1, 1, 0), 1.0f);
+        return new Vector4(light * intersectSphere.Value.Albedo, 1.0f);
     }
 }

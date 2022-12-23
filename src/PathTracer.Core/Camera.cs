@@ -1,6 +1,6 @@
 namespace PathTracer.Core;
 
-// TODO: Convert that to ECS Component (that's why the struct is not immutable)
+// TODO: Convert that to ECS Component
 public readonly record struct Camera
 {
     public Camera()
