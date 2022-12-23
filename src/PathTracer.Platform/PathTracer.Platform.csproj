@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AnalysisLevel>latest-All</AnalysisLevel>
+    
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../PathTracer.SourceGenerators/PathTracer.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Veldrid" />
+    <PackageReference Include="ErrorProne.NET.Structs">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Platforms\Windows\**\*" />
+    <Compile Remove="Platforms\MacOS\**\*" />
+  </ItemGroup>
+
+  <Target Name="BuildPlatformNative" BeforeTargets="CoreCompile" >
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+      <PowerShellCommand>powershell</PowerShellCommand>
+      <BuildScript>$(MSBuildProjectDirectory)/Platforms/Windows/Build.ps1</BuildScript>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+      <PowerShellCommand>pwsh</PowerShellCommand>
+      <BuildScript>$(MSBuildProjectDirectory)/Platforms/MacOS/Build.ps1</BuildScript>
+    </PropertyGroup>
+    <Exec Command="$(PowerShellCommand) -ExecutionPolicy Unrestricted -NoProfile -File $(BuildScript) -outputDirectory $(OutputPath) -configuration $(Configuration)" />
+</Target>
+
+<ItemGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Content Include="$(OutputPath)/PathTracer.Platform.Native.dll">
+      <TargetPath>PathTracer.Platform.Native.dll</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="$(OutputPath)/PathTracer.Platform.Native.pdb">
+      <TargetPath>PathTracer.Platform.Native.pdb</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+</ItemGroup>   
+
+<ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Content Include="$(OutputPath)/PathTracer.Platform.Native.dylib">
+      <TargetPath>PathTracer.Platform.Native.dylib</TargetPath>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <!--<Content Include="$(OutputPath)/PathTracer.Platform.Native.dylib.dSYM">
+      <TargetPath>PathTracer.Platform.Native.dylib.dSYM</TargetPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>-->
+</ItemGroup>   
+
+</Project>

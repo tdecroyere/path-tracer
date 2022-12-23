@@ -2,6 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "(Windows) Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/Build/Debug/Windows/PathTracer.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/Build/Debug/Windows/",
+            "environment": [],
+            "console": "internalConsole"
+        },
+        {
             // Use IntelliSense to find out which attributes exist for C# debugging
             // Use hover for the description of the existing attributes
             // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
@@ -9,12 +20,26 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/PathTracer.Console/bin/Debug/net7.0/PathTracer.Console.dll",
+            "osx": {
+                "cwd": "${workspaceFolder}/Build/Debug/MacOS/PathTracer.app/Contents/MacOS/",
+                "program": "${workspaceFolder}/Build/Debug/MacOS/PathTracer.app/Contents/MacOS/PathTracer.dll"
+            },
+            "windows": {
+                "cwd": "${workspaceFolder}/Build/Debug/Windows/",
+                "program": "${workspaceFolder}/Build/Debug/Windows/PathTracer.dll"
+            },
             "args": [],
-            "cwd": "${workspaceFolder}/PathTracer.Console",
-            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
-            "console": "integratedTerminal",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "ImGui Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/src/PathTracer.ImGui/bin/x64/Debug/net7.0",
+            "program": "${workspaceFolder}/src/PathTracer.ImGui/bin/x64/Debug/net7.0/PathTracer.ImGui.dll",
+            "args": [],
+            "console": "internalConsole",
             "stopAtEntry": false
         },
         {

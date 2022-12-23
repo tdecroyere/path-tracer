@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Only for publish-->
+    <!--<OutputType Condition="$([MSBuild]::IsOSPlatform('Windows'))">WinExe</OutputType>-->
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AnalysisLevel>latest-All</AnalysisLevel>
+
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">../../Build/$(Configuration)/Windows</OutputPath>
+    <OutputPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">../../Build/$(Configuration)/MacOS/PathTracer.app/Contents/MacOS</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PathTracer.Platform\PathTracer.Platform.csproj" />
+    <ProjectReference Include="..\PathTracer.Core\PathTracer.Core.csproj" />
+    <ProjectReference Include="..\PathTracer.UI\PathTracer.UI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="SixLabors.ImageSharp" /> 
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ErrorProne.NET.Structs">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  
+</Project>

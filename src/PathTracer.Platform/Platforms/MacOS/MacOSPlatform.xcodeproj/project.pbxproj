@@ -1,0 +1,91 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXFileReference section */
+		D8665D612928BFC6000CFE98 /* ImageSurfaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSurfaceView.swift; sourceTree = "<group>"; };
+		D8665D622928BFC6000CFE98 /* NativeApplicationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeApplicationService.swift; sourceTree = "<group>"; };
+		D8665D632928BFC6000CFE98 /* NativeUIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeUIService.swift; sourceTree = "<group>"; };
+		D8665D642928BFC6000CFE98 /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
+		D8665D652928BFC6000CFE98 /* NativeInputService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeInputService.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		D8665D5A2928BC28000CFE98 = {
+			isa = PBXGroup;
+			children = (
+				D8665D612928BFC6000CFE98 /* ImageSurfaceView.swift */,
+				D8665D642928BFC6000CFE98 /* module.modulemap */,
+				D8665D622928BFC6000CFE98 /* NativeApplicationService.swift */,
+				D8665D652928BFC6000CFE98 /* NativeInputService.swift */,
+				D8665D632928BFC6000CFE98 /* NativeUIService.swift */,
+				D8665D86292A6392000CFE98 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D8665D86292A6392000CFE98 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXProject section */
+		D8665D5B2928BC28000CFE98 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1410;
+			};
+			buildConfigurationList = D8665D5E2928BC28000CFE98 /* Build configuration list for PBXProject "MacOSPlatform" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D8665D5A2928BC28000CFE98;
+			productRefGroup = D8665D86292A6392000CFE98 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		D8665D5F2928BC28000CFE98 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		D8665D602928BC28000CFE98 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D8665D5E2928BC28000CFE98 /* Build configuration list for PBXProject "MacOSPlatform" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D8665D5F2928BC28000CFE98 /* Debug */,
+				D8665D602928BC28000CFE98 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D8665D5B2928BC28000CFE98 /* Project object */;
+}

@@ -1,0 +1,27 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.100
+
+    - name: Generate coverage report Unit Tests
+      run: |
+        ./RunUnitTests.ps1
+        
+    - name: Codecov Unit Tests
+      uses: codecov/codecov-action@v3.1.1
+      with:
+        file: ./coverage/lcov-PathTracer.UnitTests.info
+

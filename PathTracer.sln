@@ -1,21 +1,32 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30114.105
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33103.201
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathTracer.Console", "PathTracer.Console\PathTracer.Console.csproj", "{49ECCF4C-143D-46A0-A436-C929CF75BB9F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PathTracer.Console", "src\PathTracer.Console\PathTracer.Console.csproj", "{49ECCF4C-143D-46A0-A436-C929CF75BB9F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathTracer.Core", "PathTracer.Core\PathTracer.Core.csproj", "{00847C94-DF2B-4987-98E1-10A52238A128}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PathTracer.Core", "src\PathTracer.Core\PathTracer.Core.csproj", "{00847C94-DF2B-4987-98E1-10A52238A128}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathTracer.Core.UnitTests", "PathTracer.Core.UnitTests\PathTracer.Core.UnitTests.csproj", "{16270DFE-487C-4AE8-A401-50439C98F758}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PathTracer.Core.UnitTests", "tests\PathTracer.Core.UnitTests\PathTracer.Core.UnitTests.csproj", "{16270DFE-487C-4AE8-A401-50439C98F758}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PathTracer.Core.PerformanceTests", "tests\PathTracer.Core.PerformanceTests\PathTracer.Core.PerformanceTests.csproj", "{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CD198F86-5306-499F-8976-898ED811E270}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PathTracer", "src\PathTracer\PathTracer.csproj", "{07CC2888-94EC-45D5-B74E-1FBAFAD91737}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PathTracer.Platform", "src\PathTracer.Platform\PathTracer.Platform.csproj", "{8FC3381A-0F0D-4CBB-99E4-61084CD0BB5E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PathTracer.SourceGenerators", "src\PathTracer.SourceGenerators\PathTracer.SourceGenerators.csproj", "{B2603D4E-2D6A-4CC1-B817-77C418C88D72}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{3BBB1D06-752D-4230-9E9D-AB577587D28A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathTracer.UI", "src\PathTracer.UI\PathTracer.UI.csproj", "{E9293158-9ADE-4B7B-93FF-7F5EAF7DFB4F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{49ECCF4C-143D-46A0-A436-C929CF75BB9F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -30,5 +41,38 @@ Global
 		{16270DFE-487C-4AE8-A401-50439C98F758}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{16270DFE-487C-4AE8-A401-50439C98F758}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{16270DFE-487C-4AE8-A401-50439C98F758}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07CC2888-94EC-45D5-B74E-1FBAFAD91737}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07CC2888-94EC-45D5-B74E-1FBAFAD91737}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07CC2888-94EC-45D5-B74E-1FBAFAD91737}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07CC2888-94EC-45D5-B74E-1FBAFAD91737}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8FC3381A-0F0D-4CBB-99E4-61084CD0BB5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FC3381A-0F0D-4CBB-99E4-61084CD0BB5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FC3381A-0F0D-4CBB-99E4-61084CD0BB5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FC3381A-0F0D-4CBB-99E4-61084CD0BB5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2603D4E-2D6A-4CC1-B817-77C418C88D72}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2603D4E-2D6A-4CC1-B817-77C418C88D72}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2603D4E-2D6A-4CC1-B817-77C418C88D72}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2603D4E-2D6A-4CC1-B817-77C418C88D72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9293158-9ADE-4B7B-93FF-7F5EAF7DFB4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9293158-9ADE-4B7B-93FF-7F5EAF7DFB4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9293158-9ADE-4B7B-93FF-7F5EAF7DFB4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9293158-9ADE-4B7B-93FF-7F5EAF7DFB4F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{49ECCF4C-143D-46A0-A436-C929CF75BB9F} = {CD198F86-5306-499F-8976-898ED811E270}
+		{00847C94-DF2B-4987-98E1-10A52238A128} = {CD198F86-5306-499F-8976-898ED811E270}
+		{16270DFE-487C-4AE8-A401-50439C98F758} = {3BBB1D06-752D-4230-9E9D-AB577587D28A}
+		{B5D0D3AE-DA2B-4B50-9674-06E90CE8E160} = {3BBB1D06-752D-4230-9E9D-AB577587D28A}
+		{07CC2888-94EC-45D5-B74E-1FBAFAD91737} = {CD198F86-5306-499F-8976-898ED811E270}
+		{8FC3381A-0F0D-4CBB-99E4-61084CD0BB5E} = {CD198F86-5306-499F-8976-898ED811E270}
+		{B2603D4E-2D6A-4CC1-B817-77C418C88D72} = {CD198F86-5306-499F-8976-898ED811E270}
+		{E9293158-9ADE-4B7B-93FF-7F5EAF7DFB4F} = {CD198F86-5306-499F-8976-898ED811E270}
 	EndGlobalSection
 EndGlobal
