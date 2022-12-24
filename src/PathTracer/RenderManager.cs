@@ -12,7 +12,9 @@ public class RenderManager : IRenderManager
 
     private Task? _fileRenderingTask;
     private Task? _fullResolutionRenderingTask = null;
-    private bool _isFullResolutionRenderComplete = false;
+    private bool _isFullResolutionRenderComplete = true;
+    private bool _computeNewHighRes = false;
+    private int _resetRenderFrameCount = 0;
 
     private TextureImage _textureImage;
     private TextureImage _fullResolutionTextureImage;
@@ -30,7 +32,7 @@ public class RenderManager : IRenderManager
         _camera = new Camera();
     }
 
-    public TextureImage CurrentTextureImage => _isFullResolutionRenderComplete ? _fullResolutionTextureImage : _textureImage;
+    public TextureImage CurrentTextureImage => !_computeNewHighRes && _isFullResolutionRenderComplete ? _fullResolutionTextureImage : _textureImage;
     public bool IsFileRenderingActive => !_fileRenderingTask?.IsCompleted ?? false;
     public DateTime LastRenderTime { get; private set; }
     public long RenderDuration { get; private set; }
@@ -50,6 +52,7 @@ public class RenderManager : IRenderManager
         // TODO: Handle scene changes
         if (camera != _camera || scene.HasChanged)
         {
+            Console.WriteLine("Render LowRes");
             _renderStopwatch.Restart();
             _renderer.Render(_textureImage, scene, camera);
             _renderStopwatch.Stop();
@@ -60,13 +63,18 @@ public class RenderManager : IRenderManager
             RenderDuration = _renderStopwatch.ElapsedMilliseconds;
 
             // TODO: Cancel task when possible
-            _isFullResolutionRenderComplete = false;
-            _fullResolutionRenderingTask = null;
+            _computeNewHighRes = true; 
+            _resetRenderFrameCount = 0;
         }
-        else if (_fullResolutionRenderingTask == null && _isFullResolutionRenderComplete == false)
+        
+        if (_fullResolutionRenderingTask == null && _isFullResolutionRenderComplete == true && _computeNewHighRes == true && _resetRenderFrameCount > 5)
         {
+            _computeNewHighRes = false;
+            _isFullResolutionRenderComplete = false;
+
             _fullResolutionRenderingTask = new Task(() =>
             {
+                Console.WriteLine("Render HighRes");
                 _renderStopwatch.Restart();
                 _renderer.Render(_fullResolutionTextureImage, scene, camera);
                 _renderStopwatch.Stop();
@@ -88,6 +96,7 @@ public class RenderManager : IRenderManager
         }
 
         _camera = camera;
+        _resetRenderFrameCount++;
     }
 
     public void RenderToImage(RenderSettings renderSettings, Scene scene, Camera camera)

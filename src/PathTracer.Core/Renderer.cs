@@ -51,22 +51,39 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
     private static Vector4 PixelShader(Vector2 pixelCoordinates, RayGenerator rayGenerator, Scene scene)
     {
         var ray = rayGenerator.GenerateRay(pixelCoordinates);
-        var payload = TraceRay(scene, ray);
+        var color = Vector3.Zero;
+        var multiplier = 1.0f;
 
-        if (payload.HitDistance < 0.0f)
-        {
-            return new Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+        for (var i = 0; i < 2; i ++)
+        {   
+            var payload = TraceRay(scene, ray);
+
+            if (payload.HitDistance < 0.0f)
+            {
+                var skyColor = new Vector3(0.0f, 0.0f, 0.0f);
+                color += skyColor * multiplier;
+                break;
+            }
+
+            // Remap the normal to color space
+            //return new Vector4(0.5f * (normal + new Vector3(1, 1, 1)), 1.0f);
+
+            // Compute light
+            var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
+            var light = MathF.Max(Vector3.Dot(payload.WorldNormal, -lightDirection), 0.0f);
+            var sphere = scene.Spheres[payload.ObjectIndex];
+
+            color += light * sphere.Albedo * multiplier;
+            multiplier *= 0.7f;
+
+            ray = ray with
+            {
+                Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f,
+                Direction = Vector3.Reflect(ray.Direction, payload.WorldNormal)
+            };
         }
 
-        // Remap the normal to color space
-        //return new Vector4(0.5f * (normal + new Vector3(1, 1, 1)), 1.0f);
-
-        // Compute light
-        var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
-        var light = MathF.Max(Vector3.Dot(payload.WorldNormal, -lightDirection), 0.0f);
-        var sphere = scene.Spheres[payload.ObjectIndex];
-
-        return new Vector4(light * sphere.Albedo, 1.0f);
+        return new Vector4(color, 1.0f); 
     }
 
     private static RayHitPayload TraceRay(Scene scene, Ray ray)

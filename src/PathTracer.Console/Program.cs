@@ -25,12 +25,27 @@ var outputImage = new FileImage
 var imageWriter = new FileImageWriter();
 var renderer = new Renderer<FileImage, string>(imageWriter);
 
+var scene = new Scene();
+
+scene.Spheres.Add(new Sphere()
+{
+    Position = new Vector3(0.0f, 0.0f, 0.0f),
+    Radius = 0.5f,
+    Albedo = new Vector3(1.0f, 1.0f, 0.0f)
+});
+
+scene.Spheres.Add(new Sphere()
+{
+    Position = new Vector3(1.0f, 0.0f, 5.0f),
+    Radius = 1.5f,
+    Albedo = new Vector3(0.0f, 0.2f, 1.0f)
+});
 
 // Rendering
 var stopwatch = new Stopwatch();
 stopwatch.Start();
 
-renderer.Render(outputImage, camera);
+renderer.Render(outputImage, scene, camera);
 renderer.CommitImage(outputImage, outputPath);
 
 stopwatch.Stop();

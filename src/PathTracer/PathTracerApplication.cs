@@ -63,8 +63,8 @@ public class PathTracerApplication
         
         _commandList = _graphicsService.CreateCommandList(_graphicsDevice);
 
-        _scene = new Scene();
         _camera = new Camera();
+        _scene = new Scene();
 
         _scene.Spheres.Add(new Sphere()
         {
