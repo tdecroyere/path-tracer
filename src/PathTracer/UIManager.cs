@@ -80,6 +80,7 @@ public class UIManager : IUIManager
             _uiService.Text($"Last render duration: {renderStatistics.RenderDuration} ms");
             _uiService.Text($"Last render time: {renderStatistics.LastRenderTime}");
             _uiService.Text($"Allocated manager memory: {Utils.ConvertBytesToMegaBytes(renderStatistics.AllocatedManagedMemory)} MB");
+            _uiService.Text($"CPU Usage: {renderStatistics.CpuUsage} percent");
             _uiService.Text($"GC count: Gen0={renderStatistics.GCGen0Count}, Gen1={renderStatistics.GCGen1Count}, Gen2={renderStatistics.GCGen2Count}");
             _uiService.NewLine();
         }
@@ -98,8 +99,8 @@ public class UIManager : IUIManager
 
                 var position = sphere.Position;
                 var radius = sphere.Radius;
-                var albedo = sphere.Albedo;
-
+                var materialIndex = (float)sphere.MaterialIndex;
+             
                 if (_uiService.DragFloat3("Position", ref position))
                 {
                     sphere.Position = position;
@@ -114,10 +115,43 @@ public class UIManager : IUIManager
                     scene.HasChanged = true;
                 }
 
+                if (_uiService.DragFloat("MaterialIndex", ref materialIndex))
+                {
+                    sphere.MaterialIndex = (int)materialIndex;
+                    scene.Spheres[i] = sphere;
+                    scene.HasChanged = true;
+                }
+
+                _uiService.Separator();
+                _uiService.PopId();
+            }
+
+            for (var i = 0; i < scene.Materials.Count; i++)
+            {
+                _uiService.PushId(i.ToString());
+
+                // TODO: Can we do something better here?
+                var material = scene.Materials[i];
+
+                var albedo = material.Albedo;
+                var roughness = material.Roughness;
+                var metallic = material.Metallic;
+
                 if (_uiService.ColorEdit3("Albedo", ref albedo))
                 {
-                    sphere.Albedo = albedo;
-                    scene.Spheres[i] = sphere;
+                    scene.Materials[i] = material with { Albedo = albedo };
+                    scene.HasChanged = true;
+                }
+                
+                if (_uiService.DragFloat("Roughness", ref roughness))
+                {
+                    scene.Materials[i] = material with { Roughness = roughness };
+                    scene.HasChanged = true;
+                }
+                
+                if (_uiService.DragFloat("Metallic", ref metallic))
+                {
+                    scene.Materials[i] = material with { Metallic = metallic };
                     scene.HasChanged = true;
                 }
 

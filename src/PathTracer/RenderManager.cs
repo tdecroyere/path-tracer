@@ -15,6 +15,7 @@ public class RenderManager : IRenderManager
     private bool _isFullResolutionRenderComplete = true;
     private bool _computeNewHighRes = false;
     private int _resetRenderFrameCount = 0;
+    private int _renderFrameCount = 0;
 
     private TextureImage _textureImage;
     private TextureImage _fullResolutionTextureImage;
@@ -32,7 +33,7 @@ public class RenderManager : IRenderManager
         _camera = new Camera();
     }
 
-    public TextureImage CurrentTextureImage => !_computeNewHighRes && _isFullResolutionRenderComplete ? _fullResolutionTextureImage : _textureImage;
+    public TextureImage CurrentTextureImage => _renderFrameCount > 0 ? _fullResolutionTextureImage : _textureImage;
     public bool IsFileRenderingActive => !_fileRenderingTask?.IsCompleted ?? false;
     public DateTime LastRenderTime { get; private set; }
     public long RenderDuration { get; private set; }
@@ -65,6 +66,7 @@ public class RenderManager : IRenderManager
             // TODO: Cancel task when possible
             _computeNewHighRes = true; 
             _resetRenderFrameCount = 0;
+            _renderFrameCount = 0;
         }
         
         if (_fullResolutionRenderingTask == null && _isFullResolutionRenderComplete == true && _computeNewHighRes == true && _resetRenderFrameCount > 5)
@@ -89,6 +91,10 @@ public class RenderManager : IRenderManager
             _isFullResolutionRenderComplete = true;
             _fullResolutionRenderingTask = null;
             LastRenderTime = DateTime.Now;
+            _renderFrameCount++;
+            
+            // If accumulate
+            _computeNewHighRes = true;
 
             _graphicsService.ResetCommandList(commandList);
             _renderer.CommitImage(_fullResolutionTextureImage, commandList);

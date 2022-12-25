@@ -2,6 +2,7 @@ namespace PathTracer.Core;
 
 public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where TImage : IImage
 {
+    private static readonly Random _random = new Random();
     private readonly IImageWriter<TImage, TParameter> _imageWriter;
 
     public Renderer(IImageWriter<TImage, TParameter> imageWriter)
@@ -54,13 +55,13 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
         var color = Vector3.Zero;
         var multiplier = 1.0f;
 
-        for (var i = 0; i < 2; i ++)
+        for (var i = 0; i < 5; i ++)
         {   
             var payload = TraceRay(scene, ray);
 
             if (payload.HitDistance < 0.0f)
             {
-                var skyColor = new Vector3(0.0f, 0.0f, 0.0f);
+                var skyColor = new Vector3(0.6f, 0.7f, 0.9f);
                 color += skyColor * multiplier;
                 break;
             }
@@ -71,19 +72,28 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
             // Compute light
             var lightDirection = new Vector3(1.0f, -1.0f, 1.0f);
             var light = MathF.Max(Vector3.Dot(payload.WorldNormal, -lightDirection), 0.0f);
-            var sphere = scene.Spheres[payload.ObjectIndex];
 
-            color += light * sphere.Albedo * multiplier;
-            multiplier *= 0.7f;
+            var sphere = scene.Spheres[payload.ObjectIndex];
+            var material = scene.Materials[sphere.MaterialIndex];
+
+            color += light * material.Albedo * multiplier;
+            multiplier *= 0.4f;
 
             ray = ray with
             {
                 Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f,
-                Direction = Vector3.Reflect(ray.Direction, payload.WorldNormal)
+                Direction = Vector3.Reflect(ray.Direction, payload.WorldNormal + material.Roughness * GetRandomVector())
             };
         }
 
         return new Vector4(color, 1.0f); 
+    }
+
+    private static Vector3 GetRandomVector()
+    {
+        // TODO: Change the way we compute random values
+        // It is really slow for now
+        return new Vector3(_random.NextSingle() - 0.5f, _random.NextSingle() - 0.5f, _random.NextSingle() - 0.5f);
     }
 
     private static RayHitPayload TraceRay(Scene scene, Ray ray)

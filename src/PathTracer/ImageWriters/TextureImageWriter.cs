@@ -14,7 +14,8 @@ public class TextureImageWriter : IImageWriter<TextureImage, CommandList>
     {
         var pixelRowIndex = (image.Height - 1 - y) * image.Width;
 
-        pixel = GammaCorrect(pixel);
+        // TODO: Investigate this
+        //pixel = GammaCorrect(pixel);
         pixel = Vector4.Clamp(pixel * 255.0f, Vector4.Zero, new Vector4(255.0f));
 
         image.ImageData.Span[pixelRowIndex + x] = (uint)pixel.W << 24 | (uint)pixel.Z << 16 | (uint)pixel.Y << 8 | (uint)pixel.X;

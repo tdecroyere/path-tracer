@@ -28,7 +28,7 @@ public class FileImageWriter : IImageWriter<FileImage, string>
             {
                 var pixel = image.ImageData.Span[i * image.Width + j];
 
-                pixel = GammaCorrect(pixel);
+                //pixel = GammaCorrect(pixel);
                 pixel = Vector4.Clamp(pixel * 255.0f, Vector4.Zero, new Vector4(255.0f));
             
                 outputImage[j, i] = new Rgb24((byte)pixel.X, (byte)pixel.Y, (byte)pixel.Z);

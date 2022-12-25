@@ -63,21 +63,37 @@ public class PathTracerApplication
         
         _commandList = _graphicsService.CreateCommandList(_graphicsDevice);
 
-        _camera = new Camera();
+        _camera = new Camera()
+        {
+            Position = new Vector3(0.0f, 0.0f, -6.0f)
+        };
+
         _scene = new Scene();
+
+        _scene.Materials.Add(new Material()
+        {
+            Albedo = new Vector3(1.0f, 1.0f, 0.0f),
+            Roughness = 0.0f
+        });
+        
+        _scene.Materials.Add(new Material()
+        {
+            Albedo = new Vector3(0.0f, 0.2f, 1.0f),
+            Roughness = 0.1f
+        });
 
         _scene.Spheres.Add(new Sphere()
         {
             Position = new Vector3(0.0f, 0.0f, 0.0f),
-            Radius = 0.5f,
-            Albedo = new Vector3(1.0f, 1.0f, 0.0f)
+            Radius = 1.0f,
+            MaterialIndex = 0 
         });
         
         _scene.Spheres.Add(new Sphere()
         {
-            Position = new Vector3(1.0f, 0.0f, 5.0f),
-            Radius = 1.5f,
-            Albedo = new Vector3(0.0f, 0.2f, 1.0f)
+            Position = new Vector3(0.0f, -101.0f, 0.0f),
+            Radius = 100.0f,
+            MaterialIndex = 1
         });
 
         _commandManager.RegisterCommandHandler<RenderCommand>((renderCommand) => _renderManager.RenderToImage(renderCommand.RenderSettings, _scene, _camera));
@@ -156,6 +172,7 @@ public class PathTracerApplication
         _renderStatistics.RenderWidth = _renderManager.CurrentTextureImage.Width;
         _renderStatistics.RenderHeight = _renderManager.CurrentTextureImage.Height;
         _renderStatistics.AllocatedManagedMemory = GC.GetTotalMemory(false);
+        _renderStatistics.CpuUsage = _frameTimer.CpuUsage;
         _renderStatistics.GCGen0Count = GC.CollectionCount(0);
         _renderStatistics.GCGen1Count = GC.CollectionCount(1);
         _renderStatistics.GCGen0Count = GC.CollectionCount(2);
