@@ -55,6 +55,7 @@ public class RenderManager : IRenderManager
         {
             Console.WriteLine("Render LowRes");
             _renderStopwatch.Restart();
+            _textureImage.FrameCount = 1;
             _renderer.Render(_textureImage, scene, camera);
             _renderStopwatch.Stop();
             _graphicsService.ResetCommandList(commandList);
@@ -67,6 +68,7 @@ public class RenderManager : IRenderManager
             _computeNewHighRes = true; 
             _resetRenderFrameCount = 0;
             _renderFrameCount = 0;
+            _fullResolutionTextureImage.FrameCount = 0;
         }
         
         if (_fullResolutionRenderingTask == null && _isFullResolutionRenderComplete == true && _computeNewHighRes == true && _resetRenderFrameCount > 5)
@@ -74,9 +76,10 @@ public class RenderManager : IRenderManager
             _computeNewHighRes = false;
             _isFullResolutionRenderComplete = false;
 
+            _fullResolutionTextureImage.FrameCount++;
             _fullResolutionRenderingTask = new Task(() =>
             {
-                Console.WriteLine("Render HighRes");
+                Console.WriteLine($"Render HighRes {_fullResolutionTextureImage.FrameCount}");
                 _renderStopwatch.Restart();
                 _renderer.Render(_fullResolutionTextureImage, scene, camera);
                 _renderStopwatch.Stop();
@@ -91,8 +94,12 @@ public class RenderManager : IRenderManager
             _isFullResolutionRenderComplete = true;
             _fullResolutionRenderingTask = null;
             LastRenderTime = DateTime.Now;
-            _renderFrameCount++;
-            
+
+            if (_resetRenderFrameCount > 5)
+            {
+                _renderFrameCount++;
+            }
+
             // If accumulate
             _computeNewHighRes = true;
 
@@ -151,6 +158,7 @@ public class RenderManager : IRenderManager
         var gpuTexture = _graphicsService.CreateTexture(graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Sampled, TextureType.Texture2D);
 
         var imageData = new uint[width * height];
+        var accumulationData = new Vector4[width * height];
 
         return textureImage with
         {
@@ -158,7 +166,8 @@ public class RenderManager : IRenderManager
             Height = height,
             CpuTexture = cpuTexture,
             GpuTexture = gpuTexture,
-            ImageData = imageData
+            ImageData = imageData,
+            AccumulationData = accumulationData
         };
     }
 }

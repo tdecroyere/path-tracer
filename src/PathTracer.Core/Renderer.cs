@@ -24,8 +24,6 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
         //for (var i = 0; i < imageHeight; i++)
         Parallel.For(0, imageHeight, (i) =>
         {
-            var pixelRowIndex = (imageHeight - 1 - i) * imageWidth;
-
             for (var j = 0; j < imageWidth; j++)
             {
                 var u = (float)j / imageWidth;
@@ -37,7 +35,7 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
                 pixelCoordinates = pixelCoordinates * 2.0f - new Vector2(1.0f, 1.0f);
 
                 var color = PixelShader(pixelCoordinates, rayGenerator, scene);
-                color = Vector4.Clamp(color, Vector4.Zero, new Vector4(1.0f));
+                //color = Vector4.Clamp(color, Vector4.Zero, new Vector4(1.0f));
 
                 _imageWriter.StorePixel(image, j, i, color);
             }
