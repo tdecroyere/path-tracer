@@ -3,7 +3,7 @@ namespace PathTracer;
 public interface IRenderManager
 {
     TextureImage CurrentTextureImage { get; }
-    bool IsFileRenderingActive { get; }
+    int FileRenderingProgression { get; }
     DateTime LastRenderTime { get; }
     long RenderDuration { get; }
 

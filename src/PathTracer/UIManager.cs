@@ -189,14 +189,15 @@ public class UIManager : IUIManager
 
             _uiService.NewLine();
 
-            if (_uiService.Button("Render", renderStatistics.IsFileRenderingActive ? ControlStyles.Disabled : ControlStyles.None))
+            if (_uiService.Button("Render", renderStatistics.FileRenderingProgression < 100 ? ControlStyles.Disabled : ControlStyles.None))
             {
                 _commandManager.SendCommand(new RenderCommand() { RenderSettings = _renderSettings });
             }
 
-            if (renderStatistics.IsFileRenderingActive)
+            if (renderStatistics.FileRenderingProgression < 100)
             {
                 _uiService.Text("Rendering...");
+                _uiService.Progressbar(renderStatistics.FileRenderingProgression / 100.0f);
             }
         }
     }

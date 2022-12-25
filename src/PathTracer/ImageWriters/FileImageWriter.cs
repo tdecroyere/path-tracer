@@ -14,7 +14,19 @@ public class FileImageWriter : IImageWriter<FileImage, string>
 
     public void StorePixel(FileImage image, int x, int y, Vector4 pixel)
     {
+        // TODO: Move the logic to accumulation in the renderer
         var pixelRowIndex = (image.Height - 1 - y) * image.Width;
+        
+        if (image.FrameCount == 1)
+        {
+            image.AccumulationData.Span[pixelRowIndex + x] = Vector4.Zero;
+        }
+
+        image.AccumulationData.Span[pixelRowIndex + x] += pixel;
+
+        var accumulatedColor = image.AccumulationData.Span[pixelRowIndex + x];
+        pixel = accumulatedColor / image.FrameCount;
+        
         image.ImageData.Span[pixelRowIndex + x] = pixel;
     }
 

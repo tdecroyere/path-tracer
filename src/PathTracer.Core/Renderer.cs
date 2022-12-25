@@ -35,8 +35,6 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
                 pixelCoordinates = pixelCoordinates * 2.0f - new Vector2(1.0f, 1.0f);
 
                 var color = PixelShader(pixelCoordinates, rayGenerator, scene);
-                //color = Vector4.Clamp(color, Vector4.Zero, new Vector4(1.0f));
-
                 _imageWriter.StorePixel(image, j, i, color);
             }
         });

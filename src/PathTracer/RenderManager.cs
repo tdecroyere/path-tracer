@@ -29,12 +29,14 @@ public class RenderManager : IRenderManager
         _renderer = renderer;
         _fileRenderer = fileRenderer;
 
+        FileRenderingProgression = 100;
+
         _renderStopwatch = new Stopwatch();
         _camera = new Camera();
     }
 
     public TextureImage CurrentTextureImage => _renderFrameCount > 0 ? _fullResolutionTextureImage : _textureImage;
-    public bool IsFileRenderingActive => !_fileRenderingTask?.IsCompleted ?? false;
+    public int FileRenderingProgression { get; private set; }
     public DateTime LastRenderTime { get; private set; }
     public long RenderDuration { get; private set; }
 
@@ -100,8 +102,11 @@ public class RenderManager : IRenderManager
                 _renderFrameCount++;
             }
 
-            // If accumulate
-            _computeNewHighRes = true;
+            // If accumulate 
+            if (_fullResolutionTextureImage.FrameCount < 50)
+            {
+                _computeNewHighRes = true;
+            }
 
             _graphicsService.ResetCommandList(commandList);
             _renderer.CommitImage(_fullResolutionTextureImage, commandList);
@@ -114,6 +119,8 @@ public class RenderManager : IRenderManager
 
     public void RenderToImage(RenderSettings renderSettings, Scene scene, Camera camera)
     {
+        const int iterationCount = 50;
+
         if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
         {
             _fileRenderingTask = new Task(() =>
@@ -126,7 +133,8 @@ public class RenderManager : IRenderManager
                 {
                     Width = width,
                     Height = height,
-                    ImageData = new Vector4[width * height]
+                    ImageData = new Vector4[width * height],
+                    AccumulationData = new Vector4[width * height]
                 };
 
                 var fileCamera = camera with
@@ -134,7 +142,17 @@ public class RenderManager : IRenderManager
                     AspectRatio = (float)width / height
                 };
 
-                _fileRenderer.Render(outputImage, scene, fileCamera);
+                FileRenderingProgression = 0;
+
+                for (var i = 0; i < iterationCount; i++)
+                {
+                    outputImage.FrameCount++;
+                    _fileRenderer.Render(outputImage, scene, fileCamera);
+                    FileRenderingProgression = (int)((float)i / iterationCount * 100);
+                }
+
+                FileRenderingProgression = 100;
+
                 _fileRenderer.CommitImage(outputImage, outputPath);
             });
 

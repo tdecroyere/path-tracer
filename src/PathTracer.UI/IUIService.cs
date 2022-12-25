@@ -37,4 +37,6 @@ public interface IUIService
     bool BeginCombo(string label, string previewValue);
     void EndCombo();
     bool Selectable(string text, bool isSelected = false);
+    
+    void Progressbar(float value);
 }

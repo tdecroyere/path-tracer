@@ -81,6 +81,7 @@ public class ImGuiUIService : IUIService
         }
 
         ImGui.End();
+        //ImGui.ShowDemoWindow();
         _imGuiBackend.Render();
 
         var imGuiDrawData = ImGui.GetDrawData();
@@ -234,7 +235,12 @@ public class ImGuiUIService : IUIService
         {
             ImGui.SetItemDefaultFocus();
         }
-
+        
         return result;
+    }
+
+    public void Progressbar(float value)
+    {
+        ImGui.ProgressBar(value, new Vector2(0.0f, 0.0f));
     }
 }

@@ -124,7 +124,7 @@ public class PathTracerApplication
             _graphicsService.PresentSwapChain(_graphicsDevice);
 
             // TODO: Change that: if we have an exception the Completed flag will be true anyway
-            if (_renderManager.IsFileRenderingActive)
+            if (_renderManager.FileRenderingProgression < 100)
             {
                 _renderManager.CheckRenderToImageErrors();
             }
@@ -168,7 +168,7 @@ public class PathTracerApplication
         _renderStatistics.LastRenderTime = _renderManager.LastRenderTime;
         _renderStatistics.CurrentFrameTime = (long)(_frameTimer.DeltaTime * 1000.0f);
         _renderStatistics.FramesPerSeconds = _frameTimer.FramesPerSeconds;
-        _renderStatistics.IsFileRenderingActive = _renderManager.IsFileRenderingActive;
+        _renderStatistics.FileRenderingProgression = _renderManager.FileRenderingProgression;
         _renderStatistics.RenderWidth = _renderManager.CurrentTextureImage.Width;
         _renderStatistics.RenderHeight = _renderManager.CurrentTextureImage.Height;
         _renderStatistics.AllocatedManagedMemory = GC.GetTotalMemory(false);
