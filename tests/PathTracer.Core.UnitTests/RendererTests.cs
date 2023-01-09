@@ -77,6 +77,6 @@ public class RendererTests
         _sut.Render(_mockImage, _scene, _camera with { Position = Vector3.Zero });
 
         // Assert
-        _mockImageWriter.Received(100 * 100).StorePixel(_mockImage, Arg.Any<int>(), Arg.Any<int>(), new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+        _mockImageWriter.Received(100 * 100).StorePixel(_mockImage, Arg.Any<int>(), Arg.Any<int>(), new Vector4(0.6f, 0.7f, 0.9f, 1.0f));
     }
 }

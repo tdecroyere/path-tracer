@@ -27,18 +27,30 @@ var renderer = new Renderer<FileImage, string>(imageWriter);
 
 var scene = new Scene();
 
-scene.Spheres.Add(new Sphere()
+scene.Materials.Add(new Material()
 {
-    Position = new Vector3(0.0f, 0.0f, 0.0f),
-    Radius = 0.5f,
-    Albedo = new Vector3(1.0f, 1.0f, 0.0f)
+    Albedo = new Vector3(1.0f, 1.0f, 0.0f),
+    Roughness = 0.0f
+});
+
+scene.Materials.Add(new Material()
+{
+    Albedo = new Vector3(0.0f, 0.2f, 1.0f),
+    Roughness = 0.1f
 });
 
 scene.Spheres.Add(new Sphere()
 {
-    Position = new Vector3(1.0f, 0.0f, 5.0f),
-    Radius = 1.5f,
-    Albedo = new Vector3(0.0f, 0.2f, 1.0f)
+    Position = new Vector3(0.0f, 0.0f, 0.0f),
+    Radius = 1.0f,
+    MaterialIndex = 0 
+});
+
+scene.Spheres.Add(new Sphere()
+{
+    Position = new Vector3(0.0f, -101.0f, 0.0f),
+    Radius = 100.0f,
+    MaterialIndex = 1
 });
 
 // Rendering
