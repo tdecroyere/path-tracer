@@ -4,17 +4,16 @@ function RegisterVisualStudioEnvironment
 {
     $registeredVisualStudioVersion = Get-Content -Path Env:VisualStudioVersion -ErrorAction SilentlyContinue
 
-    if (-not($registeredVisualStudioVersion -eq "16.0") -And -not($registeredVisualStudioVersion -eq "17.0"))
+    if (-not($registeredVisualStudioVersion -eq "17.0") -And -not($registeredVisualStudioVersion -eq "17.5"))
     {
         Write-Output "[93mRegistering Visual Studio Environment...[0m"
 
         # TODO: Do something better here
         $vsPath = ""
-        $vs2019ComPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
-        $vs2019ProfPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Professional\VC\Auxiliary\Build\vcvars64.bat"
-        $vs2019EntPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        $vs2019PreviewPath = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Preview\VC\Auxiliary\Build\vcvars64.bat"
-        $vs2022PreviewPath = "C:\Program Files\Microsoft Visual Studio\2022\Preview\VC\Auxiliary\Build\vcvars64.bat"
+        $vs2019ComPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+        $vs2019ProfPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Professional\VC\Auxiliary\Build\vcvars64.bat"
+        $vs2019EntPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        $vs2019PreviewPath = "C:\Program Files (x86)\Microsoft Visual Studio\2022\Preview\VC\Auxiliary\Build\vcvars64.bat"
         
         if (Test-Path -Path $vs2019ComPath)
         {
@@ -39,6 +38,12 @@ function RegisterVisualStudioEnvironment
         if (Test-Path -Path $vs2022PreviewPath)
         {
             $vsPath = $vs2022PreviewPath
+        }
+
+        if ($vsPath -eq "")
+        {
+            Write-Output "No Path found"
+            return
         }
 
         $batchCommand = "`"$vsPath`" > nul & set"

@@ -4,10 +4,12 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
 {
     private static readonly Random _random = new Random();
     private readonly IImageWriter<TImage, TParameter> _imageWriter;
+    private readonly IRandomGenerator _randomGenerator;
 
-    public Renderer(IImageWriter<TImage, TParameter> imageWriter)
+    public Renderer(IImageWriter<TImage, TParameter> imageWriter, IRandomGenerator randomGenerator)
     {
         _imageWriter = imageWriter;
+        _randomGenerator = randomGenerator;
     }
 
     public void Render(TImage image, Scene scene, Camera camera)
@@ -34,10 +36,11 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
                 // Remap pixel coordinates to [-1, 1] range
                 pixelCoordinates = pixelCoordinates * 2.0f - new Vector2(1.0f, 1.0f);
 
-                var color = PixelShader(pixelCoordinates, rayGenerator, scene);
+                var color = PixelShader(pixelCoordinates, _randomGenerator, rayGenerator, scene);
                 _imageWriter.StorePixel(image, j, i, color);
             }
         });
+        //}
     }
 
     public void CommitImage(TImage image, TParameter parameter)
@@ -45,7 +48,7 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
         _imageWriter.CommitImage(image, parameter);
     }
 
-    private static Vector4 PixelShader(Vector2 pixelCoordinates, RayGenerator rayGenerator, Scene scene)
+    private static Vector4 PixelShader(Vector2 pixelCoordinates, IRandomGenerator randomGenerator, RayGenerator rayGenerator, Scene scene)
     {
         var ray = rayGenerator.GenerateRay(pixelCoordinates);
         var color = Vector3.Zero;
@@ -78,18 +81,11 @@ public class Renderer<TImage, TParameter> : IRenderer<TImage, TParameter> where 
             ray = ray with
             {
                 Origin = payload.WorldPosition + payload.WorldNormal * 0.0001f,
-                Direction = Vector3.Reflect(ray.Direction, payload.WorldNormal + material.Roughness * GetRandomVector())
+                Direction = Vector3.Reflect(ray.Direction, payload.WorldNormal + material.Roughness * randomGenerator.GetVector3())
             };
         }
 
         return new Vector4(color, 1.0f); 
-    }
-
-    private static Vector3 GetRandomVector()
-    {
-        // TODO: Change the way we compute random values
-        // It is really slow for now
-        return new Vector3(_random.NextSingle() - 0.5f, _random.NextSingle() - 0.5f, _random.NextSingle() - 0.5f);
     }
 
     private static RayHitPayload TraceRay(Scene scene, Ray ray)

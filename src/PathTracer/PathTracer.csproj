@@ -7,11 +7,11 @@
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AnalysisLevel>latest-All</AnalysisLevel>
 
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">../../Build/$(Configuration)/Windows</OutputPath>
-    <OutputPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">../../Build/$(Configuration)/MacOS/PathTracer.app/Contents/MacOS</OutputPath>
+    <OutputPath>./bin/$(Configuration)/MacOS/$(AssemblyName).app/Contents/MacOS</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>

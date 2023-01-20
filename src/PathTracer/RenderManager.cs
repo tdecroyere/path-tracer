@@ -11,11 +11,11 @@ public class RenderManager : IRenderManager
     private readonly Stopwatch _renderStopwatch;
 
     private Task? _fileRenderingTask;
-    private Task? _fullResolutionRenderingTask = null;
+    private Task? _fullResolutionRenderingTask;
     private bool _isFullResolutionRenderComplete = true;
-    private bool _computeNewHighRes = false;
-    private int _resetRenderFrameCount = 0;
-    private int _renderFrameCount = 0;
+    private bool _computeNewHighRes;
+    private int _resetRenderFrameCount;
+    private int _renderFrameCount;
 
     private TextureImage _textureImage;
     private TextureImage _fullResolutionTextureImage;
@@ -52,6 +52,8 @@ public class RenderManager : IRenderManager
 
     public void RenderScene(CommandList commandList, Scene scene, Camera camera)
     {
+        ArgumentNullException.ThrowIfNull(scene);
+
         // TODO: Handle scene changes
         if (camera != _camera || scene.HasChanged)
         {
@@ -78,6 +80,7 @@ public class RenderManager : IRenderManager
             _computeNewHighRes = false;
             _isFullResolutionRenderComplete = false;
 
+            // TODO: Use a cancelation token here
             _fullResolutionTextureImage.FrameCount++;
             _fullResolutionRenderingTask = new Task(() =>
             {

@@ -5,6 +5,8 @@ serviceCollection.UseNativePlatform();
 serviceCollection.UseGraphicsPlatform();
 serviceCollection.UseUI();
 
+serviceCollection.AddScoped<IRandomGenerator, RandomGenerator>();
+
 serviceCollection.AddScoped<IImageWriter<TextureImage, CommandList>, TextureImageWriter>();
 serviceCollection.AddScoped<IRenderer<TextureImage, CommandList>, Renderer<TextureImage, CommandList>>();
 serviceCollection.AddScoped<IImageWriter<FileImage, string>, FileImageWriter>();
