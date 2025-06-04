@@ -23,7 +23,7 @@ var outputImage = new FileImage
 };
 
 var imageWriter = new FileImageWriter();
-var renderer = new Renderer<FileImage, string>(imageWriter);
+var renderer = new Renderer<FileImage, string>(imageWriter, new RandomGenerator());
 
 var scene = new Scene();
 

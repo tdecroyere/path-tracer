@@ -20,7 +20,7 @@ public class RendererTests
         _camera = new Camera();
         _scene = new Scene();
 
-        _sut = new Renderer<IImage, TestParameter>(_mockImageWriter);
+        _sut = new Renderer<IImage, TestParameter>(_mockImageWriter, new RandomGenerator());
     }
 
     [Theory]
