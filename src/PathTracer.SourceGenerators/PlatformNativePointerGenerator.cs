@@ -9,8 +9,8 @@ namespace PathTracer.SourceGenerators;
 
 record PlatformNativePointerToGenerate
 {
-    public required string? Namespace { get; init; }
-    public required string StructName { get; init; }
+    public string? Namespace { get; set; }
+    public string StructName { get; set; }
 }
 
 [Generator]

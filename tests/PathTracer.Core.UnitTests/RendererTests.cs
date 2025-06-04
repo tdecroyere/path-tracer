@@ -11,12 +11,14 @@ public class RendererTests
     private readonly IImage _mockImage;
     private readonly IImageWriter<IImage, TestParameter> _mockImageWriter;
     private readonly Camera _camera;
+    private readonly Scene _scene;
 
     public RendererTests()
     {
         _mockImage = Substitute.For<IImage>();
         _mockImageWriter = Substitute.For<IImageWriter<IImage, TestParameter>>();
         _camera = new Camera();
+        _scene = new Scene();
 
         _sut = new Renderer<IImage, TestParameter>(_mockImageWriter);
     }
@@ -31,7 +33,7 @@ public class RendererTests
         _mockImage.Height.Returns(imageHeight);
 
         // Act
-        var action = () => { _sut.Render(_mockImage, _camera); };
+        var action = () => { _sut.Render(_mockImage, _scene, _camera); };
 
         // Assert
         Assert.Throws<ArgumentOutOfRangeException>(action);
@@ -45,7 +47,7 @@ public class RendererTests
         _mockImage.Height.Returns(100);
 
         // Act
-        _sut.Render(_mockImage, _camera);
+        _sut.Render(_mockImage, _scene, _camera);
 
         // Assert
         _mockImageWriter.Received(100 * 100).StorePixel(_mockImage, Arg.Any<int>(), Arg.Any<int>(), Arg.Any<Vector4>());
@@ -72,9 +74,9 @@ public class RendererTests
         _mockImage.Height.Returns(100);
 
         // Act
-        _sut.Render(_mockImage, _camera with { Position = Vector3.Zero });
+        _sut.Render(_mockImage, _scene, _camera with { Position = Vector3.Zero });
 
         // Assert
-        _mockImageWriter.Received(100 * 100).StorePixel(_mockImage, Arg.Any<int>(), Arg.Any<int>(), new Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+        _mockImageWriter.Received(100 * 100).StorePixel(_mockImage, Arg.Any<int>(), Arg.Any<int>(), new Vector4(0.6f, 0.7f, 0.9f, 1.0f));
     }
 }

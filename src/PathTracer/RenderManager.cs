@@ -11,8 +11,11 @@ public class RenderManager : IRenderManager
     private readonly Stopwatch _renderStopwatch;
 
     private Task? _fileRenderingTask;
-    private Task? _fullResolutionRenderingTask = null;
-    private bool _isFullResolutionRenderComplete = false;
+    private Task? _fullResolutionRenderingTask;
+    private bool _isFullResolutionRenderComplete = true;
+    private bool _computeNewHighRes;
+    private int _resetRenderFrameCount;
+    private int _renderFrameCount;
 
     private TextureImage _textureImage;
     private TextureImage _fullResolutionTextureImage;
@@ -26,12 +29,14 @@ public class RenderManager : IRenderManager
         _renderer = renderer;
         _fileRenderer = fileRenderer;
 
+        FileRenderingProgression = 100;
+
         _renderStopwatch = new Stopwatch();
         _camera = new Camera();
     }
 
-    public TextureImage CurrentTextureImage => _isFullResolutionRenderComplete ? _fullResolutionTextureImage : _textureImage;
-    public bool IsFileRenderingActive => !_fileRenderingTask?.IsCompleted ?? false;
+    public TextureImage CurrentTextureImage => _renderFrameCount > 0 ? _fullResolutionTextureImage : _textureImage;
+    public int FileRenderingProgression { get; private set; }
     public DateTime LastRenderTime { get; private set; }
     public long RenderDuration { get; private set; }
 
@@ -45,13 +50,17 @@ public class RenderManager : IRenderManager
         _fullResolutionTextureImage = CreateOrUpdateTextureImage(graphicsDevice, in _fullResolutionTextureImage, width, height);
     }
 
-    public void RenderScene(CommandList commandList, Camera camera)
+    public void RenderScene(CommandList commandList, Scene scene, Camera camera)
     {
-        if (camera != _camera)
+        ArgumentNullException.ThrowIfNull(scene);
+
+        // TODO: Handle scene changes
+        if (camera != _camera || scene.HasChanged)
         {
-            Console.WriteLine("Render Low Resolution");
+            Console.WriteLine("Render LowRes");
             _renderStopwatch.Restart();
-            _renderer.Render(_textureImage, camera);
+            _textureImage.FrameCount = 1;
+            _renderer.Render(_textureImage, scene, camera);
             _renderStopwatch.Stop();
             _graphicsService.ResetCommandList(commandList);
             _renderer.CommitImage(_textureImage, commandList);
@@ -60,16 +69,24 @@ public class RenderManager : IRenderManager
             RenderDuration = _renderStopwatch.ElapsedMilliseconds;
 
             // TODO: Cancel task when possible
-            _isFullResolutionRenderComplete = false;
-            _fullResolutionRenderingTask = null;
+            _computeNewHighRes = true; 
+            _resetRenderFrameCount = 0;
+            _renderFrameCount = 0;
+            _fullResolutionTextureImage.FrameCount = 0;
         }
-        else if (_fullResolutionRenderingTask == null && _isFullResolutionRenderComplete == false)
+        
+        if (_fullResolutionRenderingTask == null && _isFullResolutionRenderComplete == true && _computeNewHighRes == true && _resetRenderFrameCount > 5)
         {
+            _computeNewHighRes = false;
+            _isFullResolutionRenderComplete = false;
+
+            // TODO: Use a cancelation token here
+            _fullResolutionTextureImage.FrameCount++;
             _fullResolutionRenderingTask = new Task(() =>
             {
-                Console.WriteLine("Render Full Resolution");
+                Console.WriteLine($"Render HighRes {_fullResolutionTextureImage.FrameCount}");
                 _renderStopwatch.Restart();
-                _renderer.Render(_fullResolutionTextureImage, camera);
+                _renderer.Render(_fullResolutionTextureImage, scene, camera);
                 _renderStopwatch.Stop();
                 RenderDuration = _renderStopwatch.ElapsedMilliseconds;
             });
@@ -83,16 +100,30 @@ public class RenderManager : IRenderManager
             _fullResolutionRenderingTask = null;
             LastRenderTime = DateTime.Now;
 
+            if (_resetRenderFrameCount > 5)
+            {
+                _renderFrameCount++;
+            }
+
+            // If accumulate 
+            if (_fullResolutionTextureImage.FrameCount < 50)
+            {
+                _computeNewHighRes = true;
+            }
+
             _graphicsService.ResetCommandList(commandList);
             _renderer.CommitImage(_fullResolutionTextureImage, commandList);
             _graphicsService.SubmitCommandList(commandList);
         }
 
         _camera = camera;
+        _resetRenderFrameCount++;
     }
 
-    public void RenderToImage(RenderSettings renderSettings, Camera camera)
+    public void RenderToImage(RenderSettings renderSettings, Scene scene, Camera camera)
     {
+        const int iterationCount = 50;
+
         if (_fileRenderingTask == null || _fileRenderingTask.IsCompleted)
         {
             _fileRenderingTask = new Task(() =>
@@ -105,7 +136,8 @@ public class RenderManager : IRenderManager
                 {
                     Width = width,
                     Height = height,
-                    ImageData = new Vector4[width * height]
+                    ImageData = new Vector4[width * height],
+                    AccumulationData = new Vector4[width * height]
                 };
 
                 var fileCamera = camera with
@@ -113,7 +145,17 @@ public class RenderManager : IRenderManager
                     AspectRatio = (float)width / height
                 };
 
-                _fileRenderer.Render(outputImage, fileCamera);
+                FileRenderingProgression = 0;
+
+                for (var i = 0; i < iterationCount; i++)
+                {
+                    outputImage.FrameCount++;
+                    _fileRenderer.Render(outputImage, scene, fileCamera);
+                    FileRenderingProgression = (int)((float)i / iterationCount * 100);
+                }
+
+                FileRenderingProgression = 100;
+
                 _fileRenderer.CommitImage(outputImage, outputPath);
             });
 
@@ -137,6 +179,7 @@ public class RenderManager : IRenderManager
         var gpuTexture = _graphicsService.CreateTexture(graphicsDevice, width, height, 1, 1, 1, TextureFormat.Rgba8UnormSrgb, TextureUsage.Sampled, TextureType.Texture2D);
 
         var imageData = new uint[width * height];
+        var accumulationData = new Vector4[width * height];
 
         return textureImage with
         {
@@ -144,7 +187,8 @@ public class RenderManager : IRenderManager
             Height = height,
             CpuTexture = cpuTexture,
             GpuTexture = gpuTexture,
-            ImageData = imageData
+            ImageData = imageData,
+            AccumulationData = accumulationData
         };
     }
 }

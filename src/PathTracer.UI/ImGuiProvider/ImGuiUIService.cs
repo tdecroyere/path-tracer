@@ -81,6 +81,7 @@ public class ImGuiUIService : IUIService
         }
 
         ImGui.End();
+        //ImGui.ShowDemoWindow();
         _imGuiBackend.Render();
 
         var imGuiDrawData = ImGui.GetDrawData();
@@ -123,6 +124,16 @@ public class ImGuiUIService : IUIService
     {
         return ImGui.GetContentRegionAvail();
     }
+    
+    public void PushId(string id)
+    {
+        ImGui.PushID(id);
+    }
+
+    public void PopId()
+    {
+        ImGui.PopID();
+    }
 
     public bool CollapsingHeader(string text, bool isVisibleByDefault)
     {
@@ -144,6 +155,11 @@ public class ImGuiUIService : IUIService
     public void NewLine()
     {
         ImGui.NewLine();
+    }
+
+    public void Separator()
+    {
+        ImGui.Separator();
     }
 
     public void Image(Texture texture, int width, int height)
@@ -186,6 +202,21 @@ public class ImGuiUIService : IUIService
         return ImGui.InputText(label, ref text, (uint)maxLength);
     }
 
+    public bool DragFloat3(string label, ref Vector3 value, float increment)
+    {
+        return ImGui.DragFloat3(label, ref value, increment);
+    }
+
+    public bool DragFloat(string label, ref float value, float increment)
+    {
+        return ImGui.DragFloat(label, ref value, increment);
+    }
+    
+    public bool ColorEdit3(string label, ref Vector3 value)
+    {
+        return ImGui.ColorEdit3(label, ref value);
+    }
+
     public bool BeginCombo(string label, string previewValue)
     {
         return ImGui.BeginCombo(label, previewValue);
@@ -204,7 +235,12 @@ public class ImGuiUIService : IUIService
         {
             ImGui.SetItemDefaultFocus();
         }
-
+        
         return result;
+    }
+
+    public void Progressbar(float value)
+    {
+        ImGui.ProgressBar(value, new Vector2(0.0f, 0.0f));
     }
 }

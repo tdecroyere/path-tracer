@@ -22,9 +22,11 @@ public class PathTracerApplication
     private RenderStatistics _renderStatistics;
     private NativeApplicationStatus _appStatus;
     private InputState _inputState;
-    private Camera _camera;
     private NativeWindowSize _currentWindowSize;
     private Vector2 _currentRenderSize;
+
+    private readonly Scene _scene;
+    private Camera _camera;
 
     public PathTracerApplication(INativeApplicationService applicationService,
                                  INativeUIService nativeUIService,
@@ -52,16 +54,49 @@ public class PathTracerApplication
         _inputState = new InputState();
 
         _currentWindowSize = new NativeWindowSize();
-        _camera = new Camera();
         
         _nativeApplication = _applicationService.CreateApplication("Path Tracer");
         _nativeWindow = _nativeUIService.CreateWindow(_nativeApplication, "Path Tracer", _windowWidth, _windowHeight, NativeWindowState.Maximized);
         _graphicsDevice = _graphicsService.CreateDevice(_nativeWindow);
 
         _uiManager.Init(_nativeWindow, _graphicsDevice);
-        _commandManager.RegisterCommandHandler<RenderCommand>((renderCommand) => _renderManager.RenderToImage(renderCommand.RenderSettings, _camera));
         
         _commandList = _graphicsService.CreateCommandList(_graphicsDevice);
+
+        _camera = new Camera()
+        {
+            Position = new Vector3(0.0f, 0.0f, -6.0f)
+        };
+
+        _scene = new Scene();
+
+        _scene.Materials.Add(new Material()
+        {
+            Albedo = new Vector3(1.0f, 1.0f, 0.0f),
+            Roughness = 0.0f
+        });
+        
+        _scene.Materials.Add(new Material()
+        {
+            Albedo = new Vector3(0.0f, 0.2f, 1.0f),
+            Roughness = 0.1f
+        });
+
+        _scene.Spheres.Add(new Sphere()
+        {
+            Position = new Vector3(0.0f, 0.0f, 0.0f),
+            Radius = 1.0f,
+            MaterialIndex = 0 
+        });
+        
+        _scene.Spheres.Add(new Sphere()
+        {
+            Position = new Vector3(0.0f, -101.0f, 0.0f),
+            Radius = 100.0f,
+            MaterialIndex = 1
+        });
+
+        _commandManager.RegisterCommandHandler<RenderCommand>((renderCommand) => _renderManager.RenderToImage(renderCommand.RenderSettings, _scene, _camera));
     }
 
     public void Run()
@@ -76,17 +111,20 @@ public class PathTracerApplication
             _inputService.UpdateInputState(_nativeApplication, ref _inputState);
             _camera = UpdateCamera(_camera, _inputState, _frameTimer.DeltaTime);
 
-            var availableViewportSize = _uiManager.Update(_frameTimer.DeltaTime, _inputState, _renderManager.CurrentTextureImage, _renderStatistics);
+            // TODO: Temporary
+            _scene.HasChanged = false;
+
+            var availableViewportSize = _uiManager.Update(_frameTimer.DeltaTime, _inputState, _renderManager.CurrentTextureImage, _renderStatistics, _scene);
             _commandManager.Update();
 
             CreateRenderTexturesIfNeeded(windowSize, availableViewportSize);
 
-            _renderManager.RenderScene(_commandList, _camera);
+            _renderManager.RenderScene(_commandList, _scene, _camera);
             _uiManager.Render();
             _graphicsService.PresentSwapChain(_graphicsDevice);
 
             // TODO: Change that: if we have an exception the Completed flag will be true anyway
-            if (_renderManager.IsFileRenderingActive)
+            if (_renderManager.FileRenderingProgression < 100)
             {
                 _renderManager.CheckRenderToImageErrors();
             }
@@ -130,10 +168,11 @@ public class PathTracerApplication
         _renderStatistics.LastRenderTime = _renderManager.LastRenderTime;
         _renderStatistics.CurrentFrameTime = (long)(_frameTimer.DeltaTime * 1000.0f);
         _renderStatistics.FramesPerSeconds = _frameTimer.FramesPerSeconds;
-        _renderStatistics.IsFileRenderingActive = _renderManager.IsFileRenderingActive;
+        _renderStatistics.FileRenderingProgression = _renderManager.FileRenderingProgression;
         _renderStatistics.RenderWidth = _renderManager.CurrentTextureImage.Width;
         _renderStatistics.RenderHeight = _renderManager.CurrentTextureImage.Height;
         _renderStatistics.AllocatedManagedMemory = GC.GetTotalMemory(false);
+        _renderStatistics.CpuUsage = _frameTimer.CpuUsage;
         _renderStatistics.GCGen0Count = GC.CollectionCount(0);
         _renderStatistics.GCGen1Count = GC.CollectionCount(1);
         _renderStatistics.GCGen0Count = GC.CollectionCount(2);

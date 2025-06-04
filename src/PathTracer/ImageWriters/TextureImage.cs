@@ -1,6 +1,6 @@
 namespace PathTracer.ImageWriters;
 
-public readonly record struct TextureImage : IImage
+public record struct TextureImage : IImage
 {
     public TextureImage()
     {
@@ -9,6 +9,7 @@ public readonly record struct TextureImage : IImage
         CpuTexture = new Texture();
         GpuTexture = new Texture();
         ImageData = Array.Empty<uint>();
+        AccumulationData = Array.Empty<Vector4>();
     }
 
     public int Width { get; init; }
@@ -16,4 +17,6 @@ public readonly record struct TextureImage : IImage
     public Texture CpuTexture { get; init; }
     public Texture GpuTexture { get; init; }
     public Memory<uint> ImageData { get; init; }
+    public Memory<Vector4> AccumulationData { get; init; }
+    public int FrameCount { get; set; }
 }

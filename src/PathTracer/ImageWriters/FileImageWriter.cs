@@ -6,15 +6,25 @@ namespace PathTracer.ImageWriters;
 
 public class FileImageWriter : IImageWriter<FileImage, string>
 {
-    private const float _gammaCorrection = 1.0f / 2.2f;
-
     public FileImageWriter()
     {
     }
 
     public void StorePixel(FileImage image, int x, int y, Vector4 pixel)
     {
+        // TODO: Move the logic to accumulation in the renderer
         var pixelRowIndex = (image.Height - 1 - y) * image.Width;
+        
+        if (image.FrameCount == 1)
+        {
+            image.AccumulationData.Span[pixelRowIndex + x] = Vector4.Zero;
+        }
+
+        image.AccumulationData.Span[pixelRowIndex + x] += pixel;
+
+        var accumulatedColor = image.AccumulationData.Span[pixelRowIndex + x];
+        pixel = accumulatedColor / image.FrameCount;
+        
         image.ImageData.Span[pixelRowIndex + x] = pixel;
     }
 
@@ -27,8 +37,6 @@ public class FileImageWriter : IImageWriter<FileImage, string>
             for (var j = 0; j < image.Width; j++)
             {
                 var pixel = image.ImageData.Span[i * image.Width + j];
-
-                pixel = GammaCorrect(pixel);
                 pixel = Vector4.Clamp(pixel * 255.0f, Vector4.Zero, new Vector4(255.0f));
             
                 outputImage[j, i] = new Rgb24((byte)pixel.X, (byte)pixel.Y, (byte)pixel.Z);
@@ -38,10 +46,5 @@ public class FileImageWriter : IImageWriter<FileImage, string>
         using var fileStream = new FileStream(outputPath, FileMode.Create);
         var encoder = new PngEncoder();
         encoder.Encode(outputImage, fileStream); 
-    }
-    
-    private static Vector4 GammaCorrect(Vector4 pixel)
-    {
-        return new Vector4(MathF.Pow(pixel.X, _gammaCorrection), MathF.Pow(pixel.Y, _gammaCorrection), MathF.Pow(pixel.Z, _gammaCorrection), pixel.W);
     }
 }

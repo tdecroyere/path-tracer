@@ -36,7 +36,7 @@ public class UIManager : IUIManager
         _uiService.Resize(windowSize);
     }
 
-    public Vector2 Update(float deltaTime, InputState inputState, TextureImage renderImage, RenderStatistics renderStatistics)
+    public Vector2 Update(float deltaTime, InputState inputState, TextureImage renderImage, RenderStatistics renderStatistics, Scene scene)
     {
         _uiService.Update(deltaTime, inputState);
 
@@ -57,6 +57,7 @@ public class UIManager : IUIManager
         if (_uiService.BeginPanel("Inspector"))
         {
             BuildStatistics(renderStatistics);
+            BuildSceneProperties(scene);
             BuildRenderToImage(renderStatistics);
 
             _uiService.EndPanel();
@@ -79,7 +80,85 @@ public class UIManager : IUIManager
             _uiService.Text($"Last render duration: {renderStatistics.RenderDuration} ms");
             _uiService.Text($"Last render time: {renderStatistics.LastRenderTime}");
             _uiService.Text($"Allocated manager memory: {Utils.ConvertBytesToMegaBytes(renderStatistics.AllocatedManagedMemory)} MB");
+            _uiService.Text($"CPU Usage: {renderStatistics.CpuUsage} percent");
             _uiService.Text($"GC count: Gen0={renderStatistics.GCGen0Count}, Gen1={renderStatistics.GCGen1Count}, Gen2={renderStatistics.GCGen2Count}");
+            _uiService.NewLine();
+        }
+    }
+
+    private void BuildSceneProperties(Scene scene)
+    {
+        if (_uiService.CollapsingHeader("Scene"))
+        {
+            for (var i = 0; i < scene.Spheres.Count; i++)
+            {
+                _uiService.PushId(i.ToString());
+
+                // TODO: Can we do something better here?
+                var sphere = scene.Spheres[i];
+
+                var position = sphere.Position;
+                var radius = sphere.Radius;
+                var materialIndex = (float)sphere.MaterialIndex;
+             
+                if (_uiService.DragFloat3("Position", ref position))
+                {
+                    sphere.Position = position;
+                    scene.Spheres[i] = sphere;
+                    scene.HasChanged = true;
+                }
+
+                if (_uiService.DragFloat("Radius", ref radius))
+                {
+                    sphere.Radius = radius;
+                    scene.Spheres[i] = sphere;
+                    scene.HasChanged = true;
+                }
+
+                if (_uiService.DragFloat("MaterialIndex", ref materialIndex))
+                {
+                    sphere.MaterialIndex = (int)materialIndex;
+                    scene.Spheres[i] = sphere;
+                    scene.HasChanged = true;
+                }
+
+                _uiService.Separator();
+                _uiService.PopId();
+            }
+
+            for (var i = 0; i < scene.Materials.Count; i++)
+            {
+                _uiService.PushId(i.ToString());
+
+                // TODO: Can we do something better here?
+                var material = scene.Materials[i];
+
+                var albedo = material.Albedo;
+                var roughness = material.Roughness;
+                var metallic = material.Metallic;
+
+                if (_uiService.ColorEdit3("Albedo", ref albedo))
+                {
+                    scene.Materials[i] = material with { Albedo = albedo };
+                    scene.HasChanged = true;
+                }
+                
+                if (_uiService.DragFloat("Roughness", ref roughness))
+                {
+                    scene.Materials[i] = material with { Roughness = roughness };
+                    scene.HasChanged = true;
+                }
+                
+                if (_uiService.DragFloat("Metallic", ref metallic))
+                {
+                    scene.Materials[i] = material with { Metallic = metallic };
+                    scene.HasChanged = true;
+                }
+
+                _uiService.Separator();
+                _uiService.PopId();
+            }
+
             _uiService.NewLine();
         }
     }
@@ -110,14 +189,15 @@ public class UIManager : IUIManager
 
             _uiService.NewLine();
 
-            if (_uiService.Button("Render", renderStatistics.IsFileRenderingActive ? ControlStyles.Disabled : ControlStyles.None))
+            if (_uiService.Button("Render", renderStatistics.FileRenderingProgression < 100 ? ControlStyles.Disabled : ControlStyles.None))
             {
                 _commandManager.SendCommand(new RenderCommand() { RenderSettings = _renderSettings });
             }
 
-            if (renderStatistics.IsFileRenderingActive)
+            if (renderStatistics.FileRenderingProgression < 100)
             {
                 _uiService.Text("Rendering...");
+                _uiService.Progressbar(renderStatistics.FileRenderingProgression / 100.0f);
             }
         }
     }

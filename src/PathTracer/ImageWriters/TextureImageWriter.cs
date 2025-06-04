@@ -12,10 +12,22 @@ public class TextureImageWriter : IImageWriter<TextureImage, CommandList>
 
     public void StorePixel(TextureImage image, int x, int y, Vector4 pixel)
     {
+        // TODO: Move the logic to accumulation in the renderer
         var pixelRowIndex = (image.Height - 1 - y) * image.Width;
+        
+        if (image.FrameCount == 1)
+        {
+            image.AccumulationData.Span[pixelRowIndex + x] = Vector4.Zero;
+        }
+
+        image.AccumulationData.Span[pixelRowIndex + x] += pixel;
+
+        var accumulatedColor = image.AccumulationData.Span[pixelRowIndex + x];
+        pixel = accumulatedColor / image.FrameCount;
 
         pixel = GammaCorrect(pixel);
-        pixel = Vector4.Clamp(pixel * 255.0f, Vector4.Zero, new Vector4(255.0f));
+        pixel *= 255.0f;
+        pixel = Vector4.Clamp(pixel, Vector4.Zero, new Vector4(255.0f));
 
         image.ImageData.Span[pixelRowIndex + x] = (uint)pixel.W << 24 | (uint)pixel.Z << 16 | (uint)pixel.Y << 8 | (uint)pixel.X;
     }
@@ -25,6 +37,8 @@ public class TextureImageWriter : IImageWriter<TextureImage, CommandList>
         _graphicsService.UpdateTexture<uint>(image.CpuTexture, image.ImageData.Span);
         _graphicsService.CopyTexture(commandList, image.CpuTexture, image.GpuTexture);
     }
+
+    // TODO: Reset Frame Count
 
     private static Vector4 GammaCorrect(Vector4 pixel)
     {
