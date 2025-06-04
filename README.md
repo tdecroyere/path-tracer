@@ -6,7 +6,7 @@ Based on the awesome [The Cherno YouTube Ray Tracing serie](https://www.youtube.
 
 ## Current Features:
 
-- Runs on Windows and MacOS with .NET 7.
+- Runs on Windows and MacOS with .NET 9.
 - Platform independant layer written in C++ for Windows and Swift for MacOS.
 - Use ImGui for UI.
 - Use Veldrid for graphics for now. (Will have native Vulkan, Direct3D and Metal in a later phase)
