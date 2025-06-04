@@ -64,9 +64,9 @@ namespace ResultsComparer
             Option<DirectoryInfo> input = new Option<DirectoryInfo>(
                 new[] { "--input", "-i" }, "Path to the Input folder with BenchmarkDotNet .json files.");
             Option<string> basePattern = new Option<string>(
-                new[] { "--base" }, "Pattern used to search for base results in Input folder. Example: net7.0-preview2");
+                new[] { "--base" }, "Pattern used to search for base results in Input folder. Example: net9.0-preview2");
             Option<string> diffPattern = new Option<string>(
-                new[] { "--diff" }, "Pattern used to search for diff results in Input folder. Example: net7.0-preview3");
+                new[] { "--diff" }, "Pattern used to search for diff results in Input folder. Example: net9.0-preview3");
             Option<bool> printStats = new Option<bool>(
                 new[] { "--stats" }, () => true, "Prints summary per Architecture, Namespace and Operating System.");
             Option<bool> ratioOnly = new Option<bool>(
